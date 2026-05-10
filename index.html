@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#18a999" />
+    <title>사주 로또 추천기</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=stores-v4" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-labelledby="app-title">
+        <div>
+          <p class="eyebrow">Lucky Ritual Lab</p>
+          <h1 id="app-title">사주 로또 추천기</h1>
+          <p class="hero-copy">번호, 시간, 방향, 개운 루틴까지 한 번에 보는 나만의 행운 리포트</p>
+        </div>
+        <div class="data-badge">
+          <span>최신 회차</span>
+          <strong id="latestDraw">-</strong>
+        </div>
+      </section>
+
+      <section class="notice">
+        <strong>모든 조합의 1등 확률은 같습니다.</strong>
+        <span>
+          이 앱은 과거 통계와 간이 사주 점수로 조합을 고르는 추천 도구이며,
+          당첨을 보장하지 않습니다.
+        </span>
+      </section>
+
+      <section class="workspace">
+        <aside class="control-panel" aria-label="추천 조건">
+          <form id="settingsForm">
+            <div class="field-group">
+              <div class="label-row">
+                <label for="birthDate">생년월일</label>
+                <button class="help-button" type="button" data-help="사주 팔자의 년주·월주·일주를 계산하는 기준입니다. 현재 버전은 절입일을 근사해 월령을 잡습니다.">?</button>
+              </div>
+              <input id="birthDate" name="birthDate" type="date" value="1990-01-01" />
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="birthTime">출생시각</label>
+                  <button class="help-button" type="button" data-help="시주는 장간·십성·오행 분포에 영향을 줍니다. 모를 때는 정오 기준으로 계산하고, 시주 가중치는 빼지 않고 보수적으로 낮춰 봅니다.">?</button>
+                </div>
+                <input id="birthTime" name="birthTime" type="time" value="09:00" />
+              </div>
+              <label class="check-row">
+                <input id="unknownTime" name="unknownTime" type="checkbox" />
+                <span>시각 모름</span>
+              </label>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="sajuWeight">사주 반영</label>
+                <button class="help-button" type="button" data-help="전체 추천 점수에서 사주 오행·용신 후보가 차지하는 비중입니다. 높일수록 개인 명리 성향이 강해지고, 낮출수록 과거 당첨 통계와 균형 조건을 더 봅니다.">?</button>
+              </div>
+              <div class="range-line">
+                <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="70" value="38" />
+                <output id="sajuWeightOut" for="sajuWeight">38%</output>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="recentWindow">최근 흐름</label>
+                  <button class="help-button" type="button" data-help="최근 몇 회차를 따로 보며 출현 빈도를 계산할지 정합니다. 20회는 민감하고, 50회는 기본 균형, 100회는 완만한 추세, 200회는 약 4년치 장기 흐름을 보려는 선택입니다.">?</button>
+                </div>
+                <select id="recentWindow" name="recentWindow">
+                  <option value="20">20회</option>
+                  <option value="50" selected>50회</option>
+                  <option value="100">100회</option>
+                  <option value="200">200회</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="setCount">추천 세트</label>
+                  <button class="help-button" type="button" data-help="최종으로 보여줄 조합 개수입니다. 서로 너무 비슷한 조합은 줄이고, 번호가 4개 이상 겹치지 않도록 먼저 골라냅니다.">?</button>
+                </div>
+                <input id="setCount" name="setCount" type="number" min="1" max="10" value="5" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="interpretationMode">해석 모드</label>
+                <button class="help-button" type="button" data-help="중화 보완형은 부족한 오행과 신강·신약 균형을 봅니다. 재성 강화형은 금전 테마인 재성·식상 흐름을 더 봅니다. 조후 균형형은 월령의 차갑고 뜨거운 계절감을 보완합니다.">?</button>
+              </div>
+              <select id="interpretationMode" name="interpretationMode">
+                <option value="balance" selected>중화 보완형</option>
+                <option value="wealth">재성 강화형</option>
+                <option value="climate">조후 균형형</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="minScore">추천점수 필터</label>
+                <button class="help-button" type="button" data-help="추천점수가 이 값 이상인 조합만 보여줍니다. 기본값 90은 품질 관문을 많이 통과한 후보만 보겠다는 뜻입니다. 0이면 필터를 끕니다.">?</button>
+              </div>
+              <input id="minScore" name="minScore" type="number" min="0" max="100" step="0.5" value="90" />
+            </div>
+
+            <label class="check-row option-check">
+              <input id="topOnly" name="topOnly" type="checkbox" />
+              <span>가장 높은 점수부터 보기</span>
+              <button class="help-button" type="button" data-help="후보는 여러 개 탐색하되, 다양성보다 점수를 우선해 추천 세트 개수만큼 최고점 후보를 보여줍니다. 체크 해제 시에는 서로 너무 비슷한 조합을 줄여 보여줍니다.">?</button>
+            </label>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="seedText">개인 키워드</label>
+                <button class="help-button" type="button" data-help="같은 사주 조건에서도 추천 조합을 살짝 다르게 만드는 개인 시드입니다. 이름, 별명, 오늘의 기분 같은 짧은 단어를 넣을 수 있어요.">?</button>
+              </div>
+              <input id="seedText" name="seedText" type="text" maxlength="32" placeholder="선택 입력" />
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="homeLocation">사는 곳 / 자주 가는 동네</label>
+                <button class="help-button" type="button" data-help="구매 루틴에서 지도 검색 기준으로 쓰입니다. 실제 판매점 영업 정보는 지도와 동행복권 판매점 조회에서 최신 정보로 확인합니다.">?</button>
+              </div>
+              <input id="homeLocation" name="homeLocation" type="text" maxlength="40" placeholder="예: 서울 성수동" />
+            </div>
+
+            <div class="field-row">
+              <button id="useLocation" class="ghost-action" type="button">
+                <span aria-hidden="true">⌖</span>
+                현재 위치
+              </button>
+              <div class="field-group inline-field">
+                <div class="label-row">
+                  <label for="walkRange">이동 범위</label>
+                  <button class="help-button" type="button" data-help="판매점 검색을 얼마나 넓게 볼지 정하는 감각적 기준입니다. 가까운 루틴을 원하면 가볍게, 선택지를 넓히려면 조금 멀리를 고르세요.">?</button>
+                </div>
+                <select id="walkRange" name="walkRange">
+                  <option value="800">가볍게</option>
+                  <option value="1500" selected>동네 한 바퀴</option>
+                  <option value="3000">조금 멀리</option>
+                </select>
+              </div>
+            </div>
+            <p id="locationStatus" class="helper-text">위치 권한 없이도 동네명으로 추천할 수 있어요.</p>
+
+            <button class="primary-action" type="submit">
+              <span aria-hidden="true">↻</span>
+              추천 생성
+            </button>
+          </form>
+
+          <div class="mini-panel">
+            <h2>사주 오행</h2>
+            <div id="elementBars" class="element-bars"></div>
+          </div>
+        </aside>
+
+        <section class="main-panel">
+          <div class="summary-grid">
+            <div class="metric">
+              <span>데이터</span>
+              <strong id="dataCount">-</strong>
+            </div>
+            <div class="metric">
+              <span>최신 번호</span>
+              <strong id="latestNumbers">-</strong>
+            </div>
+            <div class="metric">
+              <span>1등 확률</span>
+              <strong>1 / 8,145,060</strong>
+            </div>
+          </div>
+
+          <section class="recommendation-area" aria-labelledby="recommend-title">
+            <div class="section-heading">
+              <div class="heading-with-help">
+                <h2 id="recommend-title">추천 조합</h2>
+                <button class="help-button" type="button" data-help="최근 중복은 추천 조합 6개 중 직전 회차 당첨번호와 겹치는 개수입니다. 같은 번호가 바로 또 나올 수는 있지만, 앱은 3개 이상 겹치는 조합을 낮게 평가합니다.">?</button>
+              </div>
+              <p id="scoreSummary">통계와 사주 점수를 계산 중입니다.</p>
+            </div>
+            <div id="recommendations" class="recommendations"></div>
+          </section>
+
+          <section class="saju-grid" aria-label="명리 분석">
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>명리 분석</h2>
+                <p id="sajuCaption">일간, 월령, 장간, 십성 기반</p>
+              </div>
+              <div id="sajuReading" class="saju-reading"></div>
+            </div>
+
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>번호 연결</h2>
+                <p>오행 균형을 번호 점수로 변환</p>
+              </div>
+              <div id="mappingReading" class="mapping-reading"></div>
+            </div>
+          </section>
+
+          <section class="ritual-grid" aria-label="구매 루틴">
+            <div class="analysis-panel ritual-panel">
+              <div class="section-heading compact">
+                <h2>구매 루틴</h2>
+                <p id="ritualCaption">위치와 사주 흐름을 함께 반영</p>
+              </div>
+              <div id="purchaseReading" class="purchase-reading"></div>
+            </div>
+
+            <div class="analysis-panel ritual-panel">
+              <div class="section-heading compact">
+                <h2>개운 키트</h2>
+                <p>색상, 의상, 음식, 소품 추천</p>
+              </div>
+              <div id="luckyKit" class="lucky-kit"></div>
+            </div>
+          </section>
+
+          <section class="analysis-grid" aria-label="통계 분석">
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>번호 열지도</h2>
+                <p id="heatmapCaption">전체 회차 기준 출현 빈도</p>
+              </div>
+              <div id="numberHeatmap" class="number-heatmap"></div>
+            </div>
+
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>핫 앤 콜드</h2>
+                <p id="hotColdCaption">최근 회차와 전체 회차를 함께 반영</p>
+              </div>
+              <div class="rank-columns">
+                <div>
+                  <h3>Hot</h3>
+                  <ol id="hotList" class="rank-list"></ol>
+                </div>
+                <div>
+                  <h3>Cold</h3>
+                  <ol id="coldList" class="rank-list"></ol>
+                </div>
+              </div>
+              <div id="patternReport" class="pattern-report"></div>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <div id="helpPopover" class="help-popover" hidden></div>
+
+    <script src="data/lotto-results.js?v=stores-v4"></script>
+    <script src="app.js?v=stores-v4"></script>
+  </body>
+</html>

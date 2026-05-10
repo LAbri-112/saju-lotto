@@ -1,0 +1,19 @@
+{
+  "name": "사주 로또 추천기",
+  "short_name": "행운로또",
+  "description": "사주, 통계, 위치, 개운 루틴을 함께 반영하는 로또 6/45 추천 앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff9f4",
+  "theme_color": "#18a999",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

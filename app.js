@@ -1,0 +1,1705 @@
+(function () {
+  const dataset = window.LOTTO_RESULTS;
+  const draws = dataset?.draws ?? [];
+  const latest = draws.at(-1);
+
+  const elements = {
+    wood: { label: "목", color: "#4f8f45" },
+    fire: { label: "화", color: "#cf5a3d" },
+    earth: { label: "토", color: "#d99a20" },
+    metal: { label: "금", color: "#6a7471" },
+    water: { label: "수", color: "#2f68b1" },
+  };
+
+  const elementKeys = ["wood", "fire", "earth", "metal", "water"];
+  const generates = {
+    wood: "fire",
+    fire: "earth",
+    earth: "metal",
+    metal: "water",
+    water: "wood",
+  };
+  const controls = {
+    wood: "earth",
+    earth: "water",
+    water: "fire",
+    fire: "metal",
+    metal: "wood",
+  };
+
+  const stems = [
+    ["갑", "wood"],
+    ["을", "wood"],
+    ["병", "fire"],
+    ["정", "fire"],
+    ["무", "earth"],
+    ["기", "earth"],
+    ["경", "metal"],
+    ["신", "metal"],
+    ["임", "water"],
+    ["계", "water"],
+  ];
+
+  const branches = [
+    ["자", "water"],
+    ["축", "earth"],
+    ["인", "wood"],
+    ["묘", "wood"],
+    ["진", "earth"],
+    ["사", "fire"],
+    ["오", "fire"],
+    ["미", "earth"],
+    ["신", "metal"],
+    ["유", "metal"],
+    ["술", "earth"],
+    ["해", "water"],
+  ];
+
+  const hiddenStems = [
+    [{ stem: 9, weight: 1 }],
+    [
+      { stem: 5, weight: 1 },
+      { stem: 9, weight: 0.55 },
+      { stem: 7, weight: 0.35 },
+    ],
+    [
+      { stem: 0, weight: 1 },
+      { stem: 2, weight: 0.55 },
+      { stem: 4, weight: 0.35 },
+    ],
+    [{ stem: 1, weight: 1 }],
+    [
+      { stem: 4, weight: 1 },
+      { stem: 1, weight: 0.55 },
+      { stem: 9, weight: 0.35 },
+    ],
+    [
+      { stem: 2, weight: 1 },
+      { stem: 6, weight: 0.55 },
+      { stem: 4, weight: 0.35 },
+    ],
+    [
+      { stem: 3, weight: 1 },
+      { stem: 5, weight: 0.55 },
+    ],
+    [
+      { stem: 5, weight: 1 },
+      { stem: 3, weight: 0.55 },
+      { stem: 1, weight: 0.35 },
+    ],
+    [
+      { stem: 6, weight: 1 },
+      { stem: 8, weight: 0.55 },
+      { stem: 4, weight: 0.35 },
+    ],
+    [{ stem: 7, weight: 1 }],
+    [
+      { stem: 4, weight: 1 },
+      { stem: 7, weight: 0.55 },
+      { stem: 3, weight: 0.35 },
+    ],
+    [
+      { stem: 8, weight: 1 },
+      { stem: 0, weight: 0.55 },
+    ],
+  ];
+
+  const pillarWeights = {
+    year: 0.85,
+    month: 1.55,
+    day: 1.15,
+    hour: 0.9,
+  };
+
+  const tenGodLabels = {
+    friend: "비견",
+    rival: "겁재",
+    eating: "식신",
+    hurting: "상관",
+    indirectWealth: "편재",
+    directWealth: "정재",
+    sevenKillings: "편관",
+    directOfficer: "정관",
+    indirectResource: "편인",
+    directResource: "정인",
+  };
+
+  const elementDirections = {
+    wood: { label: "동쪽", angle: 90, vibe: "성장과 시작" },
+    fire: { label: "남쪽", angle: 180, vibe: "확장과 주목" },
+    earth: { label: "중앙·남서쪽", angle: 225, vibe: "안정과 축적" },
+    metal: { label: "서쪽", angle: 270, vibe: "정리와 결실" },
+    water: { label: "북쪽", angle: 0, vibe: "흐름과 직감" },
+  };
+
+  const hourBranches = [
+    { label: "자시", range: "23:00-01:00", branch: 0 },
+    { label: "축시", range: "01:00-03:00", branch: 1 },
+    { label: "인시", range: "03:00-05:00", branch: 2 },
+    { label: "묘시", range: "05:00-07:00", branch: 3 },
+    { label: "진시", range: "07:00-09:00", branch: 4 },
+    { label: "사시", range: "09:00-11:00", branch: 5 },
+    { label: "오시", range: "11:00-13:00", branch: 6 },
+    { label: "미시", range: "13:00-15:00", branch: 7 },
+    { label: "신시", range: "15:00-17:00", branch: 8 },
+    { label: "유시", range: "17:00-19:00", branch: 9 },
+    { label: "술시", range: "19:00-21:00", branch: 10 },
+    { label: "해시", range: "21:00-23:00", branch: 11 },
+  ];
+
+  const luckyCatalog = {
+    wood: {
+      colors: ["세이지 그린", "청록", "밝은 데님"],
+      outfit: "자연스러운 니트나 데님, 세로선이 살아있는 실루엣",
+      item: "나무 질감 키링, 작은 노트, 초록색 카드지갑",
+      food: "샐러드, 파스타, 허브티, 싱싱한 과일",
+    },
+    fire: {
+      colors: ["코랄", "체리 레드", "라이트 핑크"],
+      outfit: "얼굴빛을 살리는 포인트 컬러 상의나 따뜻한 톤의 액세서리",
+      item: "작은 조명, 립밤, 붉은 포인트 파우치",
+      food: "따뜻한 차, 토마토 메뉴, 적당히 매콤한 음식",
+    },
+    earth: {
+      colors: ["버터 옐로", "크림", "라이트 브라운"],
+      outfit: "편안한 셔츠, 안정감 있는 스니커즈, 부드러운 소재",
+      item: "세라믹 컵, 작은 파우치, 네모난 지갑",
+      food: "밥, 단호박, 감자, 고소한 곡물 간식",
+    },
+    metal: {
+      colors: ["화이트", "실버", "쿨 그레이"],
+      outfit: "깔끔한 셔츠, 메탈 시계, 정돈된 단색 스타일",
+      item: "은색 펜, 코인 케이스, 미니 거울",
+      food: "배, 무, 두부, 담백한 국물",
+    },
+    water: {
+      colors: ["블랙", "미드나잇 블루", "아이스 블루"],
+      outfit: "흐르는 핏의 아우터, 어두운 톤 하의, 투명한 소재 포인트",
+      item: "물병, 블루 계열 이어폰 케이스, 투명 파우치",
+      food: "물, 차가운 면 요리, 해조류, 맑은 수프",
+    },
+  };
+
+  const storeCandidates = [
+    {
+      name: "스파",
+      address: "서울 노원구 동일로 1493 주공10단지종합상가111",
+      region: ["서울", "노원구", "상계동"],
+      note: "동행복권 당첨 판매점 목록에 반복 등장하는 서울권 명당 후보",
+      tags: ["전통명당", "상가", "유동인구"],
+      element: "metal",
+      direction: "north",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "로또킹",
+      address: "서울 영등포구 영중로 2 1층(영등포동3가)",
+      region: ["서울", "영등포구", "영등포"],
+      note: "역세권과 상권 흐름이 강한 서울 서남권 후보",
+      tags: ["역세권", "상권", "퇴근길"],
+      element: "water",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "가로판매대",
+      address: "서울 강동구 올림픽로 648 천호역 3번 출구 앞",
+      region: ["서울", "강동구", "천호"],
+      note: "천호역 유동 흐름을 타는 가판형 후보",
+      tags: ["역세권", "가판", "동선"],
+      element: "wood",
+      direction: "east",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "교통카드판매대",
+      address: "서울 강동구 상일로15길 18 1층",
+      region: ["서울", "강동구", "상일동"],
+      note: "최근 회차 1등 배출점 목록에 등장한 동쪽 권역 후보",
+      tags: ["최근등장", "동네형", "자동"],
+      element: "wood",
+      direction: "east",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "캐논종합",
+      address: "서울 용산구 새창로 156 3층 큰길가 오른쪽 네번째칸",
+      region: ["서울", "용산구", "용문동"],
+      note: "중앙권 이동 동선과 맞는 용산권 후보",
+      tags: ["중앙권", "큰길", "이동동선"],
+      element: "earth",
+      direction: "center",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "신공주 로또",
+      address: "서울 마포구 월드컵북로4길 65 1층",
+      region: ["서울", "마포구", "홍대"],
+      note: "젊은 상권과 밤 시간대 흐름이 강한 서북권 후보",
+      tags: ["젊은상권", "도보", "저녁"],
+      element: "fire",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "돈벼락맞는곳",
+      address: "부산 동구 조방로49번길 18-1",
+      region: ["부산", "동구", "범일동"],
+      note: "부산권 당첨 판매점 목록에 등장한 이름부터 강한 후보",
+      tags: ["부산", "재성테마", "동구"],
+      element: "water",
+      direction: "south",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "송천복권방",
+      address: "부산 해운대구 선수촌로 108",
+      region: ["부산", "해운대구", "반여동"],
+      note: "해운대 생활권에서 접근하기 좋은 동네형 후보",
+      tags: ["부산", "동네형", "생활권"],
+      element: "water",
+      direction: "east",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "복권명당(영남점)",
+      address: "대구 달서구 월배로 122",
+      region: ["대구", "달서구", "월배"],
+      note: "대구 달서구권 명당형 후보",
+      tags: ["대구", "명당", "생활권"],
+      element: "earth",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "복권왕국",
+      address: "인천 부평구 경인로 931",
+      region: ["인천", "부평구", "부평"],
+      note: "인천 부평 상권 흐름을 보는 후보",
+      tags: ["인천", "상권", "큰길"],
+      element: "metal",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "성호복권방",
+      address: "대전 대덕구 신일동로 1",
+      region: ["대전", "대덕구", "신일동"],
+      note: "대전권 공식 당첨 판매점 목록에 등장한 후보",
+      tags: ["대전", "동네형", "산업단지"],
+      element: "metal",
+      direction: "center",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "포시즌",
+      address: "경남 김해시 내외중앙로 99 복권판매점",
+      region: ["경남", "김해시", "내외동"],
+      note: "김해권 생활상권 후보",
+      tags: ["경남", "김해", "상권"],
+      element: "wood",
+      direction: "south",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "대박복권방",
+      address: "서울 구로구 개봉로17길 18",
+      region: ["서울", "구로구", "개봉동"],
+      note: "서울 서남권 주거 동선과 맞는 후보",
+      tags: ["서울", "서남권", "주거동선"],
+      element: "earth",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "천하명당로또복권",
+      address: "서울 서대문구 세무서길 12",
+      region: ["서울", "서대문구", "홍제동"],
+      note: "서울 서북권에서 명당 이미지를 가진 후보",
+      tags: ["서울", "서북권", "명당"],
+      element: "metal",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "행운복권방",
+      address: "서울 은평구 서오릉로 10",
+      region: ["서울", "은평구", "녹번동"],
+      note: "은평권 생활동선 후보",
+      tags: ["서울", "은평", "생활권"],
+      element: "wood",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+  ];
+
+  const form = document.querySelector("#settingsForm");
+  const birthDate = document.querySelector("#birthDate");
+  const birthTime = document.querySelector("#birthTime");
+  const unknownTime = document.querySelector("#unknownTime");
+  const recentWindow = document.querySelector("#recentWindow");
+  const sajuWeight = document.querySelector("#sajuWeight");
+  const sajuWeightOut = document.querySelector("#sajuWeightOut");
+  const setCount = document.querySelector("#setCount");
+  const minScore = document.querySelector("#minScore");
+  const topOnly = document.querySelector("#topOnly");
+  const seedText = document.querySelector("#seedText");
+  const interpretationMode = document.querySelector("#interpretationMode");
+  const homeLocation = document.querySelector("#homeLocation");
+  const useLocation = document.querySelector("#useLocation");
+  const walkRange = document.querySelector("#walkRange");
+  const locationStatus = document.querySelector("#locationStatus");
+  const helpPopover = document.querySelector("#helpPopover");
+
+  let generation = 0;
+  let userPosition = null;
+
+  function clamp(value, min = 0, max = 1) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function mod(value, divisor) {
+    return ((value % divisor) + divisor) % divisor;
+  }
+
+  function generatedBy(element) {
+    return elementKeys.find((key) => generates[key] === element);
+  }
+
+  function controlledBy(element) {
+    return elementKeys.find((key) => controls[key] === element);
+  }
+
+  function stemPolarity(stemIndex) {
+    return mod(stemIndex, 2) === 0 ? "yang" : "yin";
+  }
+
+  function polarityLabel(polarity) {
+    return polarity === "yang" ? "양" : "음";
+  }
+
+  function elementLabel(element) {
+    return elements[element].label;
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat("ko-KR").format(value);
+  }
+
+  function formatDay(date) {
+    return new Intl.DateTimeFormat("ko-KR", {
+      weekday: "short",
+      month: "numeric",
+      day: "numeric",
+    }).format(date);
+  }
+
+  function branchForHour(hour) {
+    if (hour === 23) return 0;
+    return mod(Math.floor((hour + 1) / 2), 12);
+  }
+
+  function isLottoSalesWindow(date, hour) {
+    const day = date.getDay();
+    if (hour < 6 || hour >= 24) return false;
+    if (day === 6 && hour >= 20) return false;
+    return true;
+  }
+
+  function buildMapLinks() {
+    const typed = homeLocation.value.trim();
+    const baseQuery = typed || "내 주변";
+    const googleQuery = typed ? `${typed} 로또 판매점` : "로또 판매점";
+    const google = userPosition
+      ? `https://www.google.com/maps/search/${encodeURIComponent("로또 판매점")}/@${userPosition.lat},${userPosition.lng},15z`
+      : `https://www.google.com/maps/search/${encodeURIComponent(googleQuery)}`;
+    const naver = `https://map.naver.com/p/search/${encodeURIComponent(`${baseQuery} 로또 판매점`)}`;
+    const official = "https://www.dhlottery.co.kr/store.do?method=sellerInfo645";
+
+    return { google, naver, official, baseQuery };
+  }
+
+  function meterLabel(value) {
+    if (Number(value) <= 800) return "도보 10분 안쪽";
+    if (Number(value) <= 1500) return "동네 한 바퀴 안쪽";
+    return "생활권 안쪽";
+  }
+
+  function directionKeyForElement(element) {
+    return {
+      wood: "east",
+      fire: "south",
+      earth: "center",
+      metal: "west",
+      water: "north",
+    }[element];
+  }
+
+  function locationScore(store, query) {
+    const normalized = query.replace(/\s+/g, "").toLowerCase();
+    if (!normalized) return 0;
+
+    return store.region.reduce((score, token, index) => {
+      const key = token.replace(/\s+/g, "").toLowerCase();
+      if (!key) return score;
+      if (normalized.includes(key)) return score + [24, 42, 28][index];
+      if (key.includes(normalized)) return score + 18;
+      return score;
+    }, 0);
+  }
+
+  function buildStoreRecommendations(saju) {
+    const query = homeLocation.value.trim();
+    const primary = saju.favored[0];
+    const secondary = saju.favored[1] ?? primary;
+    const wealth = saju.wealthElement;
+    const primaryDirection = directionKeyForElement(primary);
+    const wealthDirection = directionKeyForElement(wealth);
+
+    return storeCandidates
+      .map((store) => {
+        const local = locationScore(store, query);
+        const elementScore =
+          (store.element === primary ? 24 : 0) +
+          (store.element === secondary ? 14 : 0) +
+          (store.element === wealth ? 16 : 0);
+        const directionScore =
+          (store.direction === primaryDirection ? 16 : 0) +
+          (store.direction === wealthDirection ? 10 : 0);
+        const vibeScore =
+          (store.tags.includes("명당") || store.tags.includes("전통명당") ? 8 : 0) +
+          (store.tags.includes("역세권") || store.tags.includes("상권") ? 5 : 0) +
+          (store.tags.includes("동네형") || store.tags.includes("생활권") ? 4 : 0);
+        const fallbackScore = query ? 0 : store.region.includes("서울") ? 8 : 4;
+        const score = local + elementScore + directionScore + vibeScore + fallbackScore;
+        const localReason =
+          local > 0
+            ? "입력한 생활권과 주소권이 맞습니다."
+            : query
+              ? "입력 지역과 직접 일치하지는 않아, 명당성·오행 흐름 중심으로 보조 추천합니다."
+              : "동네를 입력하면 지역 적합도가 더 정교해집니다.";
+
+        return {
+          ...store,
+          score,
+          fit: Math.min(99, Math.round(62 + score * 0.52)),
+          reasons: [
+            localReason,
+            `${elementLabel(store.element)} 기운 판매점으로 ${elementLabel(primary)} 보완 흐름과 ${
+              store.element === primary ? "직접 맞습니다" : "함께 비교할 만합니다"
+            }.`,
+            store.direction === primaryDirection
+              ? "오늘 보완 방향과도 맞아 구매 동선 후보로 좋습니다."
+              : "보완 방향과 다를 때는 추천 시간대를 맞춰 균형을 잡는 쪽이 좋습니다.",
+          ],
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+  }
+
+  function rangeClass(number) {
+    if (number <= 10) return "range-1";
+    if (number <= 20) return "range-2";
+    if (number <= 30) return "range-3";
+    if (number <= 40) return "range-4";
+    return "range-5";
+  }
+
+  function primaryNumberElement(number) {
+    if (number <= 10) return "earth";
+    if (number <= 20) return "water";
+    if (number <= 30) return "fire";
+    if (number <= 40) return "metal";
+    return "wood";
+  }
+
+  function digitElement(number) {
+    const digit = number % 10;
+    if (digit === 1 || digit === 6) return "water";
+    if (digit === 2 || digit === 7) return "fire";
+    if (digit === 3 || digit === 8) return "wood";
+    if (digit === 4 || digit === 9) return "metal";
+    return "earth";
+  }
+
+  function rootElement(number) {
+    const root = number % 5;
+    return ["water", "wood", "fire", "earth", "metal"][root];
+  }
+
+  function numberElementBlend(number) {
+    const blend = Object.fromEntries(elementKeys.map((key) => [key, 0]));
+    blend[primaryNumberElement(number)] += 0.5;
+    blend[digitElement(number)] += 0.32;
+    blend[rootElement(number)] += 0.18;
+    return blend;
+  }
+
+  function normalizeMap(values, transform = (value) => value) {
+    const transformed = values.map((value, index) => {
+      if (index === 0 || value == null) return null;
+      return transform(value);
+    });
+    const usable = transformed.filter((value) => value != null);
+    const min = Math.min(...usable);
+    const max = Math.max(...usable);
+
+    return transformed.map((value) => {
+      if (value == null) return null;
+      if (max === min) return 0.5;
+      return (value - min) / (max - min);
+    });
+  }
+
+  function hashString(value) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function mulberry32(seed) {
+    return function random() {
+      let value = (seed += 0x6d2b79f5);
+      value = Math.imul(value ^ (value >>> 15), value | 1);
+      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildStats(windowSize) {
+    const frequency = Array(46).fill(0);
+    const bonusFrequency = Array(46).fill(0);
+    const recentFrequency = Array(46).fill(0);
+    const lastSeen = Array(46).fill(0);
+    const sums = [];
+    const oddCounts = [];
+    const seenCombos = new Set();
+    const recentDraws = draws.slice(-windowSize);
+
+    for (const draw of draws) {
+      const numbers = [...draw.numbers].sort((a, b) => a - b);
+      const key = numbers.join("-");
+      seenCombos.add(key);
+      sums.push(numbers.reduce((sum, number) => sum + number, 0));
+      oddCounts.push(numbers.filter((number) => number % 2 === 1).length);
+
+      for (const number of numbers) {
+        frequency[number] += 1;
+        lastSeen[number] = draw.draw;
+      }
+      bonusFrequency[draw.bonus] += 1;
+    }
+
+    for (const draw of recentDraws) {
+      for (const number of draw.numbers) {
+        recentFrequency[number] += 1;
+      }
+    }
+
+    const mean = sums.reduce((sum, value) => sum + value, 0) / sums.length;
+    const variance =
+      sums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / sums.length;
+    const oddMean =
+      oddCounts.reduce((sum, value) => sum + value, 0) / Math.max(1, oddCounts.length);
+
+    return {
+      frequency,
+      bonusFrequency,
+      recentFrequency,
+      lastSeen,
+      seenCombos,
+      sumMean: mean,
+      sumStd: Math.sqrt(variance),
+      oddMean,
+      recentWindow: windowSize,
+      latestNumbers: new Set(latest.numbers),
+    };
+  }
+
+  function parseBirth() {
+    const [year, month, day] = (birthDate.value || "1990-01-01")
+      .split("-")
+      .map(Number);
+    const [hour, minute] = (birthTime.value || "12:00").split(":").map(Number);
+
+    return {
+      year: year || 1990,
+      month: month || 1,
+      day: day || 1,
+      hour: unknownTime.checked ? 12 : hour || 0,
+      minute: unknownTime.checked ? 0 : minute || 0,
+      unknownHour: unknownTime.checked,
+    };
+  }
+
+  function makePillar(kind, stemIndex, branchIndex) {
+    const stem = stems[mod(stemIndex, 10)];
+    const branch = branches[mod(branchIndex, 12)];
+    return {
+      kind,
+      name: `${stem[0]}${branch[0]}`,
+      stemName: stem[0],
+      branchName: branch[0],
+      stemIndex: mod(stemIndex, 10),
+      branchIndex: mod(branchIndex, 12),
+      stemElement: stem[1],
+      branchElement: branch[1],
+      polarity: stemPolarity(stemIndex),
+    };
+  }
+
+  function getSolarMonth(birth) {
+    const code = birth.month * 100 + birth.day;
+    if (code >= 1207 || code < 106) return { monthNo: 11, branchIndex: 0, season: "winter" };
+    if (code >= 106 && code < 204) return { monthNo: 12, branchIndex: 1, season: "winter" };
+    if (code >= 204 && code < 306) return { monthNo: 1, branchIndex: 2, season: "spring" };
+    if (code >= 306 && code < 405) return { monthNo: 2, branchIndex: 3, season: "spring" };
+    if (code >= 405 && code < 506) return { monthNo: 3, branchIndex: 4, season: "spring" };
+    if (code >= 506 && code < 606) return { monthNo: 4, branchIndex: 5, season: "summer" };
+    if (code >= 606 && code < 707) return { monthNo: 5, branchIndex: 6, season: "summer" };
+    if (code >= 707 && code < 808) return { monthNo: 6, branchIndex: 7, season: "summer" };
+    if (code >= 808 && code < 908) return { monthNo: 7, branchIndex: 8, season: "autumn" };
+    if (code >= 908 && code < 1008) return { monthNo: 8, branchIndex: 9, season: "autumn" };
+    if (code >= 1008 && code < 1107) return { monthNo: 9, branchIndex: 10, season: "autumn" };
+    return { monthNo: 10, branchIndex: 11, season: "winter" };
+  }
+
+  function tenGod(dayStemIndex, targetStemIndex) {
+    const dayElement = stems[dayStemIndex][1];
+    const targetElement = stems[targetStemIndex][1];
+    const samePolarity = stemPolarity(dayStemIndex) === stemPolarity(targetStemIndex);
+
+    if (targetElement === dayElement) return samePolarity ? "friend" : "rival";
+    if (generates[dayElement] === targetElement) {
+      return samePolarity ? "eating" : "hurting";
+    }
+    if (controls[dayElement] === targetElement) {
+      return samePolarity ? "indirectWealth" : "directWealth";
+    }
+    if (generates[targetElement] === dayElement) {
+      return samePolarity ? "indirectResource" : "directResource";
+    }
+    if (controls[targetElement] === dayElement) {
+      return samePolarity ? "sevenKillings" : "directOfficer";
+    }
+    return "friend";
+  }
+
+  function buildSajuProfile() {
+    const birth = parseBirth();
+    const solarMonth = getSolarMonth(birth);
+    const code = birth.month * 100 + birth.day;
+    const solarYear = code < 204 ? birth.year - 1 : birth.year;
+    const yearIndex = mod(solarYear - 4, 60);
+    const yearStem = mod(yearIndex, 10);
+    const yearBranch = mod(yearIndex, 12);
+    const firstMonthStem = mod((yearStem % 5) * 2 + 2, 10);
+    const monthStem = mod(firstMonthStem + solarMonth.monthNo - 1, 10);
+    const baseDate = Date.UTC(1984, 1, 2);
+    const birthDateUtc = Date.UTC(birth.year, birth.month - 1, birth.day);
+    const dayIndex = mod(Math.round((birthDateUtc - baseDate) / 86400000), 60);
+    const dayStem = mod(dayIndex, 10);
+    const dayBranch = mod(dayIndex, 12);
+    const hourBranch = mod(Math.floor(((birth.hour + 1) % 24) / 2), 12);
+    const hourStem = mod((dayStem % 5) * 2 + hourBranch, 10);
+
+    const pillars = [
+      makePillar("year", yearStem, yearBranch),
+      makePillar("month", monthStem, solarMonth.branchIndex),
+      makePillar("day", dayStem, dayBranch),
+    ];
+
+    if (!birth.unknownHour) {
+      pillars.push(makePillar("hour", hourStem, hourBranch));
+    }
+
+    const counts = {
+      wood: 0,
+      fire: 0,
+      earth: 0,
+      metal: 0,
+      water: 0,
+    };
+    const tenGodCounts = Object.fromEntries(
+      Object.keys(tenGodLabels).map((key) => [key, 0]),
+    );
+
+    for (const pillar of pillars) {
+      const weight = pillarWeights[pillar.kind];
+      counts[pillar.stemElement] += weight;
+      tenGodCounts[tenGod(dayStem, pillar.stemIndex)] += weight;
+
+      for (const hidden of hiddenStems[pillar.branchIndex]) {
+        const element = stems[hidden.stem][1];
+        const hiddenWeight = weight * hidden.weight;
+        counts[element] += hiddenWeight;
+        tenGodCounts[tenGod(dayStem, hidden.stem)] += hiddenWeight;
+      }
+    }
+
+    const dayElement = stems[dayStem][1];
+    const resourceElement = generatedBy(dayElement);
+    const outputElement = generates[dayElement];
+    const wealthElement = controls[dayElement];
+    const officerElement = controlledBy(dayElement);
+    const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+    const support =
+      counts[dayElement] +
+      counts[resourceElement] * 0.82 +
+      (solarMonth.branchIndex === dayBranch ? 0.3 : 0);
+    const pressure =
+      counts[outputElement] * 0.72 +
+      counts[wealthElement] * 0.92 +
+      counts[officerElement] * 0.92;
+    const strengthRatio = support / Math.max(1, support + pressure);
+    const strength =
+      strengthRatio >= 0.56 ? "strong" : strengthRatio <= 0.43 ? "weak" : "balanced";
+    const sortedByLack = elementKeys.slice().sort((a, b) => counts[a] - counts[b]);
+    const usefulScores = Object.fromEntries(elementKeys.map((key) => [key, 0.15]));
+
+    if (strength === "weak") {
+      usefulScores[resourceElement] += 1.05;
+      usefulScores[dayElement] += 0.82;
+    } else if (strength === "strong") {
+      usefulScores[outputElement] += 0.9;
+      usefulScores[wealthElement] += 0.86;
+      usefulScores[officerElement] += 0.72;
+    } else {
+      usefulScores[sortedByLack[0]] += 0.85;
+      usefulScores[sortedByLack[1]] += 0.62;
+      usefulScores[wealthElement] += 0.35;
+    }
+
+    const monthBranch = branches[solarMonth.branchIndex][0];
+    let climateElement = null;
+    if (["해", "자", "축"].includes(monthBranch)) climateElement = "fire";
+    if (["사", "오", "미"].includes(monthBranch)) climateElement = "water";
+    if (["신", "유", "술"].includes(monthBranch)) climateElement = "wood";
+    if (["인", "묘", "진"].includes(monthBranch)) climateElement = "metal";
+    if (climateElement) usefulScores[climateElement] += 0.45;
+
+    if (interpretationMode.value === "wealth") {
+      usefulScores[wealthElement] += 0.72;
+      usefulScores[outputElement] += 0.28;
+    }
+
+    if (interpretationMode.value === "climate" && climateElement) {
+      usefulScores[climateElement] += 0.82;
+    }
+
+    for (const key of sortedByLack.slice(0, 2)) {
+      usefulScores[key] += 0.22;
+    }
+
+    const favored = elementKeys
+      .slice()
+      .sort((a, b) => usefulScores[b] - usefulScores[a])
+      .slice(0, 3);
+    const pillarText = pillars.map((pillar) => pillar.name).join(" ");
+    const topTenGods = Object.entries(tenGodCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([key, value]) => ({ key, label: tenGodLabels[key], value }));
+
+    return {
+      counts,
+      favored,
+      pillarText,
+      birth,
+      pillars,
+      solarYear,
+      solarMonth,
+      dayMaster: {
+        stem: stems[dayStem][0],
+        element: dayElement,
+        polarity: stemPolarity(dayStem),
+      },
+      strength,
+      strengthRatio,
+      usefulScores,
+      topTenGods,
+      monthCommand: {
+        branch: branches[solarMonth.branchIndex][0],
+        element: branches[solarMonth.branchIndex][1],
+        season: solarMonth.season,
+      },
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+      climateElement,
+      calculationNote: "절입일은 앱 내 고정 기준일로 근사 계산",
+    };
+  }
+
+  function buildNumberScores(stats, saju) {
+    const frequencyNorm = normalizeMap(stats.frequency, (value) => value);
+    const recentNorm = normalizeMap(stats.recentFrequency, (value) => value);
+    const bonusNorm = normalizeMap(stats.bonusFrequency, (value) => value);
+    const gapValues = stats.lastSeen.map((drawNo, number) =>
+      number === 0 ? null : latest.draw - drawNo,
+    );
+    const gapNorm = normalizeMap(gapValues, (value) => Math.log1p(value));
+    const weight = Number(sajuWeight.value) / 100;
+    const scores = Array(46).fill(null);
+    const maxUseful = Math.max(...Object.values(saju.usefulScores));
+
+    for (let number = 1; number <= 45; number += 1) {
+      const blend = numberElementBlend(number);
+      const primaryElement = primaryNumberElement(number);
+      const polarityScore =
+        (number % 2 === 1 ? "yang" : "yin") === saju.dayMaster.polarity ? 0.08 : 0;
+      const sajuScore = clamp(
+        elementKeys.reduce((sum, element) => {
+          return sum + blend[element] * (saju.usefulScores[element] / maxUseful);
+        }, 0) + polarityScore,
+      );
+      const statScore =
+        frequencyNorm[number] * 0.4 +
+        recentNorm[number] * 0.27 +
+        gapNorm[number] * 0.2 +
+        bonusNorm[number] * 0.13;
+
+      scores[number] = {
+        number,
+        element: primaryElement,
+        blend,
+        sajuScore,
+        statScore,
+        score: statScore * (1 - weight) + sajuScore * weight,
+      };
+    }
+
+    return scores;
+  }
+
+  function pickWeighted(pool, scores, rng) {
+    const total = pool.reduce((sum, number) => {
+      return sum + Math.max(0.01, scores[number].score) ** 2;
+    }, 0);
+    let roll = rng() * total;
+
+    for (const number of pool) {
+      roll -= Math.max(0.01, scores[number].score) ** 2;
+      if (roll <= 0) return number;
+    }
+
+    return pool.at(-1);
+  }
+
+  function scoreCombination(numbers, scores, stats, saju) {
+    const sum = numbers.reduce((total, number) => total + number, 0);
+    const odd = numbers.filter((number) => number % 2 === 1).length;
+    const low = numbers.filter((number) => number <= 22).length;
+    const maxGroup = [0, 0, 0, 0, 0];
+    const favoredCount = numbers.filter((number) =>
+      saju.favored.includes(primaryNumberElement(number)),
+    ).length;
+
+    for (const number of numbers) {
+      maxGroup[Math.min(4, Math.floor((number - 1) / 10))] += 1;
+    }
+
+    const consecutive = numbers.filter((number, index) => {
+      return index > 0 && number === numbers[index - 1] + 1;
+    }).length;
+
+    const repeatLatest = numbers.filter((number) => stats.latestNumbers.has(number)).length;
+    const numberScore =
+      numbers.reduce((total, number) => total + scores[number].score, 0) / 6;
+    const sumScore = clamp(
+      1 - Math.abs(sum - stats.sumMean) / Math.max(26, stats.sumStd * 1.65),
+    );
+    const oddScore = odd >= 2 && odd <= 4 ? 1 : odd === 1 || odd === 5 ? 0.55 : 0.25;
+    const lowScore = low >= 2 && low <= 4 ? 1 : low === 1 || low === 5 ? 0.58 : 0.25;
+    const spread = numbers.at(-1) - numbers[0];
+    const spreadScore = spread >= 24 && spread <= 39 ? 1 : clamp(1 - Math.abs(spread - 31) / 24);
+    const groupScore = Math.max(...maxGroup) <= 3 ? 1 : 0.52;
+    const repeatScore = repeatLatest <= 2 ? 1 : 0.45;
+    const seenScore = stats.seenCombos.has(numbers.join("-")) ? 0.2 : 1;
+    const consecutiveScore = consecutive <= 2 ? 1 : 0.62;
+    const favoredScore = favoredCount >= 2 && favoredCount <= 4 ? 1 : 0.7;
+    const sectorCoverage = maxGroup.filter((count) => count > 0).length;
+    const sectorScore = sectorCoverage >= 4 ? 1 : sectorCoverage === 3 ? 0.78 : 0.48;
+    const tailDiversity = new Set(numbers.map((number) => number % 10)).size;
+    const tailScore = tailDiversity >= 5 ? 1 : tailDiversity === 4 ? 0.82 : 0.58;
+    const pairSpread = numbers
+      .slice(1)
+      .map((number, index) => number - numbers[index]);
+    const tightPairs = pairSpread.filter((gap) => gap <= 2).length;
+    const spacingScore = tightPairs <= 1 ? 1 : tightPairs === 2 ? 0.76 : 0.48;
+
+    const signalScore =
+      numberScore * 0.42 +
+      sumScore * 0.16 +
+      oddScore * 0.1 +
+      lowScore * 0.08 +
+      spreadScore * 0.08 +
+      groupScore * 0.06 +
+      repeatScore * 0.04 +
+      seenScore * 0.03 +
+      consecutiveScore * 0.02 +
+      favoredScore * 0.01;
+    const gateScore =
+      sumScore * 0.16 +
+      oddScore * 0.13 +
+      lowScore * 0.11 +
+      spreadScore * 0.12 +
+      groupScore * 0.1 +
+      repeatScore * 0.1 +
+      seenScore * 0.08 +
+      consecutiveScore * 0.07 +
+      sectorScore * 0.07 +
+      tailScore * 0.04 +
+      spacingScore * 0.02;
+    const qualityScore = signalScore * 0.56 + gateScore * 0.44;
+
+    return {
+      score: Math.round(qualityScore * 1000) / 10,
+      signalScore: Math.round(signalScore * 1000) / 10,
+      gateScore: Math.round(gateScore * 1000) / 10,
+      sum,
+      odd,
+      even: 6 - odd,
+      low,
+      high: 6 - low,
+      repeatLatest,
+      favoredCount,
+      sectorCoverage,
+      tailDiversity,
+    };
+  }
+
+  function makeCandidate(scores, rng) {
+    const pool = Array.from({ length: 45 }, (_, index) => index + 1);
+    const selected = [];
+
+    while (selected.length < 6) {
+      const picked = pickWeighted(pool, scores, rng);
+      selected.push(picked);
+      pool.splice(pool.indexOf(picked), 1);
+    }
+
+    return selected.sort((a, b) => a - b);
+  }
+
+  function improveCandidate(numbers, scores, stats, saju) {
+    let bestNumbers = [...numbers].sort((a, b) => a - b);
+    let bestMeta = scoreCombination(bestNumbers, scores, stats, saju);
+    const replacementPool = scores
+      .slice(1)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.number);
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      let improved = false;
+
+      for (const current of [...bestNumbers]) {
+        for (const replacement of replacementPool) {
+          if (bestNumbers.includes(replacement)) continue;
+
+          const candidateNumbers = bestNumbers
+            .map((number) => (number === current ? replacement : number))
+            .sort((a, b) => a - b);
+          const candidateMeta = scoreCombination(candidateNumbers, scores, stats, saju);
+
+          if (candidateMeta.score > bestMeta.score + 0.05) {
+            bestNumbers = candidateNumbers;
+            bestMeta = candidateMeta;
+            improved = true;
+            break;
+          }
+        }
+      }
+
+      if (!improved) break;
+    }
+
+    return { numbers: bestNumbers, meta: bestMeta };
+  }
+
+  function overlap(a, b) {
+    const set = new Set(a);
+    return b.filter((number) => set.has(number)).length;
+  }
+
+  function generateRecommendations(stats, scores, saju) {
+    generation += 1;
+    const seed = hashString(
+      [
+        birthDate.value,
+        birthTime.value,
+        unknownTime.checked,
+        recentWindow.value,
+        sajuWeight.value,
+        interpretationMode.value,
+        minScore.value,
+        topOnly.checked,
+        seedText.value,
+        homeLocation.value,
+        walkRange.value,
+        userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
+        generation,
+        Date.now(),
+      ].join("|"),
+    );
+    const rng = mulberry32(seed);
+    const candidateMap = new Map();
+    const scoreFloor = clamp(Number(minScore.value) || 0, 0, 100);
+    const candidateBudget = scoreFloor >= 90 ? 7200 : 2600;
+
+    for (let index = 0; index < candidateBudget; index += 1) {
+      const numbers = makeCandidate(scores, rng);
+      const key = numbers.join("-");
+      if (candidateMap.has(key)) continue;
+      candidateMap.set(key, {
+        numbers,
+        meta: scoreCombination(numbers, scores, stats, saju),
+      });
+    }
+
+    const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const improveCount = scoreFloor >= 90 ? 280 : 120;
+    for (const candidate of preliminary.slice(0, improveCount)) {
+      const improved = improveCandidate(candidate.numbers, scores, stats, saju);
+      candidateMap.set(improved.numbers.join("-"), improved);
+    }
+
+    const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const filtered = ranked.filter((candidate) => candidate.meta.score >= scoreFloor);
+    const target = clamp(Number(setCount.value) || 5, 1, 10);
+    const selected = [];
+
+    if (topOnly.checked) {
+      return {
+        items: filtered.slice(0, target),
+        selectedCount: Math.min(filtered.length, target),
+        candidateCount: ranked.length,
+        filteredCount: filtered.length,
+        highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
+        scoreFloor,
+      };
+    }
+
+    for (const candidate of filtered) {
+      if (selected.every((item) => overlap(item.numbers, candidate.numbers) <= 3)) {
+        selected.push(candidate);
+      }
+      if (selected.length >= target) break;
+    }
+
+    for (const candidate of filtered) {
+      if (selected.length >= target) break;
+      if (!selected.some((item) => item.numbers.join("-") === candidate.numbers.join("-"))) {
+        selected.push(candidate);
+      }
+    }
+
+    return {
+      items: selected,
+      selectedCount: selected.length,
+      candidateCount: ranked.length,
+      filteredCount: filtered.length,
+      highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
+      scoreFloor,
+    };
+  }
+
+  function renderBall(number) {
+    return `<span class="ball ${rangeClass(number)}">${number}</span>`;
+  }
+
+  function renderRecommendations(result) {
+    const container = document.querySelector("#recommendations");
+    const items = result.items ?? result;
+
+    if (!items.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          추천점수 ${result.scoreFloor}점 이상 조건을 만족하는 조합이 없습니다.
+          필터를 낮추거나 추천 세트를 줄여 다시 생성해보세요.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = items
+      .map((item, index) => {
+        const balls = item.numbers.map(renderBall).join("");
+        return `
+          <article class="recommendation-card">
+            <div class="card-head">
+              <div>
+                <strong>${index + 1}번 조합</strong>
+                <div class="card-meta">추천 점수</div>
+              </div>
+              <span class="score-pill">${item.meta.score}</span>
+            </div>
+            <div class="ball-line">${balls}</div>
+            <div class="card-stats">
+              <span class="chip">합 ${item.meta.sum}</span>
+              <span class="chip">홀 ${item.meta.odd} / 짝 ${item.meta.even}</span>
+              <span class="chip">저 ${item.meta.low} / 고 ${item.meta.high}</span>
+              <span class="chip">오행 ${item.meta.favoredCount}</span>
+              <span class="chip">품질관문 ${item.meta.gateScore}</span>
+              <span class="chip" title="직전 회차 당첨번호와 겹치는 개수입니다.">최근중복 ${item.meta.repeatLatest}</span>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  function renderElementBars(saju) {
+    const max = Math.max(...Object.values(saju.counts), 1);
+    const html = Object.entries(elements)
+      .map(([key, element]) => {
+        const value = saju.counts[key];
+        const width = Math.max(8, (value / max) * 100);
+        return `
+          <div class="element-row">
+            <strong>${element.label}</strong>
+            <span class="element-track">
+              <span class="element-fill" style="width:${width}%; background:${element.color}"></span>
+            </span>
+            <span>${value.toFixed(1)}</span>
+          </div>
+        `;
+      })
+      .join("");
+
+    document.querySelector("#elementBars").innerHTML = `${html}
+      <div class="card-meta">간이 명식 ${saju.pillarText}</div>`;
+  }
+
+  function renderTags(items) {
+    return `<div class="tag-line">${items
+      .map((item) => `<span class="element-tag">${item}</span>`)
+      .join("")}</div>`;
+  }
+
+  function renderSajuReading(saju) {
+    const strengthLabel = {
+      weak: "신약",
+      balanced: "중화권",
+      strong: "신강",
+    }[saju.strength];
+    const favored = saju.favored.map((key) => `${elementLabel(key)} 보완`);
+    const topTenGods = saju.topTenGods.map(
+      (item) => `${item.label} ${item.value.toFixed(1)}`,
+    );
+    const pillars = saju.pillars
+      .map((pillar) => {
+        const kind = { year: "년", month: "월", day: "일", hour: "시" }[pillar.kind];
+        return `${kind} ${pillar.name}`;
+      })
+      .join(" · ");
+
+    document.querySelector("#sajuReading").innerHTML = `
+      <div class="reading-row">
+        <span>사주 팔자</span>
+        <strong>${pillars}</strong>
+      </div>
+      <div class="reading-row">
+        <span>일간</span>
+        <p>${saju.dayMaster.stem} ${elementLabel(saju.dayMaster.element)}${polarityLabel(
+          saju.dayMaster.polarity,
+        )} · ${strengthLabel} ${(saju.strengthRatio * 100).toFixed(1)}%</p>
+      </div>
+      <div class="reading-row">
+        <span>월령</span>
+        <p>${saju.monthCommand.branch}월령 ${elementLabel(
+          saju.monthCommand.element,
+        )} 기운 · ${saju.calculationNote}</p>
+      </div>
+      <div class="reading-row">
+        <span>십성</span>
+        ${renderTags(topTenGods)}
+      </div>
+      <div class="reading-row">
+        <span>용신 후보</span>
+        ${renderTags(favored)}
+      </div>
+      <div class="reading-row">
+        <span>재성</span>
+        <p>${elementLabel(saju.wealthElement)} · 로또/금전 테마 모드에서는 이 오행을 추가 가중합니다.</p>
+      </div>
+    `;
+  }
+
+  function renderMappingReading(saju) {
+    const useful = elementKeys
+      .slice()
+      .sort((a, b) => saju.usefulScores[b] - saju.usefulScores[a])
+      .map((key) => `${elementLabel(key)} ${saju.usefulScores[key].toFixed(2)}`);
+    const modeText = {
+      balance: "부족한 오행과 신강·신약 균형을 우선합니다.",
+      wealth: "일간이 극하는 재성 오행과 식상 흐름을 더 봅니다.",
+      climate: "월령 계절감이 차갑거나 뜨거운 정도를 더 봅니다.",
+    }[interpretationMode.value];
+
+    document.querySelector("#mappingReading").innerHTML = `
+      <div class="reading-row">
+        <span>오행 점수</span>
+        ${renderTags(useful)}
+      </div>
+      <div class="reading-row">
+        <span>번호 변환</span>
+        <p>번호대 50%, 끝수 32%, 5분류 순환 18%로 각 번호의 오행 혼합값을 만들고 용신 후보와 대조합니다.</p>
+      </div>
+      <div class="reading-row">
+        <span>음양 보정</span>
+        <p>홀수는 양, 짝수는 음으로 두어 일간 음양과 맞을 때 소폭 보정합니다.</p>
+      </div>
+      <div class="reading-row">
+        <span>해석 모드</span>
+        <p>${modeText}</p>
+      </div>
+    `;
+  }
+
+  function buildPurchaseWindows(saju) {
+    const now = new Date();
+    const maxUseful = Math.max(...Object.values(saju.usefulScores));
+    const windows = [];
+
+    for (let dayOffset = 0; dayOffset < 9; dayOffset += 1) {
+      const date = new Date(now);
+      date.setDate(now.getDate() + dayOffset);
+
+      for (const startHour of [7, 9, 11, 13, 15, 17, 19, 21]) {
+        const candidate = new Date(date);
+        candidate.setHours(startHour, 0, 0, 0);
+        if (candidate <= now) continue;
+        if (!isLottoSalesWindow(candidate, startHour)) continue;
+        if (!isLottoSalesWindow(candidate, Math.min(startHour + 1, 23))) continue;
+
+        const branchIndex = branchForHour(startHour);
+        const element = branches[branchIndex][1];
+        const branchName = branches[branchIndex][0];
+        const useful = saju.usefulScores[element] / maxUseful;
+        const wealthBoost = element === saju.wealthElement ? 0.16 : 0;
+        const favoredBoost = saju.favored.includes(element) ? 0.1 : 0;
+        const deadlinePenalty = candidate.getDay() === 6 && startHour >= 17 ? 0.1 : 0;
+
+        windows.push({
+          date: candidate,
+          branchName,
+          element,
+          score: useful + wealthBoost + favoredBoost - deadlinePenalty,
+          range: `${String(startHour).padStart(2, "0")}:00-${String(startHour + 2).padStart(
+            2,
+            "0",
+          )}:00`,
+        });
+      }
+    }
+
+    return windows.sort((a, b) => b.score - a.score).slice(0, 3);
+  }
+
+  function buildDayWindows(saju, dayOffset) {
+    const now = new Date();
+    const date = new Date(now);
+    date.setDate(now.getDate() + dayOffset);
+    const maxUseful = Math.max(...Object.values(saju.usefulScores));
+    const windows = [];
+
+    for (const startHour of [7, 9, 11, 13, 15, 17, 19, 21]) {
+      const candidate = new Date(date);
+      candidate.setHours(startHour, 0, 0, 0);
+      if (dayOffset === 0 && candidate <= now) continue;
+      if (!isLottoSalesWindow(candidate, startHour)) continue;
+      if (!isLottoSalesWindow(candidate, Math.min(startHour + 1, 23))) continue;
+
+      const branchIndex = branchForHour(startHour);
+      const element = branches[branchIndex][1];
+      const useful = saju.usefulScores[element] / maxUseful;
+      const wealthBoost = element === saju.wealthElement ? 0.18 : 0;
+      const favoredBoost = saju.favored.includes(element) ? 0.12 : 0;
+
+      windows.push({
+        date: candidate,
+        branchName: branches[branchIndex][0],
+        element,
+        score: useful + wealthBoost + favoredBoost,
+        range: `${String(startHour).padStart(2, "0")}:00-${String(startHour + 2).padStart(
+          2,
+          "0",
+        )}:00`,
+      });
+    }
+
+    return windows.sort((a, b) => b.score - a.score);
+  }
+
+  function renderDailyRitual(label, saju, dayOffset) {
+    const windows = buildDayWindows(saju, dayOffset);
+    const primary = saju.favored[0];
+    const wealth = saju.wealthElement;
+    const dayText = dayOffset === 0 ? "오늘" : "내일";
+
+    if (!windows.length) {
+      return `
+        <div class="daily-card">
+          <strong>${label}</strong>
+          <p>${dayText}은 로또 판매 가능 시간 안에서 남은 추천 구간이 부족합니다. 구매보다 번호를 정리하고, ${elementLabel(
+            primary,
+          )} 컬러나 소품을 챙기는 준비 루틴으로 두는 편이 좋아요.</p>
+        </div>
+      `;
+    }
+
+    const best = windows[0];
+    const backup = windows[1] ?? best;
+    const isWealth = best.element === wealth;
+    const isFavored = saju.favored.includes(best.element);
+
+    return `
+      <div class="daily-card">
+        <strong>${label} · ${formatDay(best.date)} ${best.range}</strong>
+        <p>${best.branchName}시의 ${elementLabel(best.element)} 기운을 씁니다. ${
+          isFavored
+            ? `이 시간대는 당신의 보완 오행 후보와 맞아 번호 선택을 마무리하기 좋습니다.`
+            : `보완 오행과 완전히 같지는 않지만, 전체 흐름을 부드럽게 이어주는 시간대입니다.`
+        } ${
+          isWealth
+            ? `특히 재성 오행과 맞기 때문에 구매 행동 자체의 테마가 선명합니다.`
+            : `재성은 ${elementLabel(wealth)}이므로 결제 직전에는 지출 금액을 정해 안정감을 주는 쪽이 좋습니다.`
+        }</p>
+        <p class="mini-note">놓치면 ${backup.range}도 후보입니다. 토요일은 20시 전에 마감되니 늦은 저녁 몰아가기는 피하세요.</p>
+      </div>
+    `;
+  }
+
+  function renderPurchaseReading(saju) {
+    const primary = saju.favored[0];
+    const wealth = saju.wealthElement;
+    const primaryDirection = elementDirections[primary];
+    const wealthDirection = elementDirections[wealth];
+    const place = homeLocation.value.trim() || (userPosition ? "현재 위치" : "입력한 동네");
+    const range = meterLabel(walkRange.value);
+    const stores = buildStoreRecommendations(saju);
+
+    const storeCards = stores
+      .map((store, index) => {
+        const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
+        return `
+          <article class="store-card">
+            <div class="store-rank">${index + 1}</div>
+            <div>
+              <strong>${store.name}</strong>
+              <p>${store.address}</p>
+              <div class="store-tags">
+                <span>적합도 ${store.fit}</span>
+                <span>${elementLabel(store.element)} 기운</span>
+                ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
+              </div>
+              <p class="store-reason">${store.reasons.join(" ")}</p>
+              <a class="map-link" href="${maps}" target="_blank" rel="noreferrer">위치 확인</a>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    document.querySelector("#purchaseReading").innerHTML = `
+      <div class="ritual-card intro-ritual">
+        <strong>${place} 기준 구매 리포트</strong>
+        <p>${elementLabel(primary)} 보완은 ${primaryDirection.label} 방향의 ${
+          primaryDirection.vibe
+        } 흐름으로 봅니다. 재성은 ${elementLabel(wealth)}라서 ${wealthDirection.label} 방향의 ${
+          wealthDirection.vibe
+        }도 함께 봅니다. 이동 범위는 ${range}로 두고, 무리한 원정 대신 생활 동선 안에서 기분 좋게 사는 쪽을 우선합니다.</p>
+      </div>
+      ${renderDailyRitual("오늘의 구매운", saju, 0)}
+      ${renderDailyRitual("내일의 구매운", saju, 1)}
+      <div class="store-section">
+        <div class="store-section-head">
+          <strong>추천 복권집 TOP 3</strong>
+          <span>지역·오행·방향·명당성 종합</span>
+        </div>
+        ${storeCards}
+      </div>
+      <div class="ritual-card">
+        <strong>구매 행동 팁</strong>
+        <p>추천 시간대에 맞춰 도착하고, 매장 앞에서 오래 망설이기보다 미리 고른 번호를 차분히 확인하세요. 예산은 먼저 정하고, 같은 번호를 과하게 반복 구매하지 않는 쪽을 품질 좋은 루틴으로 봅니다.</p>
+      </div>
+    `;
+  }
+
+  function renderLuckyKit(saju) {
+    const picked = saju.favored.slice(0, 2);
+    const colorTags = picked.flatMap((element) =>
+      luckyCatalog[element].colors.map((color) => `${elementLabel(element)} ${color}`),
+    );
+    const main = luckyCatalog[picked[0]];
+    const sub = luckyCatalog[picked[1] ?? picked[0]];
+
+    document.querySelector("#luckyKit").innerHTML = `
+      <div class="kit-card">
+        <strong>오늘의 컬러</strong>
+        ${renderTags(colorTags.slice(0, 6))}
+      </div>
+      <div class="kit-card">
+        <strong>의상</strong>
+        <p>${main.outfit}</p>
+      </div>
+      <div class="kit-card">
+        <strong>아이템</strong>
+        <p>${main.item} 또는 ${sub.item}</p>
+      </div>
+      <div class="kit-card">
+        <strong>음식</strong>
+        <p>${main.food} 중에서 부담 없는 걸 고르세요. 과한 소비보다 기분 좋은 루틴이 핵심입니다.</p>
+      </div>
+    `;
+  }
+
+  function renderHeatmap(stats) {
+    const heatmap = document.querySelector("#numberHeatmap");
+    const heat = normalizeMap(stats.frequency, (value) => value);
+    heatmap.innerHTML = Array.from({ length: 45 }, (_, index) => {
+      const number = index + 1;
+      const freq = stats.frequency[number];
+      const recent = stats.recentFrequency[number];
+      const gap = latest.draw - stats.lastSeen[number];
+      return `<span class="heat ${rangeClass(number)}" style="--heat:${heat[number].toFixed(
+        3,
+      )}" title="${number}번, 전체 ${freq}회, 최근 ${recent}회, 미출현 ${gap}회">${number}</span>`;
+    }).join("");
+  }
+
+  function renderHotCold(stats, scores) {
+    const ranked = scores
+      .slice(1)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.number);
+    const cold = scores
+      .slice(1)
+      .sort((a, b) => {
+        const gapA = latest.draw - stats.lastSeen[a.number];
+        const gapB = latest.draw - stats.lastSeen[b.number];
+        return gapB - gapA || a.score - b.score;
+      })
+      .map((item) => item.number);
+
+    document.querySelector("#hotList").innerHTML = ranked
+      .slice(0, 6)
+      .map((number) => {
+        return `<li>${number} <span>전체 ${stats.frequency[number]}회, 최근 ${stats.recentFrequency[number]}회</span></li>`;
+      })
+      .join("");
+
+    document.querySelector("#coldList").innerHTML = cold
+      .slice(0, 6)
+      .map((number) => {
+        const gap = latest.draw - stats.lastSeen[number];
+        return `<li>${number} <span>${gap}회 미출현, 전체 ${stats.frequency[number]}회</span></li>`;
+      })
+      .join("");
+
+    renderPatternReport(stats);
+  }
+
+  function renderPatternReport(stats) {
+    const sourceLabel =
+      dataset.source === "dhlottery-official-json"
+        ? "동행복권 공식 JSON"
+        : "공개 회차 목록 보조 수집";
+    const recentYears = (stats.recentWindow / 52).toFixed(1);
+
+    document.querySelector("#patternReport").innerHTML = `
+      <div class="pattern-line">
+        <span>API 활용</span>
+        <strong>동행복권 getLottoNumber 형식의 drwNo, drwNoDate, drwtNo1~6, bnusNo를 패턴 분석 기준으로 사용합니다.</strong>
+      </div>
+      <div class="pattern-line">
+        <span>현재 데이터</span>
+        <strong>${sourceLabel} · ${dataset.latestDraw}회(${dataset.latestDate})까지 ${formatNumber(dataset.count)}회</strong>
+      </div>
+      <div class="pattern-line">
+        <span>최근 흐름</span>
+        <strong>${stats.recentWindow}회는 약 ${recentYears}년치입니다. 200회는 단기 출렁임을 줄이고 장기 흐름을 같이 보려는 선택입니다.</strong>
+      </div>
+      <div class="pattern-line">
+        <span>균형 기준</span>
+        <strong>전체 평균 합계 ${stats.sumMean.toFixed(1)}, 평균 홀수 ${stats.oddMean.toFixed(1)}개를 조합 점수에 반영합니다.</strong>
+      </div>
+      <div class="pattern-line">
+        <span>최근 중복</span>
+        <strong>직전 회차 번호와 겹치는 개수입니다. 0~2개는 허용하고, 3개 이상은 점수를 낮춥니다.</strong>
+      </div>
+    `;
+  }
+
+  function renderStaticSummary() {
+    document.querySelector("#latestDraw").textContent = `${dataset.latestDraw}회`;
+    document.querySelector("#dataCount").textContent = `${formatNumber(dataset.count)}회`;
+    document.querySelector("#latestNumbers").innerHTML = latest.numbers
+      .map((number) => `<span class="ball ${rangeClass(number)}">${number}</span>`)
+      .join("");
+  }
+
+  function refresh() {
+    if (!draws.length) {
+      document.querySelector("#scoreSummary").textContent =
+        "당첨 번호 데이터를 찾지 못했습니다.";
+      return;
+    }
+
+    const stats = buildStats(Number(recentWindow.value));
+    const saju = buildSajuProfile();
+    const scores = buildNumberScores(stats, saju);
+    const result = generateRecommendations(stats, scores, saju);
+    const favored = saju.favored.map((key) => elements[key].label).join(", ");
+    const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
+    const filterText =
+      result.scoreFloor > 0
+        ? `, ${result.scoreFloor}점 이상 ${result.filteredCount}개 후보`
+        : "";
+    const highQualityText =
+      result.highScoreCount > 0 ? `, 90점 이상 ${result.highScoreCount}개 탐색` : "";
+    const topOnlyText = topOnly.checked ? ", 최고점 순으로 표시" : "";
+
+    sajuWeightOut.textContent = `${sajuWeight.value}%`;
+    document.querySelector("#scoreSummary").textContent =
+      `${modeLabel}, 최근 ${recentWindow.value}회, 보완 오행 ${favored}, 통계 ${100 - Number(
+        sajuWeight.value,
+      )}% / 사주 ${sajuWeight.value}%${filterText}${highQualityText}${topOnlyText}`;
+
+    renderRecommendations(result);
+    renderElementBars(saju);
+    renderSajuReading(saju);
+    renderMappingReading(saju);
+    renderPurchaseReading(saju);
+    renderLuckyKit(saju);
+    renderHeatmap(stats);
+    renderHotCold(stats, scores);
+  }
+
+  function hideHelp() {
+    helpPopover.hidden = true;
+    document
+      .querySelectorAll(".help-button.is-active")
+      .forEach((button) => button.classList.remove("is-active"));
+  }
+
+  function showHelp(button) {
+    const text = button.dataset.help;
+    if (!text) return;
+
+    const rect = button.getBoundingClientRect();
+    helpPopover.textContent = text;
+    helpPopover.hidden = false;
+    button.classList.add("is-active");
+
+    const top = Math.min(rect.bottom + 8, window.innerHeight - helpPopover.offsetHeight - 12);
+    const left = Math.min(
+      Math.max(14, rect.left - 12),
+      window.innerWidth - helpPopover.offsetWidth - 14,
+    );
+
+    helpPopover.style.top = `${Math.max(14, top)}px`;
+    helpPopover.style.left = `${left}px`;
+  }
+
+  function setupHelpButtons() {
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".help-button");
+
+      if (!button) {
+        hideHelp();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const wasActive = button.classList.contains("is-active");
+      hideHelp();
+      if (!wasActive) showHelp(button);
+    });
+
+    window.addEventListener("resize", hideHelp);
+    window.addEventListener("scroll", hideHelp, true);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") hideHelp();
+    });
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    if (!["http:", "https:"].includes(window.location.protocol)) return;
+
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+      // Service workers are optional; the app still works as a normal static page.
+    });
+  }
+
+  function init() {
+    setupHelpButtons();
+    registerServiceWorker();
+    renderStaticSummary();
+    refresh();
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      refresh();
+    });
+
+    for (const control of [
+      recentWindow,
+      sajuWeight,
+      setCount,
+      minScore,
+      topOnly,
+      unknownTime,
+      interpretationMode,
+      walkRange,
+    ]) {
+      control.addEventListener("input", refresh);
+      control.addEventListener("change", refresh);
+    }
+
+    homeLocation.addEventListener("input", refresh);
+
+    unknownTime.addEventListener("change", () => {
+      birthTime.disabled = unknownTime.checked;
+    });
+
+    sajuWeight.addEventListener("input", () => {
+      sajuWeightOut.textContent = `${sajuWeight.value}%`;
+    });
+
+    useLocation.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        locationStatus.textContent = "이 브라우저에서는 현재 위치를 불러올 수 없어요.";
+        return;
+      }
+
+      locationStatus.textContent = "현재 위치를 확인하는 중입니다.";
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userPosition = {
+            lat: Number(position.coords.latitude.toFixed(6)),
+            lng: Number(position.coords.longitude.toFixed(6)),
+          };
+          locationStatus.textContent = `현재 위치 반영됨: ${userPosition.lat}, ${userPosition.lng}`;
+          refresh();
+        },
+        () => {
+          locationStatus.textContent =
+            "위치 권한을 받지 못했어요. 동네명을 입력하면 그 기준으로 추천합니다.";
+        },
+        { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 },
+      );
+    });
+  }
+
+  init();
+})();
