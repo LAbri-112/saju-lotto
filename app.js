@@ -430,13 +430,12 @@
   const unknownTime = document.querySelector("#unknownTime");
   const recentWindow = document.querySelector("#recentWindow");
   const sajuWeight = document.querySelector("#sajuWeight");
+  const sajuWeightNumber = document.querySelector("#sajuWeightNumber");
   const sajuWeightOut = document.querySelector("#sajuWeightOut");
   const setCount = document.querySelector("#setCount");
   const minScore = document.querySelector("#minScore");
   const topOnly = document.querySelector("#topOnly");
-  const seedText = document.querySelector("#seedText");
   const interpretationMode = document.querySelector("#interpretationMode");
-  const homeLocation = document.querySelector("#homeLocation");
   const useLocation = document.querySelector("#useLocation");
   const walkRange = document.querySelector("#walkRange");
   const locationStatus = document.querySelector("#locationStatus");
@@ -446,6 +445,7 @@
 
   let generation = 0;
   let userPosition = null;
+  let userRegionLabel = "";
 
   function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -500,9 +500,8 @@
   }
 
   function buildMapLinks() {
-    const typed = homeLocation.value.trim();
-    const baseQuery = typed || "내 주변";
-    const googleQuery = typed ? `${typed} 로또 판매점` : "로또 판매점";
+    const baseQuery = userRegionLabel || "현재 위치";
+    const googleQuery = `${baseQuery} 로또 판매점`;
     const google = userPosition
       ? `https://www.google.com/maps/search/${encodeURIComponent("로또 판매점")}/@${userPosition.lat},${userPosition.lng},15z`
       : `https://www.google.com/maps/search/${encodeURIComponent(googleQuery)}`;
@@ -513,9 +512,7 @@
   }
 
   function meterLabel(value) {
-    if (Number(value) <= 800) return "도보 10분 안쪽";
-    if (Number(value) <= 1500) return "동네 한 바퀴 안쪽";
-    return "생활권 안쪽";
+    return `${Number(value) || 10}km 전후`;
   }
 
   function directionKeyForElement(element) {
@@ -541,6 +538,141 @@
     }, 0);
   }
 
+  const broadLocationTokens = new Set([
+    "서울",
+    "서울시",
+    "서울특별시",
+    "부산",
+    "부산시",
+    "부산광역시",
+    "대구",
+    "대구시",
+    "대구광역시",
+    "인천",
+    "인천시",
+    "인천광역시",
+    "광주",
+    "광주시",
+    "광주광역시",
+    "대전",
+    "대전시",
+    "대전광역시",
+    "울산",
+    "울산시",
+    "울산광역시",
+    "세종",
+    "세종시",
+    "세종특별자치시",
+    "경기",
+    "경기도",
+    "강원",
+    "강원도",
+    "충북",
+    "충청북도",
+    "충남",
+    "충청남도",
+    "전북",
+    "전라북도",
+    "전남",
+    "전라남도",
+    "경북",
+    "경상북도",
+    "경남",
+    "경상남도",
+    "제주",
+    "제주도",
+    "제주특별자치도",
+  ]);
+
+  function normalizeLocation(value) {
+    return String(value ?? "").replace(/\s+/g, "").toLowerCase();
+  }
+
+  function locationParts(query) {
+    return query
+      .split(/[\s,·/]+/)
+      .map((part) => normalizeLocation(part))
+      .filter(Boolean);
+  }
+
+  function stripAdminSuffix(value) {
+    return normalizeLocation(value).replace(
+      /(특별자치시|특별자치도|특별시|광역시|자치구|시|군|구|읍|면|동)$/g,
+      "",
+    );
+  }
+
+  function tokenMatchesQuery(token, query, parts) {
+    const key = normalizeLocation(token);
+    const slimKey = stripAdminSuffix(key);
+    if (!key) return false;
+
+    return (
+      query.includes(key) ||
+      key.includes(query) ||
+      (slimKey.length >= 2 && query.includes(slimKey)) ||
+      parts.some((part) => {
+        const slimPart = stripAdminSuffix(part);
+        return (
+          key.includes(part) ||
+          part.includes(key) ||
+          (slimPart.length >= 2 && key.includes(slimPart)) ||
+          (slimKey.length >= 2 && part.includes(slimKey))
+        );
+      })
+    );
+  }
+
+  function isBroadLocationQuery(query) {
+    const normalized = normalizeLocation(query);
+    return broadLocationTokens.has(normalized);
+  }
+
+  function storeMatchesBroadQuery(store, query) {
+    const normalized = normalizeLocation(query);
+    const parts = locationParts(query);
+    return tokenMatchesQuery(store.region[0], normalized, parts);
+  }
+
+  function storeMatchesPreciseQuery(store, query) {
+    const normalized = normalizeLocation(query);
+    const parts = locationParts(query).filter((part) => !broadLocationTokens.has(part));
+    const preciseTokens = store.region.slice(1);
+
+    return preciseTokens.some((token) => tokenMatchesQuery(token, normalized, parts));
+  }
+
+  function scopedStoreCandidates(query) {
+    const trimmed = query.trim();
+    if (userPosition) {
+      const nearby = storeCandidates.filter((store) => {
+        const km = distanceKm(userPosition, store);
+        return km != null && km <= 25;
+      });
+
+      if (!trimmed) return nearby;
+
+      const precise = nearby.filter((store) => storeMatchesPreciseQuery(store, trimmed));
+      if (precise.length) return precise;
+
+      if (isBroadLocationQuery(trimmed)) {
+        return nearby.filter((store) => storeMatchesBroadQuery(store, trimmed));
+      }
+
+      return [];
+    }
+
+    if (!trimmed) return [];
+
+    if (trimmed) {
+      if (isBroadLocationQuery(trimmed)) {
+        return storeCandidates.filter((store) => storeMatchesBroadQuery(store, trimmed));
+      }
+
+      return storeCandidates.filter((store) => storeMatchesPreciseQuery(store, trimmed));
+    }
+  }
+
   function distanceKm(from, store) {
     if (!from || store.lat == null || store.lng == null) return null;
     const radius = 6371;
@@ -561,15 +693,101 @@
     return `${km.toFixed(km < 10 ? 1 : 0)}km`;
   }
 
+  function coordinateLabel(position) {
+    if (!position) return "좌표 미확인";
+    return `${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`;
+  }
+
+  function directionBearing(direction) {
+    return {
+      north: 0,
+      east: 90,
+      south: 180,
+      west: 270,
+    }[direction];
+  }
+
+  function destinationPoint(origin, bearingDegrees, distance) {
+    const radius = 6371;
+    const bearing = (bearingDegrees * Math.PI) / 180;
+    const lat1 = (origin.lat * Math.PI) / 180;
+    const lng1 = (origin.lng * Math.PI) / 180;
+    const angular = distance / radius;
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(angular) +
+        Math.cos(lat1) * Math.sin(angular) * Math.cos(bearing),
+    );
+    const lng2 =
+      lng1 +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(angular) * Math.cos(lat1),
+        Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2),
+      );
+
+    return {
+      lat: Number(((lat2 * 180) / Math.PI).toFixed(6)),
+      lng: Number((((lng2 * 180) / Math.PI + 540) % 360 - 180).toFixed(6)),
+    };
+  }
+
+  function mapSearchUrl(query, position, zoom = 14) {
+    if (!position) {
+      return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+    }
+
+    return `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${position.lat},${position.lng},${zoom}z`;
+  }
+
+  function buildLocationSearchRecommendations(saju) {
+    if (!userPosition) return [];
+
+    const primary = saju.favored[0];
+    const direction = directionKeyForElement(primary);
+    const directionInfo = elementDirections[primary];
+    const bearing = directionBearing(direction);
+    const distance = Number(walkRange.value) || 10;
+    const target = bearing == null ? userPosition : destinationPoint(userPosition, bearing, distance);
+    const region = userRegionLabel || `현재 위치 ${coordinateLabel(userPosition)}`;
+
+    return [
+      {
+        badge: "내 위치 기준",
+        name: "내 주변 로또 판매점",
+        address: `${region} · ${coordinateLabel(userPosition)}`,
+        tags: ["가까운 순", "실시간 지도"],
+        reason:
+          "브라우저가 받은 현재 좌표를 기준으로 가장 가까운 로또 판매점을 지도에서 바로 확인합니다.",
+        url: mapSearchUrl("로또 판매점", userPosition, 15),
+      },
+      {
+        badge: `${directionInfo.label} ${distance}km`,
+        name: `${directionInfo.label} ${distance}km 전후 판매점`,
+        address: `목표 좌표 ${coordinateLabel(target)}`,
+        tags: [`${elementLabel(primary)} 보완`, "방향 탐색"],
+        reason: `오늘 보완 오행을 ${elementLabel(primary)}로 보고, 내 위치에서 ${directionInfo.label} 방향 ${distance}km 전후의 판매점 검색을 엽니다.`,
+        url: mapSearchUrl("로또 판매점", target, 13),
+      },
+      {
+        badge: "지역 명당",
+        name: `${region} 로또 명당`,
+        address: "지역명과 당첨 판매점 검색 결과를 함께 확인",
+        tags: ["지역 명당", "당첨 이력"],
+        reason:
+          "춘천이면 춘천, 강릉이면 강릉처럼 현재 지역명을 넣어 명당·당첨 판매점 검색을 바로 열도록 만들었습니다.",
+        url: mapSearchUrl(`${region} 로또 명당 당첨 판매점`, userPosition, 12),
+      },
+    ];
+  }
+
   function buildStoreRecommendations(saju) {
-    const query = homeLocation.value.trim();
+    const query = userRegionLabel;
     const primary = saju.favored[0];
     const secondary = saju.favored[1] ?? primary;
     const wealth = saju.wealthElement;
     const primaryDirection = directionKeyForElement(primary);
     const wealthDirection = directionKeyForElement(wealth);
 
-    return storeCandidates
+    return scopedStoreCandidates(query)
       .map((store) => {
         const local = locationScore(store, query);
         const km = distanceKm(userPosition, store);
@@ -1188,8 +1406,7 @@
         interpretationMode.value,
         minScore.value,
         topOnly.checked,
-        seedText.value,
-        homeLocation.value,
+        userRegionLabel,
         walkRange.value,
         userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
         generation,
@@ -1530,35 +1747,70 @@
     const wealth = saju.wealthElement;
     const primaryDirection = elementDirections[primary];
     const wealthDirection = elementDirections[wealth];
-    const place = homeLocation.value.trim() || (userPosition ? "현재 위치" : "입력한 동네");
+    const place = userRegionLabel || (userPosition ? `현재 위치 ${coordinateLabel(userPosition)}` : "현재 위치 미확인");
     const range = meterLabel(walkRange.value);
     const stores = buildStoreRecommendations(saju);
+    const locationCards = buildLocationSearchRecommendations(saju);
 
-    const storeCards = stores
-      .map((store, index) => {
-        const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
-        const badge =
-          index === 0 ? "오늘의 1순위 명당" : index === 1 ? "가까운 후보" : "균형 후보";
-        return `
-          <article class="store-card">
-            <div class="store-rank">${index + 1}</div>
+    const renderSearchCard = (item, index) => `
+      <article class="store-card">
+        <div class="store-rank">${index + 1}</div>
+        <div>
+          <div class="store-badge">${item.badge}</div>
+          <strong>${item.name}</strong>
+          <p>${item.address}</p>
+          <div class="store-tags">
+            ${item.tags.map((tag) => `<span>${tag}</span>`).join("")}
+          </div>
+          <p class="store-reason">${item.reason}</p>
+          <a class="map-link" href="${item.url}" target="_blank" rel="noreferrer">지도에서 열기</a>
+        </div>
+      </article>
+    `;
+
+    const storeCards = locationCards.length
+      ? locationCards.map(renderSearchCard).join("")
+      : `
+          <article class="store-card store-empty">
+            <div class="store-rank">!</div>
             <div>
-              <div class="store-badge">${badge}</div>
-              <strong>${store.name}</strong>
-              <p>${store.address}</p>
-              <div class="store-tags">
-                <span>적합도 ${store.fit}</span>
-                <span>${distanceLabel(store.km)}</span>
-                <span>${elementLabel(store.element)} 기운</span>
-                ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
-              </div>
-              <p class="store-reason">${store.reasons.join(" ")}</p>
-              <a class="map-link" href="${maps}" target="_blank" rel="noreferrer">위치 확인</a>
+              <div class="store-badge">위치 필요</div>
+              <strong>현재 위치를 먼저 반영해 주세요</strong>
+              <p>내 주변 판매점, 사주 방향 ${range} 판매점, 현재 지역 명당 검색은 위치 권한을 받은 뒤에 만들 수 있어요.</p>
+              <button id="inlineUseLocation" class="map-link inline-map-button" type="button">현재 위치 반영</button>
             </div>
           </article>
         `;
-      })
-      .join("");
+
+    const historyCards = stores.length
+      ? `
+          <div class="store-subhead">현재 지역 공개 당첨 이력 후보</div>
+          ${stores
+          .map((store, index) => {
+            const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
+            const badge = index === 0 ? "지역 이력 1순위" : "지역 이력 후보";
+            return `
+              <article class="store-card">
+                <div class="store-rank">${index + 1}</div>
+                <div>
+                  <div class="store-badge">${badge}</div>
+                  <strong>${store.name}</strong>
+                  <p>${store.address}</p>
+                  <div class="store-tags">
+                    <span>적합도 ${store.fit}</span>
+                    <span>${distanceLabel(store.km)}</span>
+                    <span>${elementLabel(store.element)} 기운</span>
+                    ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
+                  </div>
+                  <p class="store-reason">${store.reasons.join(" ")}</p>
+                  <a class="map-link" href="${maps}" target="_blank" rel="noreferrer">위치 확인</a>
+                </div>
+              </article>
+            `;
+          })
+          .join("")}
+        `
+      : "";
 
     document.querySelector("#purchaseReading").innerHTML = `
       <div class="ritual-card intro-ritual">
@@ -1573,16 +1825,21 @@
       ${renderDailyRitual("내일의 구매운", saju, 1)}
       <div class="store-section">
         <div class="store-section-head">
-          <strong>추천 복권집 TOP 3</strong>
-          <span>지역·오행·방향·명당성 종합</span>
+          <strong>현재 위치 추천 TOP 3</strong>
+          <span>내 주변·사주 방향·지역 명당</span>
         </div>
         ${storeCards}
+        ${historyCards}
       </div>
       <div class="ritual-card">
         <strong>구매 행동 팁</strong>
         <p>추천 시간대에 맞춰 도착하고, 매장 앞에서 오래 망설이기보다 미리 고른 번호를 차분히 확인하세요. 예산은 먼저 정하고, 같은 번호를 과하게 반복 구매하지 않는 쪽을 품질 좋은 루틴으로 봅니다.</p>
       </div>
     `;
+
+    document.querySelector("#inlineUseLocation")?.addEventListener("click", () => {
+      useLocation.click();
+    });
   }
 
   function renderLuckyKit(saju) {
@@ -1623,7 +1880,7 @@
       const gap = latest.draw - stats.lastSeen[number];
       return `<span class="heat ${rangeClass(number)}" style="--heat:${heat[number].toFixed(
         3,
-      )}" title="${number}번, 전체 ${freq}회, 최근 ${recent}회, 미출현 ${gap}회">${number}</span>`;
+      )}" title="${number}번 · 전체 ${freq}회 출현 · 최근 구간 ${recent}회 출현 · 마지막 출현 후 ${gap}회 지남">${number}</span>`;
     }).join("");
   }
 
@@ -1794,6 +2051,62 @@
     });
   }
 
+  function formatRegionFromAddress(address = {}) {
+    const parts = [
+      address.state,
+      address.city || address.county || address.municipality,
+      address.city_district || address.borough || address.town || address.suburb || address.village,
+    ]
+      .filter(Boolean)
+      .filter((value, index, values) => values.indexOf(value) === index);
+
+    return parts.join(" ");
+  }
+
+  async function reverseGeocodePosition(position) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const url = new URL("https://nominatim.openstreetmap.org/reverse");
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("lat", String(position.lat));
+      url.searchParams.set("lon", String(position.lng));
+      url.searchParams.set("accept-language", "ko");
+
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("reverse geocoding failed");
+
+      const payload = await response.json();
+      return formatRegionFromAddress(payload.address) || payload.display_name?.split(",").slice(0, 2).join(" ");
+    } catch {
+      return "";
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  function syncSajuWeight(value, shouldRefresh = true) {
+    const next = Math.round(clamp(Number(value) || 0, 0, 100));
+    sajuWeight.value = String(next);
+    sajuWeightNumber.value = String(next);
+    sajuWeightOut.textContent = `${next}%`;
+    if (shouldRefresh) refresh();
+  }
+
+  async function applyCurrentLocation(position) {
+    userPosition = {
+      lat: Number(position.coords.latitude.toFixed(6)),
+      lng: Number(position.coords.longitude.toFixed(6)),
+    };
+
+    locationStatus.textContent = `현재 위치 확인됨: ${coordinateLabel(userPosition)} · 지역명 확인 중`;
+    userRegionLabel = (await reverseGeocodePosition(userPosition)) || "";
+    const label = userRegionLabel || "지역명 확인 실패";
+    locationStatus.textContent = `현재 위치: ${label} · ${coordinateLabel(userPosition)}`;
+    refresh();
+  }
+
   function init() {
     setupHelpButtons();
     registerServiceWorker();
@@ -1807,7 +2120,6 @@
 
     for (const control of [
       recentWindow,
-      sajuWeight,
       birthBranch,
       setCount,
       minScore,
@@ -1820,8 +2132,6 @@
       control.addEventListener("change", refresh);
     }
 
-    homeLocation.addEventListener("input", refresh);
-
     unknownTime.addEventListener("change", () => {
       birthTime.disabled = unknownTime.checked;
       birthBranch.disabled = unknownTime.checked;
@@ -1831,19 +2141,15 @@
       birthTime.disabled = unknownTime.checked || birthBranch.value !== "custom";
     });
 
-    sajuWeight.addEventListener("input", () => {
-      sajuWeightOut.textContent = `${sajuWeight.value}%`;
-    });
+    sajuWeight.addEventListener("input", () => syncSajuWeight(sajuWeight.value));
+    sajuWeightNumber.addEventListener("input", () => syncSajuWeight(sajuWeightNumber.value));
 
     const adjustSajuWeight = (delta) => {
-      const next = clamp(Number(sajuWeight.value) + delta, Number(sajuWeight.min), Number(sajuWeight.max));
-      sajuWeight.value = String(next);
-      sajuWeightOut.textContent = `${sajuWeight.value}%`;
-      refresh();
+      syncSajuWeight(Number(sajuWeight.value) + delta);
     };
 
-    sajuMinus.addEventListener("click", () => adjustSajuWeight(-5));
-    sajuPlus.addEventListener("click", () => adjustSajuWeight(5));
+    sajuMinus.addEventListener("click", () => adjustSajuWeight(-1));
+    sajuPlus.addEventListener("click", () => adjustSajuWeight(1));
 
     useLocation.addEventListener("click", () => {
       if (!navigator.geolocation) {
@@ -1854,16 +2160,11 @@
       locationStatus.textContent = "현재 위치를 확인하는 중입니다.";
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          userPosition = {
-            lat: Number(position.coords.latitude.toFixed(6)),
-            lng: Number(position.coords.longitude.toFixed(6)),
-          };
-          locationStatus.textContent = `현재 위치 반영됨: ${userPosition.lat}, ${userPosition.lng}`;
-          refresh();
+          applyCurrentLocation(position);
         },
         () => {
           locationStatus.textContent =
-            "위치 권한을 받지 못했어요. 동네명을 입력하면 그 기준으로 추천합니다.";
+            "위치 권한을 받지 못했어요. 현재 위치 기준 지도 추천을 만들려면 브라우저 위치 권한이 필요합니다.";
         },
         { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 },
       );

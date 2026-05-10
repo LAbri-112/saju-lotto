@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v3" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v5" />
   </head>
   <body>
     <main class="app-shell">
@@ -74,11 +74,12 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="sajuWeight">사주 반영</label>
-                <button class="help-button" type="button" data-help="추천 점수에서 사주 성향을 얼마나 크게 볼지 정합니다. 낮게 두면 과거 번호 통계와 조합 균형을 더 보고, 높게 두면 내 사주에서 보완하면 좋은 오행을 더 강하게 반영합니다.">?</button>
+                <button class="help-button" type="button" data-help="추천 점수에서 사주 해석을 얼마나 크게 반영할지 정합니다. 0은 거의 통계형, 50은 통계와 사주를 반반, 100은 사주 보완 오행을 가장 강하게 보는 설정입니다. 높다고 당첨 확률이 실제로 올라간다는 뜻은 아니고, 추천의 성격이 더 개인화된다는 뜻입니다.">?</button>
               </div>
               <div class="range-line range-with-buttons">
                 <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
-                <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="70" value="38" />
+                <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="100" step="1" value="38" />
+                <input id="sajuWeightNumber" class="weight-number" name="sajuWeightNumber" type="number" min="0" max="100" step="1" value="38" aria-label="사주 반영 직접 입력" />
                 <output id="sajuWeightOut" for="sajuWeight">38%</output>
                 <button id="sajuPlus" class="step-button" type="button" aria-label="사주 반영 늘리기">+</button>
               </div>
@@ -109,7 +110,7 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="interpretationMode">해석 모드</label>
-                <button class="help-button" type="button" data-help="중화 보완형은 내 사주에서 부족하거나 치우친 부분을 맞추는 기본 모드입니다. 재성 강화형은 돈·구매 행동과 관련된 기운을 조금 더 봅니다. 조후 균형형은 계절상 너무 차갑거나 뜨거운 느낌을 보완하는 모드입니다. 처음이면 중화 보완형을 추천합니다.">?</button>
+                <button class="help-button" type="button" data-help="해석 모드는 사주를 어떤 관점으로 읽을지 고르는 설정입니다. 중화 보완형은 가장 무난한 기본값으로, 내 사주에서 너무 약하거나 강한 오행을 부드럽게 맞춥니다. 재성 강화형은 돈을 쓰고 결정하는 흐름을 조금 더 봅니다. 조후 균형형은 태어난 계절의 차갑고 뜨거운 느낌을 보완합니다. 잘 모르겠으면 중화 보완형을 쓰면 됩니다.">?</button>
               </div>
               <select id="interpretationMode" name="interpretationMode">
                 <option value="balance" selected>중화 보완형</option>
@@ -132,40 +133,24 @@
               <button class="help-button" type="button" data-help="후보는 여러 개 탐색하되, 다양성보다 점수를 우선해 추천 세트 개수만큼 최고점 후보를 보여줍니다. 체크 해제 시에는 서로 너무 비슷한 조합을 줄여 보여줍니다.">?</button>
             </label>
 
-            <div class="field-group">
-              <div class="label-row">
-                <label for="seedText">개인 키워드</label>
-                <button class="help-button" type="button" data-help="같은 사주 조건에서도 추천 조합을 살짝 다르게 만드는 개인 시드입니다. 이름, 별명, 오늘의 기분 같은 짧은 단어를 넣을 수 있어요.">?</button>
-              </div>
-              <input id="seedText" name="seedText" type="text" maxlength="32" placeholder="선택 입력" />
-            </div>
-
-            <div class="field-group">
-              <div class="label-row">
-                <label for="homeLocation">사는 곳 / 자주 가는 동네</label>
-                <button class="help-button" type="button" data-help="구매 루틴에서 지도 검색 기준으로 쓰입니다. 실제 판매점 영업 정보는 지도와 동행복권 판매점 조회에서 최신 정보로 확인합니다.">?</button>
-              </div>
-              <input id="homeLocation" name="homeLocation" type="text" maxlength="40" placeholder="예: 서울 성수동" />
-            </div>
-
             <div class="field-row">
               <button id="useLocation" class="ghost-action" type="button">
                 <span aria-hidden="true">⌖</span>
-                현재 위치
+                현재 위치 반영
               </button>
               <div class="field-group inline-field">
                 <div class="label-row">
-                  <label for="walkRange">이동 범위</label>
-                  <button class="help-button" type="button" data-help="판매점 검색을 얼마나 넓게 볼지 정하는 감각적 기준입니다. 가까운 루틴을 원하면 가볍게, 선택지를 넓히려면 조금 멀리를 고르세요.">?</button>
+                  <label for="walkRange">방향 탐색 거리</label>
+                  <button class="help-button" type="button" data-help="현재 위치에서 사주가 추천하는 방향으로 몇 km 전후까지 볼지 정합니다. 예를 들어 오늘 보완 방향이 남쪽이고 10km를 고르면, 내 위치에서 남쪽 10km 근처의 로또 판매점 검색을 바로 열 수 있게 추천합니다.">?</button>
                 </div>
                 <select id="walkRange" name="walkRange">
-                  <option value="800">가볍게</option>
-                  <option value="1500" selected>동네 한 바퀴</option>
-                  <option value="3000">조금 멀리</option>
+                  <option value="5">5km 전후</option>
+                  <option value="10" selected>10km 전후</option>
+                  <option value="15">15km 전후</option>
                 </select>
               </div>
             </div>
-            <p id="locationStatus" class="helper-text">위치 권한 없이도 동네명으로 추천할 수 있어요.</p>
+            <p id="locationStatus" class="helper-text">현재 위치를 누르면 좌표와 간단한 지역명을 기준으로 지도 추천을 만듭니다.</p>
 
             <button class="primary-action" type="submit">
               <span aria-hidden="true">↻</span>
@@ -245,8 +230,11 @@
           <section class="analysis-grid" aria-label="통계 분석">
             <div class="analysis-panel">
               <div class="section-heading compact">
-                <h2>번호 열지도</h2>
-                <p id="heatmapCaption">전체 회차 기준 출현 빈도</p>
+                <div class="heading-with-help">
+                  <h2>번호 열지도</h2>
+                  <button class="help-button" type="button" data-help="번호 열지도는 1번부터 45번까지 과거 당첨번호에 얼마나 자주 나왔는지 색 진하기로 보여주는 표입니다. 색이 진할수록 전체 회차에서 더 자주 나온 번호이고, 옅을수록 덜 나온 번호입니다. 당첨을 보장하는 표가 아니라 번호 흐름을 한눈에 비교하는 참고용입니다. 각 칸에 마우스를 올리면 전체 출현 횟수, 최근 출현 횟수, 마지막 출현 후 지난 회차를 볼 수 있습니다.">?</button>
+                </div>
+                <p id="heatmapCaption">진할수록 과거에 더 자주 나온 번호입니다</p>
               </div>
               <div id="numberHeatmap" class="number-heatmap"></div>
             </div>
@@ -275,7 +263,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v3"></script>
-    <script src="app.js?v=feedback-v3"></script>
+    <script src="data/lotto-results.js?v=feedback-v5"></script>
+    <script src="app.js?v=feedback-v5"></script>
   </body>
 </html>

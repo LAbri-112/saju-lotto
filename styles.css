@@ -299,7 +299,7 @@ button:focus-visible {
 }
 
 .range-with-buttons {
-  grid-template-columns: 42px 1fr 52px 42px;
+  grid-template-columns: 42px minmax(90px, 1fr) 64px 48px 42px;
 }
 
 .step-button {
@@ -326,6 +326,12 @@ button:focus-visible {
   font-weight: 800;
   color: var(--teal-dark);
   text-align: right;
+}
+
+.weight-number {
+  min-height: 42px;
+  text-align: center;
+  font-weight: 900;
 }
 
 .primary-action {
@@ -784,6 +790,15 @@ button:focus-visible {
   box-shadow: 0 14px 34px rgba(24, 169, 153, 0.16);
 }
 
+.store-empty {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.store-empty .store-rank {
+  background: linear-gradient(135deg, #6f7782, #9aa2ad);
+}
+
 .store-rank {
   display: grid;
   width: 34px;
@@ -850,6 +865,19 @@ button:focus-visible {
   text-decoration: none;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.inline-map-button {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.store-subhead {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  margin-top: 6px;
 }
 
 @media (max-width: 980px) {
@@ -938,7 +966,7 @@ button:focus-visible {
   }
 
   .range-with-buttons {
-    grid-template-columns: 44px 1fr 48px 44px;
+    grid-template-columns: 44px minmax(80px, 1fr) 58px 46px 44px;
   }
 
   .ball-line {
