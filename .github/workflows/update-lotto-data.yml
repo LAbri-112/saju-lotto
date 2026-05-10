@@ -1,0 +1,58 @@
+name: Update lotto data
+
+on:
+  schedule:
+    - cron: "30 14 * * 6"
+    - cron: "30 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-lotto-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read current draw number
+        id: before
+        run: |
+          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/lotto-results.json','utf8')).latestDraw)")
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch latest draw data
+        run: npm run update:data
+
+      - name: Check updated draw number
+        id: after
+        run: |
+          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/lotto-results.json','utf8')).latestDraw)")
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+
+      - name: Validate app files
+        run: npm run check
+
+      - name: Commit updated lotto data
+        if: steps.before.outputs.latest != steps.after.outputs.latest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/lotto-results.json data/lotto-results.js
+          git commit -m "Update lotto data to draw ${{ steps.after.outputs.latest }}"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Skip commit when no new draw exists
+        if: steps.before.outputs.latest == steps.after.outputs.latest
+        run: echo "No new draw found. Current latest draw is ${{ steps.after.outputs.latest }}."
