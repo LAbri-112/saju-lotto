@@ -298,6 +298,26 @@ button:focus-visible {
   align-items: center;
 }
 
+.range-with-buttons {
+  grid-template-columns: 42px 1fr 52px 42px;
+}
+
+.step-button {
+  display: inline-grid;
+  min-height: 42px;
+  place-items: center;
+  border: 1px solid rgba(24, 169, 153, 0.24);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--teal-dark);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.step-button:hover {
+  background: rgba(232, 250, 247, 0.92);
+}
+
 .range-line input {
   padding: 0;
 }
@@ -758,6 +778,12 @@ button:focus-visible {
   gap: 10px;
 }
 
+.store-section .store-card:first-of-type {
+  border-color: rgba(24, 169, 153, 0.32);
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.95), rgba(255, 248, 252, 0.92));
+  box-shadow: 0 14px 34px rgba(24, 169, 153, 0.16);
+}
+
 .store-rank {
   display: grid;
   width: 34px;
@@ -767,6 +793,20 @@ button:focus-visible {
   background: linear-gradient(135deg, var(--teal), var(--blue));
   color: #fff;
   font-weight: 900;
+}
+
+.store-badge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #128f82, #4f78df);
+  box-shadow: 0 8px 18px rgba(18, 143, 130, 0.2);
+  color: #fff;
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-bottom: 7px;
 }
 
 .store-tags {
@@ -835,7 +875,7 @@ button:focus-visible {
 
 @media (max-width: 640px) {
   .app-shell {
-    padding: 14px;
+    padding: 10px;
   }
 
   .topbar,
@@ -850,12 +890,59 @@ button:focus-visible {
   }
 
   h1 {
-    font-size: 1.72rem;
+    font-size: 1.58rem;
+  }
+
+  .hero-copy,
+  .notice,
+  .section-heading p {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .control-panel,
+  .main-panel {
+    padding: 12px;
+  }
+
+  .summary-grid {
+    gap: 8px;
+  }
+
+  .metric {
+    min-height: auto;
+    padding: 12px;
+  }
+
+  .recommendation-card,
+  .analysis-panel,
+  .ritual-card,
+  .daily-card,
+  .store-card,
+  .kit-card {
+    padding: 12px;
   }
 
   .field-row,
   .rank-columns {
     grid-template-columns: 1fr;
+  }
+
+  input,
+  select,
+  .ghost-action,
+  .primary-action,
+  .check-row,
+  .step-button {
+    min-height: 46px;
+  }
+
+  .range-with-buttons {
+    grid-template-columns: 44px 1fr 48px 44px;
+  }
+
+  .ball-line {
+    grid-template-columns: repeat(6, minmax(36px, 1fr));
   }
 
   .section-heading p {

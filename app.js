@@ -184,6 +184,8 @@
     {
       name: "스파",
       address: "서울 노원구 동일로 1493 주공10단지종합상가111",
+      lat: 37.6605,
+      lng: 127.0736,
       region: ["서울", "노원구", "상계동"],
       note: "동행복권 당첨 판매점 목록에 반복 등장하는 서울권 명당 후보",
       tags: ["전통명당", "상가", "유동인구"],
@@ -194,6 +196,8 @@
     {
       name: "로또킹",
       address: "서울 영등포구 영중로 2 1층(영등포동3가)",
+      lat: 37.5182,
+      lng: 126.9067,
       region: ["서울", "영등포구", "영등포"],
       note: "역세권과 상권 흐름이 강한 서울 서남권 후보",
       tags: ["역세권", "상권", "퇴근길"],
@@ -204,6 +208,8 @@
     {
       name: "가로판매대",
       address: "서울 강동구 올림픽로 648 천호역 3번 출구 앞",
+      lat: 37.5386,
+      lng: 127.1234,
       region: ["서울", "강동구", "천호"],
       note: "천호역 유동 흐름을 타는 가판형 후보",
       tags: ["역세권", "가판", "동선"],
@@ -214,6 +220,8 @@
     {
       name: "교통카드판매대",
       address: "서울 강동구 상일로15길 18 1층",
+      lat: 37.5511,
+      lng: 127.1697,
       region: ["서울", "강동구", "상일동"],
       note: "최근 회차 1등 배출점 목록에 등장한 동쪽 권역 후보",
       tags: ["최근등장", "동네형", "자동"],
@@ -224,6 +232,8 @@
     {
       name: "캐논종합",
       address: "서울 용산구 새창로 156 3층 큰길가 오른쪽 네번째칸",
+      lat: 37.5351,
+      lng: 126.9609,
       region: ["서울", "용산구", "용문동"],
       note: "중앙권 이동 동선과 맞는 용산권 후보",
       tags: ["중앙권", "큰길", "이동동선"],
@@ -234,6 +244,8 @@
     {
       name: "신공주 로또",
       address: "서울 마포구 월드컵북로4길 65 1층",
+      lat: 37.5576,
+      lng: 126.9236,
       region: ["서울", "마포구", "홍대"],
       note: "젊은 상권과 밤 시간대 흐름이 강한 서북권 후보",
       tags: ["젊은상권", "도보", "저녁"],
@@ -244,6 +256,8 @@
     {
       name: "돈벼락맞는곳",
       address: "부산 동구 조방로49번길 18-1",
+      lat: 35.1396,
+      lng: 129.0592,
       region: ["부산", "동구", "범일동"],
       note: "부산권 당첨 판매점 목록에 등장한 이름부터 강한 후보",
       tags: ["부산", "재성테마", "동구"],
@@ -254,6 +268,8 @@
     {
       name: "송천복권방",
       address: "부산 해운대구 선수촌로 108",
+      lat: 35.2003,
+      lng: 129.1263,
       region: ["부산", "해운대구", "반여동"],
       note: "해운대 생활권에서 접근하기 좋은 동네형 후보",
       tags: ["부산", "동네형", "생활권"],
@@ -262,8 +278,34 @@
       source: "dhlottery-top-store",
     },
     {
+      name: "세원로또복권방",
+      address: "부산 수영구 수영로725번길 53 101호",
+      lat: 35.1667,
+      lng: 129.1144,
+      region: ["부산", "수영구", "수영"],
+      note: "부산 수영 생활권에서 접근성이 좋은 최근 당첨 판매점 후보",
+      tags: ["부산", "역세권", "명당"],
+      element: "water",
+      direction: "east",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "자갈치 도깨비명당",
+      address: "부산 중구 자갈치로 33 501,502호",
+      lat: 35.0969,
+      lng: 129.0305,
+      region: ["부산", "중구", "자갈치"],
+      note: "부산 원도심 상권과 명당 이미지를 함께 보는 후보",
+      tags: ["부산", "전통명당", "상권"],
+      element: "water",
+      direction: "south",
+      source: "dhlottery-top-store",
+    },
+    {
       name: "복권명당(영남점)",
       address: "대구 달서구 월배로 122",
+      lat: 35.8166,
+      lng: 128.5277,
       region: ["대구", "달서구", "월배"],
       note: "대구 달서구권 명당형 후보",
       tags: ["대구", "명당", "생활권"],
@@ -272,8 +314,22 @@
       source: "dhlottery-top-store",
     },
     {
+      name: "무량복권",
+      address: "대구 수성구 시지로 37 1층 동편상가",
+      lat: 35.8396,
+      lng: 128.7049,
+      region: ["대구", "수성구", "시지"],
+      note: "대구 수성구 동선에서 보는 최근 당첨 판매점 후보",
+      tags: ["대구", "동네형", "생활권"],
+      element: "earth",
+      direction: "east",
+      source: "dhlottery-top-store",
+    },
+    {
       name: "복권왕국",
       address: "인천 부평구 경인로 931",
+      lat: 37.4895,
+      lng: 126.7241,
       region: ["인천", "부평구", "부평"],
       note: "인천 부평 상권 흐름을 보는 후보",
       tags: ["인천", "상권", "큰길"],
@@ -282,8 +338,34 @@
       source: "dhlottery-top-store",
     },
     {
+      name: "한국인세계대박복권",
+      address: "인천 연수구 한나루로197번길 34",
+      lat: 37.4194,
+      lng: 126.6788,
+      region: ["인천", "연수구", "옥련동"],
+      note: "인천 연수권에서 생활 동선과 명당성을 함께 보는 후보",
+      tags: ["인천", "명당", "생활권"],
+      element: "metal",
+      direction: "south",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "NBA(엔비에이)",
+      address: "인천 중구 신도시남로142번길 6 1동 1층 128호",
+      lat: 37.4891,
+      lng: 126.4918,
+      region: ["인천", "중구", "운서동"],
+      note: "인천 영종 생활권에서 이동 부담을 줄이는 후보",
+      tags: ["인천", "역세권", "상권"],
+      element: "metal",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
       name: "성호복권방",
       address: "대전 대덕구 신일동로 1",
+      lat: 36.4347,
+      lng: 127.4045,
       region: ["대전", "대덕구", "신일동"],
       note: "대전권 공식 당첨 판매점 목록에 등장한 후보",
       tags: ["대전", "동네형", "산업단지"],
@@ -294,6 +376,8 @@
     {
       name: "포시즌",
       address: "경남 김해시 내외중앙로 99 복권판매점",
+      lat: 35.2347,
+      lng: 128.8668,
       region: ["경남", "김해시", "내외동"],
       note: "김해권 생활상권 후보",
       tags: ["경남", "김해", "상권"],
@@ -304,6 +388,8 @@
     {
       name: "대박복권방",
       address: "서울 구로구 개봉로17길 18",
+      lat: 37.4897,
+      lng: 126.8587,
       region: ["서울", "구로구", "개봉동"],
       note: "서울 서남권 주거 동선과 맞는 후보",
       tags: ["서울", "서남권", "주거동선"],
@@ -314,6 +400,8 @@
     {
       name: "천하명당로또복권",
       address: "서울 서대문구 세무서길 12",
+      lat: 37.5892,
+      lng: 126.9446,
       region: ["서울", "서대문구", "홍제동"],
       note: "서울 서북권에서 명당 이미지를 가진 후보",
       tags: ["서울", "서북권", "명당"],
@@ -324,6 +412,8 @@
     {
       name: "행운복권방",
       address: "서울 은평구 서오릉로 10",
+      lat: 37.6041,
+      lng: 126.9297,
       region: ["서울", "은평구", "녹번동"],
       note: "은평권 생활동선 후보",
       tags: ["서울", "은평", "생활권"],
@@ -335,6 +425,7 @@
 
   const form = document.querySelector("#settingsForm");
   const birthDate = document.querySelector("#birthDate");
+  const birthBranch = document.querySelector("#birthBranch");
   const birthTime = document.querySelector("#birthTime");
   const unknownTime = document.querySelector("#unknownTime");
   const recentWindow = document.querySelector("#recentWindow");
@@ -350,6 +441,8 @@
   const walkRange = document.querySelector("#walkRange");
   const locationStatus = document.querySelector("#locationStatus");
   const helpPopover = document.querySelector("#helpPopover");
+  const sajuMinus = document.querySelector("#sajuMinus");
+  const sajuPlus = document.querySelector("#sajuPlus");
 
   let generation = 0;
   let userPosition = null;
@@ -448,6 +541,26 @@
     }, 0);
   }
 
+  function distanceKm(from, store) {
+    if (!from || store.lat == null || store.lng == null) return null;
+    const radius = 6371;
+    const toRad = (value) => (value * Math.PI) / 180;
+    const dLat = toRad(store.lat - from.lat);
+    const dLng = toRad(store.lng - from.lng);
+    const lat1 = toRad(from.lat);
+    const lat2 = toRad(store.lat);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function distanceLabel(km) {
+    if (km == null) return "거리 미확인";
+    if (km < 1) return `${Math.round(km * 1000)}m`;
+    return `${km.toFixed(km < 10 ? 1 : 0)}km`;
+  }
+
   function buildStoreRecommendations(saju) {
     const query = homeLocation.value.trim();
     const primary = saju.favored[0];
@@ -459,6 +572,23 @@
     return storeCandidates
       .map((store) => {
         const local = locationScore(store, query);
+        const km = distanceKm(userPosition, store);
+        const distanceBoost =
+          km == null
+            ? 0
+            : km <= 1
+              ? 90
+              : km <= 3
+                ? 74
+                : km <= 7
+                  ? 56
+                  : km <= 15
+                    ? 38
+                    : km <= 40
+                      ? 18
+                      : Math.max(0, 12 - Math.log10(km) * 5);
+        const distancePenalty =
+          km == null || km <= 40 ? 0 : Math.min(34, Math.log10(km / 40) * 18);
         const elementScore =
           (store.element === primary ? 24 : 0) +
           (store.element === secondary ? 14 : 0) +
@@ -471,9 +601,18 @@
           (store.tags.includes("역세권") || store.tags.includes("상권") ? 5 : 0) +
           (store.tags.includes("동네형") || store.tags.includes("생활권") ? 4 : 0);
         const fallbackScore = query ? 0 : store.region.includes("서울") ? 8 : 4;
-        const score = local + elementScore + directionScore + vibeScore + fallbackScore;
+        const score =
+          local +
+          distanceBoost +
+          elementScore +
+          directionScore +
+          vibeScore +
+          fallbackScore -
+          distancePenalty;
         const localReason =
-          local > 0
+          km != null
+            ? `현재 위치에서 약 ${distanceLabel(km)} 거리입니다. 가까운 실제 동선 점수를 가장 크게 반영했습니다.`
+            : local > 0
             ? "입력한 생활권과 주소권이 맞습니다."
             : query
               ? "입력 지역과 직접 일치하지는 않아, 명당성·오행 흐름 중심으로 보조 추천합니다."
@@ -481,8 +620,9 @@
 
         return {
           ...store,
+          km,
           score,
-          fit: Math.min(99, Math.round(62 + score * 0.52)),
+          fit: Math.max(45, Math.min(99, Math.round(56 + score * 0.36))),
           reasons: [
             localReason,
             `${elementLabel(store.element)} 기운 판매점으로 ${elementLabel(primary)} 보완 흐름과 ${
@@ -625,14 +765,22 @@
       .split("-")
       .map(Number);
     const [hour, minute] = (birthTime.value || "12:00").split(":").map(Number);
+    const selectedBranch =
+      birthBranch.value === "custom" ? null : Number(birthBranch.value);
+    const branchMidHours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
 
     return {
       year: year || 1990,
       month: month || 1,
       day: day || 1,
-      hour: unknownTime.checked ? 12 : hour || 0,
+      hour: unknownTime.checked
+        ? 12
+        : selectedBranch == null
+          ? hour || 0
+          : branchMidHours[selectedBranch],
       minute: unknownTime.checked ? 0 : minute || 0,
       unknownHour: unknownTime.checked,
+      selectedBranch,
     };
   }
 
@@ -1033,6 +1181,7 @@
       [
         birthDate.value,
         birthTime.value,
+        birthBranch.value,
         unknownTime.checked,
         recentWindow.value,
         sajuWeight.value,
@@ -1388,14 +1537,18 @@
     const storeCards = stores
       .map((store, index) => {
         const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
+        const badge =
+          index === 0 ? "오늘의 1순위 명당" : index === 1 ? "가까운 후보" : "균형 후보";
         return `
           <article class="store-card">
             <div class="store-rank">${index + 1}</div>
             <div>
+              <div class="store-badge">${badge}</div>
               <strong>${store.name}</strong>
               <p>${store.address}</p>
               <div class="store-tags">
                 <span>적합도 ${store.fit}</span>
+                <span>${distanceLabel(store.km)}</span>
                 <span>${elementLabel(store.element)} 기운</span>
                 ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
               </div>
@@ -1655,6 +1808,7 @@
     for (const control of [
       recentWindow,
       sajuWeight,
+      birthBranch,
       setCount,
       minScore,
       topOnly,
@@ -1670,11 +1824,26 @@
 
     unknownTime.addEventListener("change", () => {
       birthTime.disabled = unknownTime.checked;
+      birthBranch.disabled = unknownTime.checked;
+    });
+
+    birthBranch.addEventListener("change", () => {
+      birthTime.disabled = unknownTime.checked || birthBranch.value !== "custom";
     });
 
     sajuWeight.addEventListener("input", () => {
       sajuWeightOut.textContent = `${sajuWeight.value}%`;
     });
+
+    const adjustSajuWeight = (delta) => {
+      const next = clamp(Number(sajuWeight.value) + delta, Number(sajuWeight.min), Number(sajuWeight.max));
+      sajuWeight.value = String(next);
+      sajuWeightOut.textContent = `${sajuWeight.value}%`;
+      refresh();
+    };
+
+    sajuMinus.addEventListener("click", () => adjustSajuWeight(-5));
+    sajuPlus.addEventListener("click", () => adjustSajuWeight(5));
 
     useLocation.addEventListener("click", () => {
       if (!navigator.geolocation) {

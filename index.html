@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=stores-v4" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v3" />
   </head>
   <body>
     <main class="app-shell">
@@ -46,8 +46,23 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="birthTime">출생시각</label>
-                  <button class="help-button" type="button" data-help="시주는 장간·십성·오행 분포에 영향을 줍니다. 모를 때는 정오 기준으로 계산하고, 시주 가중치는 빼지 않고 보수적으로 낮춰 봅니다.">?</button>
+                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 자시 23~01시, 축시 01~03시, 인시 03~05시, 묘시 05~07시, 진시 07~09시, 사시 09~11시, 오시 11~13시, 미시 13~15시, 신시 15~17시, 유시 17~19시, 술시 19~21시, 해시 21~23시입니다.">?</button>
                 </div>
+                <select id="birthBranch" name="birthBranch">
+                  <option value="custom" selected>시간 직접 입력</option>
+                  <option value="0">자시 23:00-01:00</option>
+                  <option value="1">축시 01:00-03:00</option>
+                  <option value="2">인시 03:00-05:00</option>
+                  <option value="3">묘시 05:00-07:00</option>
+                  <option value="4">진시 07:00-09:00</option>
+                  <option value="5">사시 09:00-11:00</option>
+                  <option value="6">오시 11:00-13:00</option>
+                  <option value="7">미시 13:00-15:00</option>
+                  <option value="8">신시 15:00-17:00</option>
+                  <option value="9">유시 17:00-19:00</option>
+                  <option value="10">술시 19:00-21:00</option>
+                  <option value="11">해시 21:00-23:00</option>
+                </select>
                 <input id="birthTime" name="birthTime" type="time" value="09:00" />
               </div>
               <label class="check-row">
@@ -59,11 +74,13 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="sajuWeight">사주 반영</label>
-                <button class="help-button" type="button" data-help="전체 추천 점수에서 사주 오행·용신 후보가 차지하는 비중입니다. 높일수록 개인 명리 성향이 강해지고, 낮출수록 과거 당첨 통계와 균형 조건을 더 봅니다.">?</button>
+                <button class="help-button" type="button" data-help="추천 점수에서 사주 성향을 얼마나 크게 볼지 정합니다. 낮게 두면 과거 번호 통계와 조합 균형을 더 보고, 높게 두면 내 사주에서 보완하면 좋은 오행을 더 강하게 반영합니다.">?</button>
               </div>
-              <div class="range-line">
+              <div class="range-line range-with-buttons">
+                <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
                 <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="70" value="38" />
                 <output id="sajuWeightOut" for="sajuWeight">38%</output>
+                <button id="sajuPlus" class="step-button" type="button" aria-label="사주 반영 늘리기">+</button>
               </div>
             </div>
 
@@ -71,7 +88,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="recentWindow">최근 흐름</label>
-                  <button class="help-button" type="button" data-help="최근 몇 회차를 따로 보며 출현 빈도를 계산할지 정합니다. 20회는 민감하고, 50회는 기본 균형, 100회는 완만한 추세, 200회는 약 4년치 장기 흐름을 보려는 선택입니다.">?</button>
+                  <button class="help-button" type="button" data-help="최근 몇 번의 당첨번호를 더 중요하게 볼지 정합니다. 20회는 아주 최근 흐름, 50회는 기본 추천, 100회는 반년~2년 안팎의 안정된 흐름, 200회는 더 긴 장기 흐름을 참고합니다.">?</button>
                 </div>
                 <select id="recentWindow" name="recentWindow">
                   <option value="20">20회</option>
@@ -83,7 +100,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="setCount">추천 세트</label>
-                  <button class="help-button" type="button" data-help="최종으로 보여줄 조합 개수입니다. 서로 너무 비슷한 조합은 줄이고, 번호가 4개 이상 겹치지 않도록 먼저 골라냅니다.">?</button>
+                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 5로 두면 추천 조합 5세트를 보여줍니다. 가장 높은 점수부터 보기를 켜면 점수순으로 5개, 끄면 너무 비슷한 번호 조합을 줄여서 5개를 보여줍니다.">?</button>
                 </div>
                 <input id="setCount" name="setCount" type="number" min="1" max="10" value="5" />
               </div>
@@ -92,7 +109,7 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="interpretationMode">해석 모드</label>
-                <button class="help-button" type="button" data-help="중화 보완형은 부족한 오행과 신강·신약 균형을 봅니다. 재성 강화형은 금전 테마인 재성·식상 흐름을 더 봅니다. 조후 균형형은 월령의 차갑고 뜨거운 계절감을 보완합니다.">?</button>
+                <button class="help-button" type="button" data-help="중화 보완형은 내 사주에서 부족하거나 치우친 부분을 맞추는 기본 모드입니다. 재성 강화형은 돈·구매 행동과 관련된 기운을 조금 더 봅니다. 조후 균형형은 계절상 너무 차갑거나 뜨거운 느낌을 보완하는 모드입니다. 처음이면 중화 보완형을 추천합니다.">?</button>
               </div>
               <select id="interpretationMode" name="interpretationMode">
                 <option value="balance" selected>중화 보완형</option>
@@ -258,7 +275,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=stores-v4"></script>
-    <script src="app.js?v=stores-v4"></script>
+    <script src="data/lotto-results.js?v=feedback-v3"></script>
+    <script src="app.js?v=feedback-v3"></script>
   </body>
 </html>
