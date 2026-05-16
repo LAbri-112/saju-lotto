@@ -1,11 +1,25 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-10T01:54:44.377Z",
+  "generatedAt": "2026-05-16T17:42:34.172Z",
   "source": "fullayer-public-list",
   "sourceUrl": "https://www.fullayer.com/lottowinnumber/fo/lottowinnumberlist3",
-  "latestDraw": 1223,
-  "latestDate": "2026-05-09",
-  "count": 1223,
+  "latestSourceUrl": null,
+  "apiShape": {
+    "draw": "drwNo",
+    "date": "drwNoDate",
+    "numbers": [
+      "drwtNo1",
+      "drwtNo2",
+      "drwtNo3",
+      "drwtNo4",
+      "drwtNo5",
+      "drwtNo6"
+    ],
+    "bonus": "bnusNo"
+  },
+  "latestDraw": 1224,
+  "latestDate": "2026-05-16",
+  "count": 1224,
   "draws": [
     {
       "draw": 1,
@@ -18351,6 +18365,21 @@
       "bonus": 26,
       "firstWinners": 16,
       "firstPrize": 1857554133
+    },
+    {
+      "draw": 1224,
+      "date": "2026-05-16",
+      "numbers": [
+        9,
+        18,
+        21,
+        27,
+        44,
+        45
+      ],
+      "bonus": 28,
+      "firstWinners": 12,
+      "firstPrize": 2414855250
     }
   ]
 }
