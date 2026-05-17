@@ -1439,6 +1439,12 @@
     const filtered = ranked.filter((candidate) => candidate.meta.score >= scoreFloor);
     const target = clamp(Number(setCount.value) || 5, 1, 10);
     const selected = [];
+    const auditCandidates = ranked.map((candidate) => ({
+      n: candidate.numbers,
+      s: candidate.meta.score,
+      g: candidate.meta.gateScore,
+      sig: candidate.meta.signalScore,
+    }));
 
     if (topOnly.checked) {
       return {
@@ -1448,6 +1454,7 @@
         filteredCount: filtered.length,
         highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
         scoreFloor,
+        auditCandidates,
       };
     }
 
@@ -1472,6 +1479,7 @@
       filteredCount: filtered.length,
       highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
       scoreFloor,
+      auditCandidates,
     };
   }
 
@@ -1515,6 +1523,137 @@
               <span class="chip" title="직전 회차 당첨번호와 겹치는 개수입니다.">최근중복 ${item.meta.repeatLatest}</span>
             </div>
           </article>
+        `;
+      })
+      .join("");
+  }
+
+  const recommendationHistoryKey = "saju-lotto-recommendation-history-v1";
+
+  function candidateKey(numbers) {
+    return numbers.slice().sort((a, b) => a - b).join("-");
+  }
+
+  function readRecommendationHistory() {
+    if (typeof localStorage === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem(recommendationHistoryKey) ?? "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function writeRecommendationHistory(history) {
+    if (typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem(recommendationHistoryKey, JSON.stringify(history.slice(0, 5)));
+    } catch {
+      // Recommendation history is optional. If storage is full or blocked, the app still works.
+    }
+  }
+
+  function saveRecommendationSnapshot(result) {
+    if (!result.auditCandidates?.length) return;
+
+    const selected = result.items.map((item) => ({
+      n: item.numbers,
+      s: item.meta.score,
+      g: item.meta.gateScore,
+      sig: item.meta.signalScore,
+    }));
+    const signature = JSON.stringify({
+      draw: dataset.latestDraw,
+      selected: selected.map((item) => candidateKey(item.n)),
+      scoreFloor: result.scoreFloor,
+      recentWindow: recentWindow.value,
+      sajuWeight: sajuWeight.value,
+      mode: interpretationMode.value,
+    });
+    const history = readRecommendationHistory();
+
+    if (history[0]?.signature === signature) return;
+
+    history.unshift({
+      id: `${dataset.latestDraw}-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      basisLatestDraw: dataset.latestDraw,
+      basisLatestDate: dataset.latestDate,
+      expectedDraw: dataset.latestDraw + 1,
+      signature,
+      settings: {
+        recentWindow: Number(recentWindow.value),
+        sajuWeight: Number(sajuWeight.value),
+        mode: interpretationMode.value,
+        scoreFloor: result.scoreFloor,
+        setCount: Number(setCount.value),
+      },
+      selected,
+      candidates: result.auditCandidates,
+    });
+    writeRecommendationHistory(history);
+  }
+
+  function compareSnapshotWithDraw(snapshot, draw) {
+    const win = draw.numbers.slice().sort((a, b) => a - b);
+    const winKey = candidateKey(win);
+    const candidate = snapshot.candidates.find((item) => candidateKey(item.n) === winKey);
+    const selected = snapshot.selected.find((item) => candidateKey(item.n) === winKey);
+    const maxOverlap = snapshot.candidates.reduce(
+      (best, item) => Math.max(best, overlap(item.n, win)),
+      0,
+    );
+
+    return { win, candidate, selected, maxOverlap };
+  }
+
+  function renderRecommendationAudit() {
+    const container = document.querySelector("#recommendationAudit");
+    const history = readRecommendationHistory();
+
+    if (!history.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          아직 저장된 추천 기록이 없습니다. 지금 생성된 추천 후보부터 이 브라우저에 저장됩니다.
+        </div>
+      `;
+      return;
+    }
+
+    const checks = history
+      .flatMap((snapshot) => {
+        return draws
+          .filter((draw) => draw.draw > snapshot.basisLatestDraw)
+          .map((draw) => ({ snapshot, draw, result: compareSnapshotWithDraw(snapshot, draw) }));
+      })
+      .slice(0, 6);
+
+    if (!checks.length) {
+      const latestSnapshot = history[0];
+      container.innerHTML = `
+        <div class="audit-card">
+          <strong>${latestSnapshot.basisLatestDraw}회 기준 추천 후보 저장됨</strong>
+          <p>후보 ${formatNumber(latestSnapshot.candidates.length)}개와 최종 추천 ${latestSnapshot.selected.length}개를 저장했습니다. ${latestSnapshot.expectedDraw}회 당첨번호 데이터가 들어오면 여기서 자동으로 비교합니다.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = checks
+      .map(({ snapshot, draw, result }) => {
+        const exactText = result.candidate
+          ? `후보 안에 있음 · ${result.candidate.s}점대`
+          : "후보 안에 없음";
+        const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
+        return `
+          <div class="audit-card">
+            <strong>${snapshot.basisLatestDraw}회 기준 추천 → ${draw.draw}회 검증</strong>
+            <p>당첨번호 ${result.win.join(", ")} · ${exactText} · ${selectedText}</p>
+            <div class="store-tags">
+              <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
+              <span>최대 ${result.maxOverlap}개 일치</span>
+              <span>필터 ${snapshot.settings.scoreFloor}점</span>
+            </div>
+          </div>
         `;
       })
       .join("");
@@ -1983,6 +2122,8 @@
       )}% / 사주 ${sajuWeight.value}%${filterText}${highQualityText}${topOnlyText}`;
 
     renderRecommendations(result);
+    saveRecommendationSnapshot(result);
+    renderRecommendationAudit();
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);

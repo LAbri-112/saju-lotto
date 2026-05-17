@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v5" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v6" />
   </head>
   <body>
     <main class="app-shell">
@@ -191,6 +191,17 @@
             <div id="recommendations" class="recommendations"></div>
           </section>
 
+          <section class="analysis-panel audit-panel" aria-labelledby="audit-title">
+            <div class="section-heading compact">
+              <div class="heading-with-help">
+                <h2 id="audit-title">추천 기록 검증</h2>
+                <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
+              </div>
+              <p>다음 회차가 업데이트되면 내 후보와 당첨번호를 비교합니다</p>
+            </div>
+            <div id="recommendationAudit" class="recommendation-audit"></div>
+          </section>
+
           <section class="saju-grid" aria-label="명리 분석">
             <div class="analysis-panel">
               <div class="section-heading compact">
@@ -263,7 +274,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v5"></script>
-    <script src="app.js?v=feedback-v5"></script>
+    <script src="data/lotto-results.js?v=feedback-v6"></script>
+    <script src="app.js?v=feedback-v6"></script>
   </body>
 </html>
