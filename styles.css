@@ -501,6 +501,39 @@ button:focus-visible {
   line-height: 1.5;
 }
 
+.learning-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.learning-row {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.learning-row span {
+  color: var(--teal-dark);
+}
+
+.learning-row strong {
+  margin: 0;
+  color: var(--ink);
+}
+
+.learning-row em {
+  color: var(--muted);
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .recommendation-card {
   min-height: 164px;
   padding: 14px;
@@ -1013,6 +1046,15 @@ button:focus-visible {
   .reading-row {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .learning-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .learning-row em {
+    white-space: normal;
   }
 
   .pattern-line {

@@ -928,7 +928,7 @@
     };
   }
 
-  function buildStats(windowSize) {
+  function buildStats(windowSize, sourceDraws = draws) {
     const frequency = Array(46).fill(0);
     const bonusFrequency = Array(46).fill(0);
     const recentFrequency = Array(46).fill(0);
@@ -936,9 +936,10 @@
     const sums = [];
     const oddCounts = [];
     const seenCombos = new Set();
-    const recentDraws = draws.slice(-windowSize);
+    const sourceLatest = sourceDraws.at(-1) ?? latest;
+    const recentDraws = sourceDraws.slice(-windowSize);
 
-    for (const draw of draws) {
+    for (const draw of sourceDraws) {
       const numbers = [...draw.numbers].sort((a, b) => a - b);
       const key = numbers.join("-");
       seenCombos.add(key);
@@ -949,7 +950,9 @@
         frequency[number] += 1;
         lastSeen[number] = draw.draw;
       }
-      bonusFrequency[draw.bonus] += 1;
+      if (Number.isInteger(draw.bonus)) {
+        bonusFrequency[draw.bonus] += 1;
+      }
     }
 
     for (const draw of recentDraws) {
@@ -958,9 +961,9 @@
       }
     }
 
-    const mean = sums.reduce((sum, value) => sum + value, 0) / sums.length;
+    const mean = sums.length ? sums.reduce((sum, value) => sum + value, 0) / sums.length : 0;
     const variance =
-      sums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / sums.length;
+      sums.length ? sums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / sums.length : 0;
     const oddMean =
       oddCounts.reduce((sum, value) => sum + value, 0) / Math.max(1, oddCounts.length);
 
@@ -974,7 +977,8 @@
       sumStd: Math.sqrt(variance),
       oddMean,
       recentWindow: windowSize,
-      latestNumbers: new Set(latest.numbers),
+      latestDraw: sourceLatest?.draw ?? 0,
+      latestNumbers: new Set(sourceLatest?.numbers ?? []),
     };
   }
 
@@ -1207,7 +1211,7 @@
     const recentNorm = normalizeMap(stats.recentFrequency, (value) => value);
     const bonusNorm = normalizeMap(stats.bonusFrequency, (value) => value);
     const gapValues = stats.lastSeen.map((drawNo, number) =>
-      number === 0 ? null : latest.draw - drawNo,
+      number === 0 ? null : stats.latestDraw - drawNo,
     );
     const gapNorm = normalizeMap(gapValues, (value) => Math.log1p(value));
     const weight = Number(sajuWeight.value) / 100;
@@ -1257,7 +1261,7 @@
     return pool.at(-1);
   }
 
-  function scoreCombination(numbers, scores, stats, saju) {
+  function scoreCombination(numbers, scores, stats, saju, learningProfile = null) {
     const sum = numbers.reduce((total, number) => total + number, 0);
     const odd = numbers.filter((number) => number % 2 === 1).length;
     const low = numbers.filter((number) => number <= 22).length;
@@ -1323,8 +1327,7 @@
       tailScore * 0.04 +
       spacingScore * 0.02;
     const qualityScore = signalScore * 0.56 + gateScore * 0.44;
-
-    return {
+    const meta = {
       score: Math.round(qualityScore * 1000) / 10,
       signalScore: Math.round(signalScore * 1000) / 10,
       gateScore: Math.round(gateScore * 1000) / 10,
@@ -1338,6 +1341,11 @@
       sectorCoverage,
       tailDiversity,
     };
+    meta.bucketStart = scoreBucketStart(meta.score);
+    meta.bucketLabel = scoreBucketLabel(meta.score);
+    meta.band = scoreBand(meta.score);
+    meta.practicalScore = practicalRankScore(meta, learningProfile);
+    return meta;
   }
 
   function makeCandidate(scores, rng) {
@@ -1353,9 +1361,9 @@
     return selected.sort((a, b) => a - b);
   }
 
-  function improveCandidate(numbers, scores, stats, saju) {
+  function improveCandidate(numbers, scores, stats, saju, learningProfile = null) {
     let bestNumbers = [...numbers].sort((a, b) => a - b);
-    let bestMeta = scoreCombination(bestNumbers, scores, stats, saju);
+    let bestMeta = scoreCombination(bestNumbers, scores, stats, saju, learningProfile);
     const replacementPool = scores
       .slice(1)
       .sort((a, b) => b.score - a.score)
@@ -1371,7 +1379,7 @@
           const candidateNumbers = bestNumbers
             .map((number) => (number === current ? replacement : number))
             .sort((a, b) => a - b);
-          const candidateMeta = scoreCombination(candidateNumbers, scores, stats, saju);
+          const candidateMeta = scoreCombination(candidateNumbers, scores, stats, saju, learningProfile);
 
           if (candidateMeta.score > bestMeta.score + 0.05) {
             bestNumbers = candidateNumbers;
@@ -1393,7 +1401,172 @@
     return b.filter((number) => set.has(number)).length;
   }
 
-  function generateRecommendations(stats, scores, saju) {
+  function scoreBucketStart(score) {
+    return Math.min(100, Math.floor(score / 5) * 5);
+  }
+
+  function scoreBucketLabel(score) {
+    const start = scoreBucketStart(score);
+    const end = start >= 100 ? 100 : start + 4.9;
+    return `${start}~${end.toFixed(1)}점`;
+  }
+
+  function scoreBand(score) {
+    if (score >= 90) return "초고점 참고";
+    if (score >= 84) return "실전 1군";
+    if (score >= 80) return "실전 관찰";
+    if (score >= 75) return "보조 관찰";
+    return "낮은 관찰";
+  }
+
+  function practicalRankScore(meta, learningProfile = null) {
+    const targetScore = learningProfile?.targetScore ?? 84.5;
+    const targetTolerance = learningProfile?.targetTolerance ?? 2.5;
+    const targetSpread = learningProfile?.targetSpread ?? 14;
+    const sweetSpotDistance = Math.max(0, Math.abs(meta.score - targetScore) - targetTolerance);
+    const scoreFit = clamp(1 - sweetSpotDistance / targetSpread);
+    const learnedBucketFit =
+      learningProfile?.bucketPreference?.[meta.bucketStart] ??
+      clamp(1 - Math.abs(meta.score - targetScore) / Math.max(8, targetSpread));
+    const signalFit = clamp(meta.signalScore / 100);
+    const gateFit = clamp(meta.gateScore / 100);
+    const diversityFit =
+      (clamp(meta.sectorCoverage / 4) + clamp(meta.tailDiversity / 5)) / 2;
+    const repeatFit = meta.repeatLatest <= 2 ? 1 : 0.62;
+    const overfitPenalty = meta.score >= 90 ? clamp((meta.score - 89) / 18, 0, 0.12) : 0;
+    const bandBonus = meta.score >= 80 && meta.score < 90 ? 0.06 : 0;
+    const practical =
+      scoreFit * 0.32 +
+      learnedBucketFit * 0.14 +
+      gateFit * 0.22 +
+      signalFit * 0.2 +
+      diversityFit * 0.09 +
+      repeatFit * 0.05 +
+      bandBonus -
+      overfitPenalty;
+
+    return Math.round(clamp(practical, 0, 1) * 1000) / 10;
+  }
+
+  function buildLearningProfile(saju) {
+    const windowSize = clamp(Number(recentWindow.value) || 50, 10, 500);
+    const minPrior = Math.min(Math.max(windowSize, 30), Math.max(1, draws.length - 1));
+    const startIndex = Math.max(minPrior, draws.length - 200);
+    const records = [];
+
+    for (let index = startIndex; index < draws.length; index += 1) {
+      const priorDraws = draws.slice(0, index);
+      const draw = draws[index];
+      if (priorDraws.length < 30 || !draw?.numbers?.length) continue;
+
+      const historicalStats = buildStats(windowSize, priorDraws);
+      const historicalScores = buildNumberScores(historicalStats, saju);
+      const meta = scoreCombination(
+        draw.numbers.slice().sort((a, b) => a - b),
+        historicalScores,
+        historicalStats,
+        saju,
+      );
+
+      records.push({
+        draw: draw.draw,
+        date: draw.date,
+        numbers: draw.numbers.slice().sort((a, b) => a - b),
+        score: meta.score,
+        signalScore: meta.signalScore,
+        gateScore: meta.gateScore,
+        band: meta.band,
+        bucketStart: meta.bucketStart,
+        bucketLabel: meta.bucketLabel,
+      });
+    }
+
+    if (!records.length) {
+      return {
+        total: 0,
+        targetScore: 84.5,
+        targetTolerance: 2.5,
+        targetSpread: 14,
+        topBucketLabel: "80~89.9점",
+        bucketPreference: {},
+        bucketSummary: [],
+        records: [],
+        thresholdStats: { atLeast80: 0, atLeast85: 0, atLeast90: 0 },
+      };
+    }
+
+    const bucketMap = new Map();
+    records.forEach((record, index) => {
+      const weight = 0.65 + 0.35 * ((index + 1) / records.length);
+      const current = bucketMap.get(record.bucketStart) ?? {
+        start: record.bucketStart,
+        label: record.bucketLabel,
+        count: 0,
+        weighted: 0,
+        scoreTotal: 0,
+        weightTotal: 0,
+      };
+
+      current.count += 1;
+      current.weighted += weight;
+      current.scoreTotal += record.score * weight;
+      current.weightTotal += weight;
+      bucketMap.set(record.bucketStart, current);
+    });
+
+    const buckets = [...bucketMap.values()]
+      .map((bucket) => ({
+        ...bucket,
+        averageScore: bucket.scoreTotal / bucket.weightTotal,
+      }))
+      .sort((a, b) => b.weighted - a.weighted || b.start - a.start);
+    const eligibleBuckets = buckets.filter((bucket) => bucket.start >= 80 && bucket.start < 90);
+    const topBucket = eligibleBuckets[0] ?? buckets[0];
+    const neighborRecords = records.filter(
+      (record) => Math.abs(record.bucketStart - topBucket.start) <= 5,
+    );
+    const neighborScoreTotal = neighborRecords.reduce((sum, record, index) => {
+      const weight = 0.65 + 0.35 * ((index + 1) / neighborRecords.length);
+      return sum + record.score * weight;
+    }, 0);
+    const neighborWeightTotal = neighborRecords.reduce((sum, _record, index) => {
+      return sum + 0.65 + 0.35 * ((index + 1) / neighborRecords.length);
+    }, 0);
+    const targetScore = neighborWeightTotal
+      ? clamp(neighborScoreTotal / neighborWeightTotal, 80, 88)
+      : 84.5;
+    const bucketPreference = {};
+    const topWeight = Math.max(1, topBucket.weighted);
+
+    for (const bucket of buckets) {
+      const proximity = clamp(1 - Math.abs(bucket.start - topBucket.start) / 15);
+      const frequency = clamp(bucket.weighted / topWeight);
+      bucketPreference[bucket.start] = Math.round(Math.max(proximity, frequency) * 100) / 100;
+    }
+
+    return {
+      total: records.length,
+      targetScore: Math.round(targetScore * 10) / 10,
+      targetTolerance: 2.5,
+      targetSpread: 14,
+      topBucketStart: topBucket.start,
+      topBucketLabel: topBucket.label,
+      bucketPreference,
+      bucketSummary: buckets.slice(0, 5).map((bucket) => ({
+        label: bucket.label,
+        count: bucket.count,
+        averageScore: Math.round(bucket.averageScore * 10) / 10,
+      })),
+      records: records.slice(-8).reverse(),
+      thresholdStats: {
+        atLeast80: records.filter((record) => record.score >= 80).length,
+        atLeast85: records.filter((record) => record.score >= 85).length,
+        atLeast90: records.filter((record) => record.score >= 90).length,
+      },
+    };
+  }
+
+  function generateRecommendations(stats, scores, saju, learningProfile = null) {
     generation += 1;
     const seed = hashString(
       [
@@ -1416,7 +1589,7 @@
     const rng = mulberry32(seed);
     const candidateMap = new Map();
     const scoreFloor = clamp(Number(minScore.value) || 0, 0, 100);
-    const candidateBudget = scoreFloor >= 90 ? 7200 : 2600;
+    const candidateBudget = scoreFloor >= 80 ? 7600 : 3000;
 
     for (let index = 0; index < candidateBudget; index += 1) {
       const numbers = makeCandidate(scores, rng);
@@ -1424,19 +1597,22 @@
       if (candidateMap.has(key)) continue;
       candidateMap.set(key, {
         numbers,
-        meta: scoreCombination(numbers, scores, stats, saju),
+        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
       });
     }
 
     const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-    const improveCount = scoreFloor >= 90 ? 280 : 120;
+    const improveCount = scoreFloor >= 80 ? 260 : 120;
     for (const candidate of preliminary.slice(0, improveCount)) {
-      const improved = improveCandidate(candidate.numbers, scores, stats, saju);
+      const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
       candidateMap.set(improved.numbers.join("-"), improved);
     }
 
     const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-    const filtered = ranked.filter((candidate) => candidate.meta.score >= scoreFloor);
+    const practicalRanked = [...ranked].sort((a, b) => {
+      return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+    });
+    const filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
     const target = clamp(Number(setCount.value) || 5, 1, 10);
     const selected = [];
     const auditCandidates = ranked.map((candidate) => ({
@@ -1444,6 +1620,9 @@
       s: candidate.meta.score,
       g: candidate.meta.gateScore,
       sig: candidate.meta.signalScore,
+      p: candidate.meta.practicalScore,
+      b: candidate.meta.band,
+      bl: candidate.meta.bucketLabel,
     }));
 
     if (topOnly.checked) {
@@ -1452,8 +1631,12 @@
         selectedCount: Math.min(filtered.length, target),
         candidateCount: ranked.length,
         filteredCount: filtered.length,
+        practicalBandCount: ranked.filter(
+          (candidate) => candidate.meta.score >= 80 && candidate.meta.score < 90,
+        ).length,
         highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
         scoreFloor,
+        learningProfile,
         auditCandidates,
       };
     }
@@ -1477,8 +1660,12 @@
       selectedCount: selected.length,
       candidateCount: ranked.length,
       filteredCount: filtered.length,
+      practicalBandCount: ranked.filter(
+        (candidate) => candidate.meta.score >= 80 && candidate.meta.score < 90,
+      ).length,
       highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
       scoreFloor,
+      learningProfile,
       auditCandidates,
     };
   }
@@ -1509,7 +1696,7 @@
             <div class="card-head">
               <div>
                 <strong>${index + 1}번 조합</strong>
-                <div class="card-meta">추천 점수</div>
+                <div class="card-meta">${item.meta.band}</div>
               </div>
               <span class="score-pill">${item.meta.score}</span>
             </div>
@@ -1519,6 +1706,7 @@
               <span class="chip">홀 ${item.meta.odd} / 짝 ${item.meta.even}</span>
               <span class="chip">저 ${item.meta.low} / 고 ${item.meta.high}</span>
               <span class="chip">오행 ${item.meta.favoredCount}</span>
+              <span class="chip">실전순위 ${item.meta.practicalScore}</span>
               <span class="chip">품질관문 ${item.meta.gateScore}</span>
               <span class="chip" title="직전 회차 당첨번호와 겹치는 개수입니다.">최근중복 ${item.meta.repeatLatest}</span>
             </div>
@@ -1546,7 +1734,7 @@
   function writeRecommendationHistory(history) {
     if (typeof localStorage === "undefined") return;
     try {
-      localStorage.setItem(recommendationHistoryKey, JSON.stringify(history.slice(0, 5)));
+      localStorage.setItem(recommendationHistoryKey, JSON.stringify(history.slice(0, 52)));
     } catch {
       // Recommendation history is optional. If storage is full or blocked, the app still works.
     }
@@ -1560,6 +1748,9 @@
       s: item.meta.score,
       g: item.meta.gateScore,
       sig: item.meta.signalScore,
+      p: item.meta.practicalScore,
+      b: item.meta.band,
+      bl: item.meta.bucketLabel,
     }));
     const signature = JSON.stringify({
       draw: dataset.latestDraw,
@@ -1568,6 +1759,7 @@
       recentWindow: recentWindow.value,
       sajuWeight: sajuWeight.value,
       mode: interpretationMode.value,
+      learningTarget: result.learningProfile?.targetScore,
     });
     const history = readRecommendationHistory();
 
@@ -1586,6 +1778,8 @@
         mode: interpretationMode.value,
         scoreFloor: result.scoreFloor,
         setCount: Number(setCount.value),
+        learningTarget: result.learningProfile?.targetScore,
+        learningBand: result.learningProfile?.topBucketLabel,
       },
       selected,
       candidates: result.auditCandidates,
@@ -1606,15 +1800,61 @@
     return { win, candidate, selected, maxOverlap };
   }
 
-  function renderRecommendationAudit() {
+  function renderLearningReport(learningProfile) {
+    if (!learningProfile?.records?.length) {
+      return `
+        <div class="audit-card learning-card">
+          <strong>회차별 점수대 학습 준비 중</strong>
+          <p>과거 회차가 충분히 쌓이면 실제 당첨번호가 어느 점수대에 자주 있었는지 계산하고, 다음 추천 우선순위에 반영합니다.</p>
+        </div>
+      `;
+    }
+
+    const threshold = learningProfile.thresholdStats;
+    const recentRows = learningProfile.records
+      .slice(0, 6)
+      .map((record) => {
+        return `
+          <div class="learning-row">
+            <span>${record.draw}회</span>
+            <strong>${record.score}점 · ${record.bucketLabel}</strong>
+            <em>${record.band}</em>
+          </div>
+        `;
+      })
+      .join("");
+    const bucketTags = learningProfile.bucketSummary
+      .map((bucket) => {
+        return `<span>${bucket.label} ${bucket.count}회 · 평균 ${bucket.averageScore}점</span>`;
+      })
+      .join("");
+
+    return `
+      <div class="audit-card learning-card">
+        <strong>회차별 점수대 학습</strong>
+        <p>최근 ${learningProfile.total}회 기준 실제 당첨번호가 가장 자주 머문 구간은 ${learningProfile.topBucketLabel}입니다. 다음 추천은 ${learningProfile.targetScore}점 전후의 실전 후보를 더 우선해서 정렬합니다.</p>
+        <div class="store-tags">
+          <span>80점 이상 ${threshold.atLeast80}/${learningProfile.total}회</span>
+          <span>85점 이상 ${threshold.atLeast85}/${learningProfile.total}회</span>
+          <span>90점 이상 ${threshold.atLeast90}/${learningProfile.total}회</span>
+        </div>
+        <div class="store-tags">${bucketTags}</div>
+        <div class="learning-list">${recentRows}</div>
+      </div>
+    `;
+  }
+
+  function renderRecommendationAudit(learningProfile) {
     const container = document.querySelector("#recommendationAudit");
     const history = readRecommendationHistory();
+    const learningHtml = renderLearningReport(learningProfile);
 
     if (!history.length) {
       container.innerHTML = `
         <div class="empty-state">
           아직 저장된 추천 기록이 없습니다. 지금 생성된 추천 후보부터 이 브라우저에 저장됩니다.
         </div>
+        ${learningHtml}
       `;
       return;
     }
@@ -1625,7 +1865,7 @@
           .filter((draw) => draw.draw > snapshot.basisLatestDraw)
           .map((draw) => ({ snapshot, draw, result: compareSnapshotWithDraw(snapshot, draw) }));
       })
-      .slice(0, 6);
+      .slice(0, 12);
 
     if (!checks.length) {
       const latestSnapshot = history[0];
@@ -1634,6 +1874,7 @@
           <strong>${latestSnapshot.basisLatestDraw}회 기준 추천 후보 저장됨</strong>
           <p>후보 ${formatNumber(latestSnapshot.candidates.length)}개와 최종 추천 ${latestSnapshot.selected.length}개를 저장했습니다. ${latestSnapshot.expectedDraw}회 당첨번호 데이터가 들어오면 여기서 자동으로 비교합니다.</p>
         </div>
+        ${learningHtml}
       `;
       return;
     }
@@ -1641,7 +1882,7 @@
     container.innerHTML = checks
       .map(({ snapshot, draw, result }) => {
         const exactText = result.candidate
-          ? `후보 안에 있음 · ${result.candidate.s}점대`
+          ? `후보 안에 있음 · ${result.candidate.s}점 · ${result.candidate.bl ?? result.candidate.b ?? ""}`
           : "후보 안에 없음";
         const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
         return `
@@ -1656,7 +1897,7 @@
           </div>
         `;
       })
-      .join("");
+      .join("") + learningHtml;
   }
 
   function renderElementBars(saju) {
@@ -2103,8 +2344,9 @@
 
     const stats = buildStats(Number(recentWindow.value));
     const saju = buildSajuProfile();
+    const learningProfile = buildLearningProfile(saju);
     const scores = buildNumberScores(stats, saju);
-    const result = generateRecommendations(stats, scores, saju);
+    const result = generateRecommendations(stats, scores, saju, learningProfile);
     const favored = saju.favored.map((key) => elements[key].label).join(", ");
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
     const filterText =
@@ -2112,18 +2354,25 @@
         ? `, ${result.scoreFloor}점 이상 ${result.filteredCount}개 후보`
         : "";
     const highQualityText =
-      result.highScoreCount > 0 ? `, 90점 이상 ${result.highScoreCount}개 탐색` : "";
-    const topOnlyText = topOnly.checked ? ", 최고점 순으로 표시" : "";
+      result.practicalBandCount > 0
+        ? `, 80점대 실전 ${result.practicalBandCount}개 / 90점 이상 참고 ${result.highScoreCount}개`
+        : result.highScoreCount > 0
+          ? `, 90점 이상 참고 ${result.highScoreCount}개`
+          : "";
+    const learningText = result.learningProfile?.records?.length
+      ? `, 학습중심 ${result.learningProfile.targetScore}점`
+      : "";
+    const topOnlyText = topOnly.checked ? ", 실전 우선순위로 표시" : "";
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
       `${modeLabel}, 최근 ${recentWindow.value}회, 보완 오행 ${favored}, 통계 ${100 - Number(
         sajuWeight.value,
-      )}% / 사주 ${sajuWeight.value}%${filterText}${highQualityText}${topOnlyText}`;
+      )}% / 사주 ${sajuWeight.value}%${filterText}${highQualityText}${learningText}${topOnlyText}`;
 
     renderRecommendations(result);
     saveRecommendationSnapshot(result);
-    renderRecommendationAudit();
+    renderRecommendationAudit(learningProfile);
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);

@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v6" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v8" />
   </head>
   <body>
     <main class="app-shell">
@@ -101,7 +101,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="setCount">추천 세트</label>
-                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 5로 두면 추천 조합 5세트를 보여줍니다. 가장 높은 점수부터 보기를 켜면 점수순으로 5개, 끄면 너무 비슷한 번호 조합을 줄여서 5개를 보여줍니다.">?</button>
+                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 5로 두면 추천 조합 5세트를 보여줍니다. 실전 우선순위부터 보기를 켜면 80점대 실전 구간과 조합 균형을 우선해 5개, 끄면 너무 비슷한 번호 조합을 줄여서 5개를 보여줍니다.">?</button>
                 </div>
                 <input id="setCount" name="setCount" type="number" min="1" max="10" value="5" />
               </div>
@@ -122,15 +122,15 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="minScore">추천점수 필터</label>
-                <button class="help-button" type="button" data-help="추천점수가 이 값 이상인 조합만 보여줍니다. 기본값 90은 품질 관문을 많이 통과한 후보만 보겠다는 뜻입니다. 0이면 필터를 끕니다.">?</button>
+                <button class="help-button" type="button" data-help="추천점수가 이 값 이상인 조합만 보여줍니다. 기본값 80은 최근 검증에서 실제 당첨번호가 자주 들어온 실전 관찰 구간입니다. 90점 이상은 더 좋은 정답이라기보다 조건을 매우 많이 통과한 초고점 참고 후보로 따로 봅니다. 0이면 필터를 끕니다.">?</button>
               </div>
-              <input id="minScore" name="minScore" type="number" min="0" max="100" step="0.5" value="90" />
+              <input id="minScore" name="minScore" type="number" min="0" max="100" step="0.5" value="80" />
             </div>
 
             <label class="check-row option-check">
               <input id="topOnly" name="topOnly" type="checkbox" />
-              <span>가장 높은 점수부터 보기</span>
-              <button class="help-button" type="button" data-help="후보는 여러 개 탐색하되, 다양성보다 점수를 우선해 추천 세트 개수만큼 최고점 후보를 보여줍니다. 체크 해제 시에는 서로 너무 비슷한 조합을 줄여 보여줍니다.">?</button>
+              <span>실전 우선순위부터 보기</span>
+              <button class="help-button" type="button" data-help="단순히 90점대만 고르는 방식이 아니라, 최근 당첨번호가 자주 걸린 80점대 실전 구간과 조합 균형을 함께 보고 추천 세트 개수만큼 보여줍니다. 체크 해제 시에는 서로 너무 비슷한 조합을 줄여 다양성도 확보합니다.">?</button>
             </label>
 
             <div class="field-row">
@@ -195,9 +195,9 @@
             <div class="section-heading compact">
               <div class="heading-with-help">
                 <h2 id="audit-title">추천 기록 검증</h2>
-                <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
+                <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 또 내 사주 설정 기준으로 과거 당첨번호가 몇 점대에 있었는지 계산해 다음 추천 우선순위를 보정합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
               </div>
-              <p>다음 회차가 업데이트되면 내 후보와 당첨번호를 비교합니다</p>
+              <p>다음 회차가 업데이트되면 내 후보와 당첨번호를 비교하고 점수대 통계를 학습합니다</p>
             </div>
             <div id="recommendationAudit" class="recommendation-audit"></div>
           </section>
@@ -274,7 +274,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v6"></script>
-    <script src="app.js?v=feedback-v6"></script>
+    <script src="data/lotto-results.js?v=feedback-v8"></script>
+    <script src="app.js?v=feedback-v8"></script>
   </body>
 </html>
