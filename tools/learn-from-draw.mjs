@@ -239,7 +239,7 @@ async function main() {
     recentWindow: Number(args.recentWindow ?? 50),
     sajuWeight: Number(args.sajuWeight ?? 38),
     setCount: Number(args.setCount ?? 5),
-    minScore: Number(args.minScore ?? 90),
+    minScore: Number(args.minScore ?? 80),
     topOnly: args.topOnly === "true",
     mode: args.mode ?? "balance",
     modeLabel: "중화 보완형",
@@ -270,6 +270,7 @@ async function main() {
     generatedSummary: {
       candidateCount: result.candidateCount,
       filteredCount: result.filteredCount,
+      practicalBandCount: result.practicalBandCount,
       highScoreCount: result.highScoreCount,
       selectedCount: result.selectedCount,
     },
