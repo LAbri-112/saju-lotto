@@ -800,9 +800,23 @@ button:focus-visible {
   place-items: center;
 }
 
+.draw-result-main .bonus-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.draw-result-main .bonus-wrap small {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
 .bonus-ball {
   border: 3px solid #ffc928;
-  background: #58635f;
   outline: 0;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 0 0 2px rgba(255, 201, 40, 0.22);
 }
@@ -1071,6 +1085,93 @@ button:focus-visible {
   line-height: 1;
   place-items: center;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+}
+
+.candidate-scope-list {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-scope-list > strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.candidate-scope-row,
+.candidate-setting-hint {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(24, 169, 153, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+}
+
+.candidate-scope-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.candidate-scope-row.is-hit {
+  border-color: rgba(24, 169, 153, 0.34);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(232, 250, 247, 0.82));
+}
+
+.candidate-scope-row.is-miss {
+  border-color: rgba(75, 136, 235, 0.18);
+}
+
+.candidate-scope-row strong,
+.candidate-setting-hint strong {
+  color: var(--ink);
+}
+
+.candidate-scope-row span,
+.candidate-scope-row p,
+.candidate-scope-row em,
+.candidate-setting-hint p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.candidate-scope-row > b {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(233, 250, 247, 0.95);
+  color: var(--teal-dark);
+  padding: 4px 9px;
+  font-size: 0.78rem;
+}
+
+.candidate-scope-row > p,
+.candidate-scope-row > em,
+.candidate-scope-row .mini-audit-balls {
+  grid-column: 1 / -1;
+}
+
+.mini-audit-balls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mini-audit-balls .audit-ball {
+  display: inline-grid;
+  width: 28px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .metric {

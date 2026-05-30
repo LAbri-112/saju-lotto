@@ -133,18 +133,18 @@
   };
 
   const hourBranches = [
-    { label: "자시", range: "23:00-01:00", branch: 0 },
-    { label: "축시", range: "01:00-03:00", branch: 1 },
-    { label: "인시", range: "03:00-05:00", branch: 2 },
-    { label: "묘시", range: "05:00-07:00", branch: 3 },
-    { label: "진시", range: "07:00-09:00", branch: 4 },
-    { label: "사시", range: "09:00-11:00", branch: 5 },
-    { label: "오시", range: "11:00-13:00", branch: 6 },
-    { label: "미시", range: "13:00-15:00", branch: 7 },
-    { label: "신시", range: "15:00-17:00", branch: 8 },
-    { label: "유시", range: "17:00-19:00", branch: 9 },
-    { label: "술시", range: "19:00-21:00", branch: 10 },
-    { label: "해시", range: "21:00-23:00", branch: 11 },
+    { label: "자시", range: "23:30~01:29", branch: 0, midpoint: "00:30" },
+    { label: "축시", range: "01:30~03:29", branch: 1, midpoint: "02:30" },
+    { label: "인시", range: "03:30~05:29", branch: 2, midpoint: "04:30" },
+    { label: "묘시", range: "05:30~07:29", branch: 3, midpoint: "06:30" },
+    { label: "진시", range: "07:30~09:29", branch: 4, midpoint: "08:30" },
+    { label: "사시", range: "09:30~11:29", branch: 5, midpoint: "10:30" },
+    { label: "오시", range: "11:30~13:29", branch: 6, midpoint: "12:30" },
+    { label: "미시", range: "13:30~15:29", branch: 7, midpoint: "14:30" },
+    { label: "신시", range: "15:30~17:29", branch: 8, midpoint: "16:30" },
+    { label: "유시", range: "17:30~19:29", branch: 9, midpoint: "18:30" },
+    { label: "술시", range: "19:30~21:29", branch: 10, midpoint: "20:30" },
+    { label: "해시", range: "21:30~23:29", branch: 11, midpoint: "22:30" },
   ];
 
   const luckyCatalog = {
@@ -426,7 +426,6 @@
   const form = document.querySelector("#settingsForm");
   const birthDate = document.querySelector("#birthDate");
   const birthBranch = document.querySelector("#birthBranch");
-  const birthTime = document.querySelector("#birthTime");
   const unknownTime = document.querySelector("#unknownTime");
   const recentWindow = document.querySelector("#recentWindow");
   const sajuWeight = document.querySelector("#sajuWeight");
@@ -500,9 +499,25 @@
     }).format(date);
   }
 
+  function branchForClock(hour, minute = 0) {
+    const totalMinutes = mod((Number(hour) || 0) * 60 + (Number(minute) || 0), 1440);
+    return Math.floor(mod(totalMinutes - 1410, 1440) / 120);
+  }
+
   function branchForHour(hour) {
-    if (hour === 23) return 0;
-    return mod(Math.floor((hour + 1) / 2), 12);
+    return branchForClock(hour, 0);
+  }
+
+  function midpointForBranch(branchIndex) {
+    const [hour, minute] = (hourBranches[mod(branchIndex, 12)]?.midpoint ?? "12:30")
+      .split(":")
+      .map(Number);
+    return { hour, minute };
+  }
+
+  function branchRangeLabel(branchIndex) {
+    const slot = hourBranches[mod(branchIndex, 12)];
+    return `${slot.label} ${slot.range}`;
   }
 
   function isLottoSalesWindow(date, hour) {
@@ -1108,23 +1123,17 @@
     const [year, month, day] = (birthDate.value || "1990-01-01")
       .split("-")
       .map(Number);
-    const [hour, minute] = (birthTime.value || "12:00").split(":").map(Number);
-    const selectedBranch =
-      birthBranch.value === "custom" ? null : Number(birthBranch.value);
-    const branchMidHours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
+    const selectedBranch = Number(birthBranch.value || 6);
+    const midpoint = midpointForBranch(selectedBranch);
 
     return {
       year: year || 1990,
       month: month || 1,
       day: day || 1,
-      hour: unknownTime.checked
-        ? 12
-        : selectedBranch == null
-          ? hour || 0
-          : branchMidHours[selectedBranch],
-      minute: unknownTime.checked ? 0 : minute || 0,
+      hour: unknownTime.checked ? 12 : midpoint.hour,
+      minute: unknownTime.checked ? 0 : midpoint.minute,
       unknownHour: unknownTime.checked,
-      selectedBranch,
+      selectedBranch: unknownTime.checked ? null : selectedBranch,
     };
   }
 
@@ -1196,7 +1205,8 @@
     const dayIndex = mod(Math.round((birthDateUtc - baseDate) / 86400000), 60);
     const dayStem = mod(dayIndex, 10);
     const dayBranch = mod(dayIndex, 12);
-    const hourBranch = mod(Math.floor(((birth.hour + 1) % 24) / 2), 12);
+    const hourBranch =
+      birth.selectedBranch == null ? branchForClock(birth.hour, birth.minute) : birth.selectedBranch;
     const hourStem = mod((dayStem % 5) * 2 + hourBranch, 10);
 
     const pillars = [
@@ -1328,7 +1338,7 @@
     };
   }
 
-  function buildNumberScores(stats, saju) {
+  function buildNumberScores(stats, saju, weightOverride = Number(sajuWeight.value) / 100) {
     const frequencyNorm = normalizeMap(stats.frequency, (value) => value);
     const recentNorm = normalizeMap(stats.recentFrequency, (value) => value);
     const bonusNorm = normalizeMap(stats.bonusFrequency, (value) => value);
@@ -1336,7 +1346,7 @@
       number === 0 ? null : stats.latestDraw - drawNo,
     );
     const gapNorm = normalizeMap(gapValues, (value) => Math.log1p(value));
-    const weight = Number(sajuWeight.value) / 100;
+    const weight = clamp(Number(weightOverride) || 0, 0, 1);
     const scores = Array(46).fill(null);
     const maxUseful = Math.max(...Object.values(saju.usefulScores));
 
@@ -1682,7 +1692,6 @@
     const seed = hashString(
       [
         birthDate.value,
-        birthTime.value,
         birthBranch.value,
         unknownTime.checked,
         recentWindow.value,
@@ -2072,7 +2081,135 @@
       .join("");
   }
 
-  function renderCandidateAuditSummary() {
+  function modeName(value) {
+    return (
+      {
+        balance: "중화 보완형",
+        wealth: "재성 강화형",
+        climate: "조후 균형형",
+      }[value] ?? "기본"
+    );
+  }
+
+  function snapshotSettingLabel(snapshot) {
+    const settings = snapshot.settings ?? {};
+    return `최근 ${settings.recentWindow ?? "-"}회 · 사주 ${settings.sajuWeight ?? 0}% · ${modeName(
+      settings.mode,
+    )} · 필터 ${settings.scoreFloor ?? "-"}점`;
+  }
+
+  function summarizeSnapshotGroup(snapshots, draw) {
+    if (!snapshots.length) return null;
+    const comparisons = snapshots.map((snapshot) => ({
+      snapshot,
+      result: compareSnapshotWithDraw(snapshot, draw),
+    }));
+    const exact = comparisons.find((item) => item.result.candidate);
+    const best = comparisons
+      .slice()
+      .sort((a, b) => {
+        return (
+          b.result.maxOverlap - a.result.maxOverlap ||
+          Number(b.result.bestMatch?.bonusMatch) - Number(a.result.bestMatch?.bonusMatch) ||
+          (b.result.bestMatch?.s ?? 0) - (a.result.bestMatch?.s ?? 0)
+        );
+      })[0];
+    const candidateTotal = snapshots.reduce(
+      (sum, snapshot) => sum + (snapshot.candidates?.length ?? 0),
+      0,
+    );
+
+    return {
+      exact,
+      best,
+      candidateTotal,
+      recordCount: snapshots.length,
+    };
+  }
+
+  function renderSnapshotGroupRow(label, snapshots, draw) {
+    const summary = summarizeSnapshotGroup(snapshots, draw);
+
+    if (!summary) {
+      return `
+        <div class="candidate-scope-row is-empty">
+          <div>
+            <strong>${label}</strong>
+            <span>저장된 추천 기록이 없습니다</span>
+          </div>
+          <b>확인 불가</b>
+          <p>이 설정으로 추천을 생성한 기록이 이 브라우저에 아직 없습니다.</p>
+        </div>
+      `;
+    }
+
+    const bestMatch = summary.best.result.bestMatch;
+    const exact = summary.exact;
+    const bestNumbers = bestMatch?.n ?? [];
+    const exactText = exact
+      ? `${snapshotSettingLabel(exact.snapshot)} 후보군에 정확한 6개 조합이 있었습니다.`
+      : `정확한 6개 조합은 없었고, 최대 ${summary.best.result.maxOverlap}개까지 맞았습니다.`;
+
+    return `
+      <div class="candidate-scope-row ${exact ? "is-hit" : "is-miss"}">
+        <div>
+          <strong>${label}</strong>
+          <span>${formatNumber(summary.recordCount)}개 기록 · 후보 ${formatNumber(
+            summary.candidateTotal,
+          )}개 확인</span>
+        </div>
+        <b>${exact ? "있음" : "없음"}</b>
+        <p>${exactText}</p>
+        <div class="mini-audit-balls">${bestNumbers.map(renderAuditBall).join("")}</div>
+        <em>가장 가까운 조합 · ${summary.best.result.maxOverlap}개 일치${
+          bestMatch?.bonusMatch ? " + 보너스 일치" : ""
+        } · ${tierLabel(bestMatch?.tier)}</em>
+      </div>
+    `;
+  }
+
+  function renderSettingAdjustmentHint(draw, snapshot, saju) {
+    const priorDraws = draws.filter((item) => item.draw < draw.draw);
+    if (priorDraws.length < 30) return "";
+
+    const windowSize = snapshot.settings?.recentWindow ?? (Number(recentWindow.value) || 50);
+    const floor = snapshot.settings?.scoreFloor ?? (Number(minScore.value) || 80);
+    const statsBeforeDraw = buildStats(windowSize, priorDraws);
+    const statOnlyMeta = scoreCombination(
+      draw.numbers,
+      buildNumberScores(statsBeforeDraw, saju, 0),
+      statsBeforeDraw,
+      saju,
+      null,
+    );
+    const currentWeight = clamp(Number(sajuWeight.value) / 100 || 0, 0, 1);
+    const sajuMeta = scoreCombination(
+      draw.numbers,
+      buildNumberScores(statsBeforeDraw, saju, currentWeight),
+      statsBeforeDraw,
+      saju,
+      null,
+    );
+    const betterMeta =
+      statOnlyMeta.practicalScore >= sajuMeta.practicalScore
+        ? { label: "사주 0% 통계형", meta: statOnlyMeta }
+        : { label: `사주 ${sajuWeight.value}% 반영형`, meta: sajuMeta };
+    const floorText =
+      betterMeta.meta.score >= floor
+        ? `분포 필터 ${floor}점 기준은 통과권이었습니다. 정확한 조합이 후보군에 없었다면 필터보다 후보 생성 폭과 랜덤 배치의 영향이 큽니다.`
+        : `분포 필터를 ${Math.floor(betterMeta.meta.score)}점 이하로 낮춰야 이 조합이 점수 기준에서 탈락하지 않습니다.`;
+
+    return `
+      <div class="candidate-setting-hint">
+        <strong>설정 조정 힌트</strong>
+        <p>${draw.draw}회 당첨번호는 ${betterMeta.label}에서 더 가깝게 평가됩니다. 분포점수 ${betterMeta.meta.score}점, 실전근접 ${betterMeta.meta.practicalScore}점입니다.</p>
+        <p>${floorText}</p>
+        <p>단, 이 앱은 모든 814만 조합을 전부 보여주는 방식이 아니라 후보군을 생성해 검증하므로, “점수 기준 통과”와 “저장 후보 안에 실제 존재”는 다를 수 있습니다.</p>
+      </div>
+    `;
+  }
+
+  function renderCandidateAuditSummary(stats, saju) {
     const container = document.querySelector("#candidateAuditSummary");
     if (!container) return;
 
@@ -2117,6 +2254,15 @@
     const exactFound = Boolean(result.candidate);
     const best = result.bestMatch;
     const bestNumbers = best?.n ?? [];
+    const relevantSnapshots = history.filter((item) => {
+      return item.basisLatestDraw === snapshot.basisLatestDraw && draw.draw > item.basisLatestDraw;
+    });
+    const noSajuSnapshots = relevantSnapshots.filter(
+      (item) => Number(item.settings?.sajuWeight ?? 0) === 0,
+    );
+    const sajuSnapshots = relevantSnapshots.filter(
+      (item) => Number(item.settings?.sajuWeight ?? 0) > 0,
+    );
     const maxSameCount = snapshot.candidates.filter(
       (item) => overlap(item.n, result.win) === result.maxOverlap,
     ).length;
@@ -2151,6 +2297,13 @@
         <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
         ${tierTags}
       </div>
+      <div class="candidate-scope-list">
+        <strong>설정별 후보군 확인</strong>
+        ${renderSnapshotGroupRow("전체 저장 후보", relevantSnapshots, draw)}
+        ${renderSnapshotGroupRow("사주 0% 통계 추천후보", noSajuSnapshots, draw)}
+        ${renderSnapshotGroupRow("사주 반영 추천후보", sajuSnapshots, draw)}
+      </div>
+      ${renderSettingAdjustmentHint(draw, snapshot, saju)}
     `;
   }
 
@@ -2304,7 +2457,6 @@
     const seed = hashString(
       [
         birthDate.value,
-        birthTime.value,
         birthBranch.value,
         unknownTime.checked,
         saju.pillarText,
@@ -2462,10 +2614,7 @@
           branchName,
           element,
           score: useful + wealthBoost + favoredBoost - deadlinePenalty,
-          range: `${String(startHour).padStart(2, "0")}:00-${String(startHour + 2).padStart(
-            2,
-            "0",
-          )}:00`,
+          range: branchRangeLabel(branchIndex),
         });
       }
     }
@@ -2498,10 +2647,7 @@
         branchName: branches[branchIndex][0],
         element,
         score: useful + wealthBoost + favoredBoost,
-        range: `${String(startHour).padStart(2, "0")}:00-${String(startHour + 2).padStart(
-          2,
-          "0",
-        )}:00`,
+        range: branchRangeLabel(branchIndex),
       });
     }
 
@@ -2786,7 +2932,10 @@
           <div class="draw-balls">
             ${latest.numbers.map(renderBall).join("")}
             <b class="draw-plus">+</b>
-            <b class="ball bonus-ball">${latest.bonus}</b>
+            <span class="bonus-wrap">
+              <b class="ball bonus-ball ${rangeClass(latest.bonus)}">${latest.bonus}</b>
+              <small>보너스</small>
+            </span>
           </div>
         </div>
         <div class="draw-prize-grid">
@@ -2865,7 +3014,7 @@
     renderRecommendations(result);
     saveRecommendationSnapshot(result);
     renderRecommendationAudit(learningProfile);
-    renderCandidateAuditSummary();
+    renderCandidateAuditSummary(stats, saju);
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);
@@ -3015,12 +3164,7 @@
     }
 
     unknownTime.addEventListener("change", () => {
-      birthTime.disabled = unknownTime.checked;
       birthBranch.disabled = unknownTime.checked;
-    });
-
-    birthBranch.addEventListener("change", () => {
-      birthTime.disabled = unknownTime.checked || birthBranch.value !== "custom";
     });
 
     sajuWeight.addEventListener("input", () => syncSajuWeight(sajuWeight.value));

@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v22" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v23" />
   </head>
   <body>
     <main class="app-shell">
@@ -63,25 +63,23 @@
             <div class="field-row">
               <div class="field-group">
                 <div class="label-row">
-                  <label for="birthTime">출생시각</label>
-                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 자시 23~01시, 축시 01~03시, 인시 03~05시, 묘시 05~07시, 진시 07~09시, 사시 09~11시, 오시 11~13시, 미시 13~15시, 신시 15~17시, 유시 17~19시, 술시 19~21시, 해시 21~23시입니다.">?</button>
+                  <label for="birthBranch">출생시각</label>
+                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 30분 보정표를 씁니다. 자시 23:30~01:29, 축시 01:30~03:29, 인시 03:30~05:29, 묘시 05:30~07:29, 진시 07:30~09:29, 사시 09:30~11:29, 오시 11:30~13:29, 미시 13:30~15:29, 신시 15:30~17:29, 유시 17:30~19:29, 술시 19:30~21:29, 해시 21:30~23:29입니다.">?</button>
                 </div>
                 <select id="birthBranch" name="birthBranch">
-                  <option value="custom" selected>시간 직접 입력</option>
-                  <option value="0">자시 23:00-01:00</option>
-                  <option value="1">축시 01:00-03:00</option>
-                  <option value="2">인시 03:00-05:00</option>
-                  <option value="3">묘시 05:00-07:00</option>
-                  <option value="4">진시 07:00-09:00</option>
-                  <option value="5">사시 09:00-11:00</option>
-                  <option value="6">오시 11:00-13:00</option>
-                  <option value="7">미시 13:00-15:00</option>
-                  <option value="8">신시 15:00-17:00</option>
-                  <option value="9">유시 17:00-19:00</option>
-                  <option value="10">술시 19:00-21:00</option>
-                  <option value="11">해시 21:00-23:00</option>
+                  <option value="0">자시 23:30~01:29</option>
+                  <option value="1">축시 01:30~03:29</option>
+                  <option value="2">인시 03:30~05:29</option>
+                  <option value="3">묘시 05:30~07:29</option>
+                  <option value="4">진시 07:30~09:29</option>
+                  <option value="5">사시 09:30~11:29</option>
+                  <option value="6" selected>오시 11:30~13:29</option>
+                  <option value="7">미시 13:30~15:29</option>
+                  <option value="8">신시 15:30~17:29</option>
+                  <option value="9">유시 17:30~19:29</option>
+                  <option value="10">술시 19:30~21:29</option>
+                  <option value="11">해시 21:30~23:29</option>
                 </select>
-                <input id="birthTime" name="birthTime" type="time" value="09:00" />
               </div>
               <label class="check-row">
                 <input id="unknownTime" name="unknownTime" type="checkbox" />
@@ -320,7 +318,10 @@
 
             <div class="analysis-panel">
               <div class="section-heading compact">
-                <h2>핫 앤 콜드</h2>
+                <div class="heading-with-help">
+                  <h2>핫 앤 콜드</h2>
+                  <button class="help-button" type="button" data-help="Hot은 최근 흐름과 전체 통계에서 비교적 자주 보인 번호입니다. Cold는 오래 나오지 않았거나 최근 흐름에서 뜸했던 번호입니다. 둘 다 당첨을 보장하는 뜻은 아니고, 번호 흐름을 이해하기 위한 참고 지표입니다.">?</button>
+                </div>
                 <p id="hotColdCaption">최근 회차와 전체 회차를 함께 반영</p>
               </div>
               <div class="rank-columns">
@@ -362,7 +363,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v22"></script>
-    <script src="app.js?v=feedback-v22"></script>
+    <script src="data/lotto-results.js?v=feedback-v23"></script>
+    <script src="app.js?v=feedback-v23"></script>
   </body>
 </html>
