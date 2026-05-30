@@ -2363,7 +2363,7 @@
         );
         const rng = mulberry32(seed);
         const candidateMap = new Map();
-        const candidateBudget = 2600;
+        const candidateBudget = 7600;
 
         for (let index = 0; index < candidateBudget; index += 1) {
           const numbers = makeCandidate(scores, rng);
@@ -2374,7 +2374,7 @@
         }
 
         const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-        for (const candidate of preliminary.slice(0, 90)) {
+        for (const candidate of preliminary.slice(0, 260)) {
           const improved = improveCandidate(candidate.numbers, scores, statsBeforeDraw, modeSaju, null);
           candidateMap.set(improved.numbers.join("-"), improved);
         }
@@ -2409,7 +2409,8 @@
         return {
           setting,
           label: settingLabelFromReplayItem(setting),
-          candidateCount: snapshot.candidates.length,
+          candidateCount: filtered.length || ranked.length,
+          checkedCount: snapshot.candidates.length,
           result,
         };
       },
@@ -2693,16 +2694,18 @@
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
     const replayBest = replay?.result?.bestMatch;
     const replayNumbers = replayBest?.n ?? [];
+    const replayCandidateCount = replay?.candidateCount ? formatNumber(replay.candidateCount) : "계산 중";
+    const replayCheckedCount = replay?.checkedCount ? formatNumber(replay.checkedCount) : "계산 중";
     const replayText = replayBest
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
     const foundExactSetting = qualifyingSettings.length > 0;
-    const statusText = foundExactSetting ? "당첨번호가 추천 후보 안에 있었음" : "통과 설정 없음";
+    const statusText = foundExactSetting ? "추천 후보 안에 있었음" : "후보 진입 설정 없음";
     const statusClass = foundExactSetting ? "is-hit" : "is-miss";
-    const hitLocationTitle = foundExactSetting ? foundSettingLine : "자동 기준에서는 없음";
+    const hitLocationTitle = foundExactSetting ? foundSettingLine : "추천 후보 안에 들어온 설정 없음";
     const candidateLine = foundExactSetting
-      ? `${latestDraw.draw}회 당첨번호 6개 조합을 모든 설정에 직접 넣어본 결과, ${qualifyingSettings.length}개 설정에서 당첨번호가 추천 후보 안에 있었습니다. 가장 먼저 볼 설정은 ${foundSettingLine}입니다.`
-      : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 기준을 통과한 설정이 없었습니다. 그래도 가장 가까운 설정은 ${settingLine}입니다.`;
+      ? `${latestDraw.draw}회 당첨번호 6개 조합이 추천 후보 안에 들어온 설정은 ${foundSettingLine}입니다. 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
+      : `모든 해석 모드, 사주 0~100%, 최근 흐름 기준을 다시 넣어봤지만 ${latestDraw.draw}회 당첨번호 6개 전체가 추천 후보 안에 들어온 설정은 없었습니다. 가장 가까운 설정은 ${settingLine}이고, 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였습니다.`;
     const positionMeaning = foundExactSetting
       ? `이 설정이면 당첨번호 조합 자체가 후보로 인정됩니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
       : `이 설정이 가장 가까웠지만, 자동 기준 안으로 들어오지는 못했습니다. 아래에는 그 설정으로 다시 만든 후보 중 가장 많이 맞은 조합을 보여줍니다.`;
@@ -2733,7 +2736,7 @@
           <div>
             <span>${index + 1}</span>
             <strong>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회</strong>
-            <em>이 설정에서는 당첨번호 6개 조합이 추천 후보 안에 있었습니다.</em>
+            <em>이 설정에서는 당첨번호 6개 조합이 추천 후보 안에 있었습니다.${index === 0 ? ` 대표 후보 수 ${replayCandidateCount}개.` : ""}</em>
           </div>
         `,
       )
@@ -2754,9 +2757,9 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호가 추천 후보 안에 있었던 설정</span>
+          <span>당첨번호 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${foundExactSetting ? "맞습니다. 이 설정에서는 당첨번호 6개 조합이 자동 추천 후보 안에 있었습니다." : "이번 회차 당첨번호는 자동 기준으로는 후보가 되는 설정을 찾지 못했습니다."}</p>
+          <p>${foundExactSetting ? `${foundSettingLine} 설정에서 당첨번호 6개 조합이 추천 후보 안에 있었습니다. 추천 후보는 ${replayCandidateCount}개였습니다.` : `추천 후보 안에 정확히 들어온 설정은 없었습니다. 대신 가장 가까운 설정은 ${settingLine}이고, 해당 설정의 추천 후보는 ${replayCandidateCount}개였습니다.`}</p>
         </div>
         ${
           qualifyingSettingRows
@@ -2770,12 +2773,12 @@
           <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
           <strong>${replayText}</strong>
-          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 후보 ${formatNumber(replay.candidateCount)}개 중 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
+          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 추천 후보 ${formatNumber(replay.candidateCount)}개 중 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
           <span>당첨번호 위치</span>
-          <strong>${statusText}</strong>
+          <strong>${hitLocationTitle}</strong>
             <p>${candidateLine}</p>
           </div>
           <div class="portfolio-position-card">
