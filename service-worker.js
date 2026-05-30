@@ -1,12 +1,12 @@
-const CACHE_NAME = "saju-lotto-v13";
+const CACHE_NAME = "saju-lotto-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v8",
-  "./app.js?v=feedback-v8",
+  "./styles.css?v=feedback-v15",
+  "./app.js?v=feedback-v15",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v8"
+  "./data/lotto-results.js?v=feedback-v15"
 ];
 
 self.addEventListener("install", (event) => {
@@ -55,7 +55,7 @@ self.addEventListener("fetch", (event) => {
 
   if (isDataRequest) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-store" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));

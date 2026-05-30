@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v8" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v15" />
   </head>
   <body>
     <main class="app-shell">
@@ -24,16 +24,34 @@
       </section>
 
       <section class="notice">
-        <strong>모든 조합의 1등 확률은 같습니다.</strong>
+        <strong>추천의 중심은 과거 당첨번호 분포입니다.</strong>
         <span>
-          이 앱은 과거 통계와 간이 사주 점수로 조합을 고르는 추천 도구이며,
-          당첨을 보장하지 않습니다.
+          사주는 기본 0%로 두고, 원하는 사람만 재미 보정으로 섞을 수 있습니다.
+          모든 조합의 1등 확률은 같으며 당첨을 보장하지 않습니다.
         </span>
+      </section>
+
+      <section class="quick-guide" aria-label="처음 이용 안내">
+        <div>
+          <strong>처음이면 기본값 그대로 추천 생성만 누르세요.</strong>
+          <span>생년월일과 시각을 넣으면 과거 당첨분포에 가까운 5장을 먼저 보여줍니다.</span>
+        </div>
+        <ol>
+          <li><span>1</span> 생년월일</li>
+          <li><span>2</span> 출생시각</li>
+          <li><span>3</span> 추천 생성</li>
+        </ol>
       </section>
 
       <section class="workspace">
         <aside class="control-panel" aria-label="추천 조건">
           <form id="settingsForm">
+            <div class="form-intro">
+              <span>기본 추천</span>
+              <strong>가장 쉬운 5장 추천</strong>
+              <p>복잡한 설정은 접어뒀어요. 처음엔 아래 세 가지만 입력하면 됩니다.</p>
+            </div>
+
             <div class="field-group">
               <div class="label-row">
                 <label for="birthDate">생년월일</label>
@@ -71,97 +89,126 @@
               </label>
             </div>
 
-            <div class="field-group">
-              <div class="label-row">
-                <label for="sajuWeight">사주 반영</label>
-                <button class="help-button" type="button" data-help="추천 점수에서 사주 해석을 얼마나 크게 반영할지 정합니다. 0은 거의 통계형, 50은 통계와 사주를 반반, 100은 사주 보완 오행을 가장 강하게 보는 설정입니다. 높다고 당첨 확률이 실제로 올라간다는 뜻은 아니고, 추천의 성격이 더 개인화된다는 뜻입니다.">?</button>
-              </div>
-              <div class="range-line range-with-buttons">
-                <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
-                <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="100" step="1" value="38" />
-                <input id="sajuWeightNumber" class="weight-number" name="sajuWeightNumber" type="number" min="0" max="100" step="1" value="38" aria-label="사주 반영 직접 입력" />
-                <output id="sajuWeightOut" for="sajuWeight">38%</output>
-                <button id="sajuPlus" class="step-button" type="button" aria-label="사주 반영 늘리기">+</button>
-              </div>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <div class="label-row">
-                  <label for="recentWindow">최근 흐름</label>
-                  <button class="help-button" type="button" data-help="최근 몇 번의 당첨번호를 더 중요하게 볼지 정합니다. 20회는 아주 최근 흐름, 50회는 기본 추천, 100회는 반년~2년 안팎의 안정된 흐름, 200회는 더 긴 장기 흐름을 참고합니다.">?</button>
-                </div>
-                <select id="recentWindow" name="recentWindow">
-                  <option value="20">20회</option>
-                  <option value="50" selected>50회</option>
-                  <option value="100">100회</option>
-                  <option value="200">200회</option>
-                </select>
-              </div>
               <div class="field-group">
                 <div class="label-row">
                   <label for="setCount">추천 세트</label>
-                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 5로 두면 추천 조합 5세트를 보여줍니다. 실전 우선순위부터 보기를 켜면 80점대 실전 구간과 조합 균형을 우선해 5개, 끄면 너무 비슷한 번호 조합을 줄여서 5개를 보여줍니다.">?</button>
+                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 기본 5세트는 과거 당첨번호들이 자주 나타난 분포에 가장 가까운 후보를 우선 보여주도록 설계했습니다. 사주 반영을 올려도 이 분포 기준이 중심입니다.">?</button>
                 </div>
                 <input id="setCount" name="setCount" type="number" min="1" max="10" value="5" />
               </div>
-            </div>
-
-            <div class="field-group">
-              <div class="label-row">
-                <label for="interpretationMode">해석 모드</label>
-                <button class="help-button" type="button" data-help="해석 모드는 사주를 어떤 관점으로 읽을지 고르는 설정입니다. 중화 보완형은 가장 무난한 기본값으로, 내 사주에서 너무 약하거나 강한 오행을 부드럽게 맞춥니다. 재성 강화형은 돈을 쓰고 결정하는 흐름을 조금 더 봅니다. 조후 균형형은 태어난 계절의 차갑고 뜨거운 느낌을 보완합니다. 잘 모르겠으면 중화 보완형을 쓰면 됩니다.">?</button>
-              </div>
-              <select id="interpretationMode" name="interpretationMode">
-                <option value="balance" selected>중화 보완형</option>
-                <option value="wealth">재성 강화형</option>
-                <option value="climate">조후 균형형</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <div class="label-row">
-                <label for="minScore">추천점수 필터</label>
-                <button class="help-button" type="button" data-help="추천점수가 이 값 이상인 조합만 보여줍니다. 기본값 80은 최근 검증에서 실제 당첨번호가 자주 들어온 실전 관찰 구간입니다. 90점 이상은 더 좋은 정답이라기보다 조건을 매우 많이 통과한 초고점 참고 후보로 따로 봅니다. 0이면 필터를 끕니다.">?</button>
-              </div>
-              <input id="minScore" name="minScore" type="number" min="0" max="100" step="0.5" value="80" />
-            </div>
-
-            <label class="check-row option-check">
-              <input id="topOnly" name="topOnly" type="checkbox" />
-              <span>실전 우선순위부터 보기</span>
-              <button class="help-button" type="button" data-help="단순히 90점대만 고르는 방식이 아니라, 최근 당첨번호가 자주 걸린 80점대 실전 구간과 조합 균형을 함께 보고 추천 세트 개수만큼 보여줍니다. 체크 해제 시에는 서로 너무 비슷한 조합을 줄여 다양성도 확보합니다.">?</button>
-            </label>
-
-            <div class="field-row">
-              <button id="useLocation" class="ghost-action" type="button">
-                <span aria-hidden="true">⌖</span>
-                현재 위치 반영
-              </button>
-              <div class="field-group inline-field">
-                <div class="label-row">
-                  <label for="walkRange">방향 탐색 거리</label>
-                  <button class="help-button" type="button" data-help="현재 위치에서 사주가 추천하는 방향으로 몇 km 전후까지 볼지 정합니다. 예를 들어 오늘 보완 방향이 남쪽이고 10km를 고르면, 내 위치에서 남쪽 10km 근처의 로또 판매점 검색을 바로 열 수 있게 추천합니다.">?</button>
-                </div>
-                <select id="walkRange" name="walkRange">
-                  <option value="5">5km 전후</option>
-                  <option value="10" selected>10km 전후</option>
-                  <option value="15">15km 전후</option>
-                </select>
-              </div>
-            </div>
-            <p id="locationStatus" class="helper-text">현재 위치를 누르면 좌표와 간단한 지역명을 기준으로 지도 추천을 만듭니다.</p>
 
             <button class="primary-action" type="submit">
               <span aria-hidden="true">↻</span>
               추천 생성
             </button>
-          </form>
 
-          <div class="mini-panel">
-            <h2>사주 오행</h2>
-            <div id="elementBars" class="element-bars"></div>
-          </div>
+            <details class="setting-details">
+              <summary>
+                <span>추천 기준 조정</span>
+                <small>최근 흐름, 분포 필터, 정렬 방식</small>
+              </summary>
+              <div class="setting-body">
+                <div class="field-row">
+                  <div class="field-group">
+                    <div class="label-row">
+                      <label for="recentWindow">최근 흐름</label>
+                      <button class="help-button" type="button" data-help="최근 몇 번의 당첨번호를 더 중요하게 볼지 정합니다. 20회는 아주 최근 흐름, 50회는 기본 추천, 100회는 반년~2년 안팎의 안정된 흐름, 200회는 더 긴 장기 흐름을 참고합니다.">?</button>
+                    </div>
+                    <select id="recentWindow" name="recentWindow">
+                      <option value="20">20회</option>
+                      <option value="50" selected>50회</option>
+                      <option value="100">100회</option>
+                      <option value="200">200회</option>
+                    </select>
+                  </div>
+                  <div class="field-group">
+                    <div class="label-row">
+                      <label for="minScore">분포적합 필터</label>
+                      <button class="help-button" type="button" data-help="점수라기보다 분포 적합도입니다. 합계대, 홀짝, 저고, 번호대 분산, 끝수 다양성, 직전회차 중복처럼 실제 당첨번호들이 자주 보였던 모양과 얼마나 가까운지 보는 필터입니다. 기본값 80은 분포 중심부 후보를 주로 보겠다는 뜻입니다.">?</button>
+                    </div>
+                    <input id="minScore" name="minScore" type="number" min="0" max="100" step="0.5" value="80" />
+                  </div>
+                </div>
+                <label class="check-row option-check">
+                  <input id="topOnly" name="topOnly" type="checkbox" checked />
+                  <span>당첨분포 우선 보기</span>
+                  <button class="help-button" type="button" data-help="점수가 높은 조합을 억지로 고르는 방식이 아니라, 실제 당첨번호들이 과거에 가장 많이 분포했던 패턴을 닮은 조합을 우선해서 보여줍니다. 체크 해제 시에는 분포가 좋은 후보 중에서도 서로 너무 비슷한 조합을 줄여 다양성도 확보합니다.">?</button>
+                </label>
+              </div>
+            </details>
+
+            <details class="setting-details">
+              <summary>
+                <span>사주 재미 보정</span>
+                <small>기본 0%, 원할 때만 켜기</small>
+              </summary>
+              <div class="setting-body">
+                <div class="field-group">
+                  <div class="label-row">
+                    <label for="sajuWeight">사주 반영</label>
+                    <button class="help-button" type="button" data-help="기본값은 0%입니다. 추천번호의 중심은 과거 당첨번호가 많이 모였던 분포이고, 사주 반영은 그 후보 안에서 내 오행과 맞는 번호를 살짝 섞는 재미 보정입니다. 통계 중심으로 보고 싶으면 0%, 사주 놀이를 더 느끼고 싶으면 원하는 만큼 올리면 됩니다.">?</button>
+                  </div>
+                  <div class="range-line range-with-buttons">
+                    <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
+                    <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="100" step="1" value="0" />
+                    <input id="sajuWeightNumber" class="weight-number" name="sajuWeightNumber" type="number" min="0" max="100" step="1" value="0" aria-label="사주 반영 직접 입력" />
+                    <output id="sajuWeightOut" for="sajuWeight">0%</output>
+                    <button id="sajuPlus" class="step-button" type="button" aria-label="사주 반영 늘리기">+</button>
+                  </div>
+                </div>
+
+                <div class="field-group">
+                  <div class="label-row">
+                    <label for="interpretationMode">해석 모드</label>
+                    <button class="help-button" type="button" data-help="해석 모드는 사주를 어떤 관점으로 읽을지 고르는 설정입니다. 중화 보완형은 가장 무난한 기본값으로, 내 사주에서 너무 약하거나 강한 오행을 부드럽게 맞춥니다. 재성 강화형은 돈을 쓰고 결정하는 흐름을 조금 더 봅니다. 조후 균형형은 태어난 계절의 차갑고 뜨거운 느낌을 보완합니다. 잘 모르겠으면 중화 보완형을 쓰면 됩니다.">?</button>
+                  </div>
+                  <select id="interpretationMode" name="interpretationMode">
+                    <option value="balance" selected>중화 보완형</option>
+                    <option value="wealth">재성 강화형</option>
+                    <option value="climate">조후 균형형</option>
+                  </select>
+                </div>
+              </div>
+            </details>
+
+            <details class="setting-details">
+              <summary>
+                <span>복권집·구매 루틴</span>
+                <small>내 위치 기준 추천이 필요할 때</small>
+              </summary>
+              <div class="setting-body">
+                <div class="field-row">
+                  <button id="useLocation" class="ghost-action" type="button">
+                    <span aria-hidden="true">⌖</span>
+                    현재 위치 반영
+                  </button>
+                  <div class="field-group inline-field">
+                    <div class="label-row">
+                      <label for="walkRange">방향 탐색 거리</label>
+                      <button class="help-button" type="button" data-help="현재 위치에서 사주가 추천하는 방향으로 몇 km 전후까지 볼지 정합니다. 예를 들어 오늘 보완 방향이 남쪽이고 10km를 고르면, 내 위치에서 남쪽 10km 근처의 로또 판매점 검색을 바로 열 수 있게 추천합니다.">?</button>
+                    </div>
+                    <select id="walkRange" name="walkRange">
+                      <option value="5">5km 전후</option>
+                      <option value="10" selected>10km 전후</option>
+                      <option value="15">15km 전후</option>
+                    </select>
+                  </div>
+                </div>
+                <p id="locationStatus" class="helper-text">현재 위치를 누르면 좌표와 간단한 지역명을 기준으로 지도 추천을 만듭니다.</p>
+              </div>
+            </details>
+
+            <details class="setting-details compact-details">
+              <summary>
+                <span>내 사주 오행 보기</span>
+                <small>간단한 오행 비율</small>
+              </summary>
+              <div class="mini-panel">
+                <h2>사주 오행</h2>
+                <div id="elementBars" class="element-bars"></div>
+              </div>
+            </details>
+          </form>
         </aside>
 
         <section class="main-panel">
@@ -186,21 +233,62 @@
                 <h2 id="recommend-title">추천 조합</h2>
                 <button class="help-button" type="button" data-help="최근 중복은 추천 조합 6개 중 직전 회차 당첨번호와 겹치는 개수입니다. 같은 번호가 바로 또 나올 수는 있지만, 앱은 3개 이상 겹치는 조합을 낮게 평가합니다.">?</button>
               </div>
-              <p id="scoreSummary">통계와 사주 점수를 계산 중입니다.</p>
+              <p id="scoreSummary">당첨 분포와 사주 보정값을 계산 중입니다.</p>
+            </div>
+            <div class="candidate-toolbar">
+              <div id="candidateStats" class="candidate-stats"></div>
+              <button id="shuffleCandidates" class="shuffle-action" type="button">후보 랜덤 배치</button>
             </div>
             <div id="recommendations" class="recommendations"></div>
           </section>
 
-          <section class="analysis-panel audit-panel" aria-labelledby="audit-title">
+          <section class="draw-result-panel analysis-panel" aria-labelledby="draw-title">
             <div class="section-heading compact">
-              <div class="heading-with-help">
-                <h2 id="audit-title">추천 기록 검증</h2>
-                <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 또 내 사주 설정 기준으로 과거 당첨번호가 몇 점대에 있었는지 계산해 다음 추천 우선순위를 보정합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
+              <div>
+                <p class="eyebrow">Winning Result</p>
+                <h2 id="draw-title">이번 회차 당첨번호</h2>
               </div>
-              <p>다음 회차가 업데이트되면 내 후보와 당첨번호를 비교하고 점수대 통계를 학습합니다</p>
+              <p>동행복권 공개 데이터를 기준으로 표시합니다</p>
             </div>
-            <div id="recommendationAudit" class="recommendation-audit"></div>
+            <div id="latestDrawResult" class="latest-draw-result"></div>
           </section>
+
+          <section class="fortune-panel analysis-panel" aria-labelledby="fortune-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Daily Fortune</p>
+                <h2 id="fortune-title">오늘의 운세</h2>
+              </div>
+              <p>생년월일과 출생시각 기준의 가벼운 재미 운세입니다</p>
+            </div>
+            <div class="fortune-tabs" role="tablist" aria-label="운세 기간">
+              <button class="fortune-tab is-active" type="button" data-period="today">오늘</button>
+              <button class="fortune-tab" type="button" data-period="tomorrow">내일</button>
+              <button class="fortune-tab" type="button" data-period="week">이번 주</button>
+              <button class="fortune-tab" type="button" data-period="month">이번 달</button>
+            </div>
+            <div id="dailyFortune" class="daily-fortune"></div>
+          </section>
+
+          <details class="analysis-panel audit-panel audit-details">
+            <summary class="audit-summary">
+              <span>
+                <strong>추천 기록 검증</strong>
+                <small>내 후보와 당첨번호 비교는 필요할 때만 열어보세요</small>
+              </span>
+              <span class="audit-summary-action">펼치기</span>
+            </summary>
+            <div class="audit-content">
+              <div class="section-heading compact">
+                <div class="heading-with-help">
+                  <h2 id="audit-title">추천 기록 검증</h2>
+                  <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 또 과거 당첨번호가 어떤 분포대에 자주 있었는지 계산해 다음 추천 우선순위를 보정합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
+                </div>
+                <p>다음 회차가 업데이트되면 내 후보와 당첨번호를 비교하고 당첨분포를 학습합니다</p>
+              </div>
+              <div id="recommendationAudit" class="recommendation-audit"></div>
+            </div>
+          </details>
 
           <section class="saju-grid" aria-label="명리 분석">
             <div class="analysis-panel">
@@ -274,7 +362,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v8"></script>
-    <script src="app.js?v=feedback-v8"></script>
+    <script src="data/lotto-results.js?v=feedback-v15"></script>
+    <script src="app.js?v=feedback-v15"></script>
   </body>
 </html>
