@@ -842,8 +842,33 @@ button:focus-visible {
 
 .candidate-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  grid-template-columns: minmax(230px, 1.4fr) repeat(3, minmax(110px, 0.7fr));
   gap: 8px;
+}
+
+.candidate-hero-stat {
+  border: 1px solid rgba(24, 169, 153, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.98), rgba(255, 241, 248, 0.9));
+  box-shadow: 0 14px 30px rgba(24, 169, 153, 0.16);
+  padding: 12px 14px;
+}
+
+.candidate-hero-stat span,
+.candidate-hero-stat em {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.candidate-hero-stat strong {
+  display: block;
+  margin: 3px 0;
+  color: var(--teal-dark);
+  font-size: 1.72rem;
+  line-height: 1.08;
 }
 
 .candidate-stat-card {
@@ -1748,7 +1773,16 @@ button:focus-visible {
   }
 
   .candidate-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .candidate-hero-stat {
+    grid-column: 1 / -1;
+    padding: 13px;
+  }
+
+  .candidate-hero-stat strong {
+    font-size: 2rem;
   }
 
   .shuffle-action {

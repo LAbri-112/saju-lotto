@@ -1805,10 +1805,14 @@
   function renderCandidateStats(result) {
     if (!candidateStats) return;
     const mode = result.displayMode === "random" ? "랜덤 배치" : "분포 최우선";
+    const shown = result.displayMode === "random"
+      ? Math.min(Number(setCount.value) || 5, result.pool?.length ?? 0)
+      : result.selectedCount;
     candidateStats.innerHTML = `
-      <div class="candidate-stat-card highlight">
-        <span>추천 후보</span>
+      <div class="candidate-hero-stat">
+        <span>이번 조건에서 살아남은 추천 후보</span>
         <strong>${formatNumber(result.filteredCount)}개</strong>
+        <em>지금 화면에는 ${formatNumber(shown)}개 조합을 보여주는 중입니다</em>
       </div>
       <div class="candidate-stat-card">
         <span>전체 생성</span>
