@@ -565,6 +565,37 @@
     }).format(date);
   }
 
+  function dateToIso(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate(),
+    ).padStart(2, "0")}`;
+  }
+
+  function clampBirthDateInput() {
+    if (!birthDate) return;
+
+    const today = new Date();
+    const maxIso = dateToIso(today);
+    birthDate.max = maxIso;
+    birthDate.min = "1900-01-01";
+
+    const value = birthDate.value;
+    if (!value) return;
+
+    const match = value.match(/^(\d{4,})-(\d{1,2})-(\d{1,2})$/);
+    if (!match) return;
+
+    const currentYear = today.getFullYear();
+    const year = clamp(Number(match[1].slice(0, 4)) || currentYear, 1900, currentYear);
+    const month = clamp(Number(match[2]) || 1, 1, 12);
+    const lastDay = new Date(year, month, 0).getDate();
+    const day = clamp(Number(match[3]) || 1, 1, lastDay);
+    let next = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    if (next > maxIso) next = maxIso;
+    if (next !== value) birthDate.value = next;
+  }
+
   function branchForClock(hour, minute = 0) {
     const totalMinutes = mod((Number(hour) || 0) * 60 + (Number(minute) || 0), 1440);
     return Math.floor(mod(totalMinutes - 1410, 1440) / 120);
@@ -3391,6 +3422,7 @@
       return;
     }
 
+    clampBirthDateInput();
     updateTimeCorrectionPreview();
     const stats = buildStats(Number(recentWindow.value));
     const saju = buildSajuProfile();
@@ -3539,6 +3571,7 @@
   function init() {
     setupHelpButtons();
     registerServiceWorker();
+    clampBirthDateInput();
     renderStaticSummary();
     refresh();
 
