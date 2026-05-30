@@ -2560,11 +2560,24 @@
     const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
     const latestDraw = latest.draw;
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회`;
+    const foundSettingLine = bestEligible
+      ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회`
+      : "없음";
+    const statusText = bestEligible ? "추천 후보 안" : "추천 후보 밖";
+    const statusClass = bestEligible ? "is-hit" : "is-miss";
     const candidateLine = bestEligible
-      ? `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 ${modeName(
-          bestEligible.mode,
-        )} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회에서 후보권에 들어왔습니다.`
-      : `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 자동 선별 기준에서는 후보권 밖이었습니다. 가장 가까운 설정은 ${settingLine}입니다.`;
+      ? `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 안에 있었습니다. 실제로 들어왔던 설정은 ${foundSettingLine}입니다.`
+      : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 밖에 있었습니다. 다만 가장 가까운 위치는 ${settingLine} 설정이었습니다.`;
+    const positionMeaning = bestEligible
+      ? "이 설정으로 추천했다면 당첨번호 조합이 앱의 추천 후보 목록에 올라올 수 있었다는 뜻입니다."
+      : "이 설정이 가장 가까웠지만, 앱이 실제 추천 후보로 올리기에는 자동 기준을 넘지 못했다는 뜻입니다.";
+    const rangeLabels = {
+      "0~20%": "사주 거의 안 씀",
+      "21~40%": "사주 조금 씀",
+      "41~60%": "통계와 사주 반반",
+      "61~80%": "사주 많이 씀",
+      "81~100%": "사주 강하게 씀",
+    };
     const modeTags = portfolio.modeCounts
       .map((item) => `<span>${item.label} ${item.count}회</span>`)
       .join("");
@@ -2576,43 +2589,53 @@
       <div class="personal-portfolio-card">
         <div class="portfolio-head">
           <div>
-            <span>캐시와 무관한 개인 재현 검증</span>
-            <strong>생년월일·출생시각 기준으로 사주 0~100%를 회차별 다시 계산</strong>
+            <span>개인별 당첨번호 위치</span>
+            <strong>${latestDraw.draw}회 당첨번호가 후보 안에 있었는지 확인</strong>
           </div>
-          <b>${portfolio.eligibleCount}/${portfolio.records.length}회 후보권</b>
+          <b class="${statusClass}">${statusText}</b>
         </div>
         <div class="portfolio-latest">
           <div>
-            <span>${latestDraw.draw}회 당첨번호가 가장 가까웠던 설정</span>
+            <span>${latestDraw.draw}회 당첨번호</span>
             <div class="ball-line compact-ball-line">${latestDraw.numbers.map(renderAuditBall).join("")}</div>
           </div>
         </div>
-        <p>${candidateLine}</p>
-        <div class="store-tags">
-          <span>스캔 ${portfolio.windowOptions.map((value) => `${value}회`).join("/")}</span>
-          <span>사주 0~100%</span>
-          <span>해석모드 3종</span>
+        <div class="portfolio-position-grid">
+          <div class="portfolio-position-card ${statusClass}">
+            <span>당첨번호 위치</span>
+            <strong>${statusText}</strong>
+            <p>${candidateLine}</p>
+          </div>
+          <div class="portfolio-position-card">
+            <span>가장 가까운 설정</span>
+            <strong>${settingLine}</strong>
+            <p>${positionMeaning}</p>
+          </div>
         </div>
         <div class="store-tags">
-          <span>${settingLine}</span>
-          <span>자동 선별 기준 적용</span>
+          <span>후보권에 실제로 들어온 설정: ${foundSettingLine}</span>
+          <span>저장 기록이 아니라 현재 입력값으로 다시 계산</span>
         </div>
-        <div class="portfolio-bars">
-          ${portfolio.ranges
-            .map(
-              (range) => `
-                <div class="portfolio-bar-row">
-                  <span>${range.label}</span>
-                  <i><b style="width:${Math.max(6, (range.count / maxRange) * 100)}%"></b></i>
-                  <strong>${range.count}회</strong>
-                </div>
-              `,
-            )
-            .join("")}
-        </div>
-        <div class="store-tags">${modeTags}${windowTags}</div>
         <details class="portfolio-draw-details">
-          <summary>최근 회차별 보기</summary>
+          <summary>개인 재현 요약 보기</summary>
+          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 자동 추천 후보 안에 들어온 회차는 ${portfolio.eligibleCount}회입니다.</p>
+          <div class="portfolio-bars">
+            ${portfolio.ranges
+              .map(
+                (range) => `
+                  <div class="portfolio-bar-row">
+                    <span>${rangeLabels[range.label] ?? range.label}</span>
+                    <i><b style="width:${Math.max(6, (range.count / maxRange) * 100)}%"></b></i>
+                    <strong>${range.count}회</strong>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="store-tags">${modeTags}${windowTags}</div>
+        </details>
+        <details class="portfolio-draw-details">
+          <summary>최근 회차별 자세히 보기</summary>
           <div class="portfolio-draw-list">
             ${portfolio.records
               .slice(-8)
@@ -2622,7 +2645,7 @@
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${record.eligible ? "후보권" : "후보권 밖"}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${record.eligible ? "추천 후보 안" : "추천 후보 밖"}</span>
                   </div>
                 `;
               })

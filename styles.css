@@ -1151,6 +1151,16 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.portfolio-head b.is-miss {
+  background: rgba(240, 111, 136, 0.12);
+  color: #b94058;
+}
+
+.portfolio-head b.is-hit {
+  background: rgba(24, 169, 153, 0.14);
+  color: var(--teal-dark);
+}
+
 .portfolio-latest {
   border: 1px solid rgba(75, 136, 235, 0.16);
   border-radius: 8px;
@@ -1182,6 +1192,47 @@ button:focus-visible {
   margin: 0;
 }
 
+.portfolio-position-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.portfolio-position-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(75, 136, 235, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 12px;
+}
+
+.portfolio-position-card.is-miss {
+  border-color: rgba(240, 111, 136, 0.24);
+  background: rgba(255, 247, 249, 0.85);
+}
+
+.portfolio-position-card.is-hit {
+  border-color: rgba(24, 169, 153, 0.24);
+  background: rgba(232, 250, 247, 0.88);
+}
+
+.portfolio-position-card span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.portfolio-position-card strong {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.portfolio-note {
+  margin: 0 0 10px;
+}
+
 .portfolio-bars {
   display: grid;
   gap: 8px;
@@ -1189,7 +1240,7 @@ button:focus-visible {
 
 .portfolio-bar-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) 38px;
+  grid-template-columns: 116px minmax(0, 1fr) 38px;
   gap: 8px;
   align-items: center;
   color: var(--ink);
@@ -2453,6 +2504,10 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .portfolio-position-grid {
+    grid-template-columns: 1fr;
+  }
+
   .portfolio-head b,
   .portfolio-score {
     justify-self: stretch;
@@ -2465,7 +2520,12 @@ button:focus-visible {
   }
 
   .portfolio-bar-row {
-    grid-template-columns: 54px minmax(0, 1fr) 36px;
+    grid-template-columns: minmax(0, 1fr) 36px;
+    row-gap: 4px;
+  }
+
+  .portfolio-bar-row span {
+    grid-column: 1 / -1;
   }
 
   .portfolio-draw-list div {
