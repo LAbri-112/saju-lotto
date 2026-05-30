@@ -1049,16 +1049,20 @@
     return clamp(((bucket.counts[value] ?? 0) + 1) / (bucket.max + 1));
   }
 
+  function softPatternFit(model, key, value, floor = 0.18) {
+    return clamp(Math.sqrt(patternFit(model, key, value)), floor, 1);
+  }
+
   function distributionFitScore(stats, snapshot) {
     const model = stats.patternModel;
     const fit =
-      patternFit(model, "sumBand", snapshot.sumBand) * 0.26 +
-      patternFit(model, "odd", snapshot.odd) * 0.14 +
-      patternFit(model, "low", snapshot.low) * 0.14 +
-      patternFit(model, "sectorCoverage", snapshot.sectorCoverage) * 0.13 +
-      patternFit(model, "tailDiversity", snapshot.tailDiversity) * 0.11 +
-      patternFit(model, "spreadBand", snapshot.spreadBand) * 0.1 +
-      patternFit(model, "repeatPrevious", snapshot.repeatBand) * 0.07 +
+      patternFit(model, "sumBand", snapshot.sumBand) * 0.18 +
+      patternFit(model, "odd", snapshot.odd) * 0.12 +
+      patternFit(model, "low", snapshot.low) * 0.12 +
+      patternFit(model, "sectorCoverage", snapshot.sectorCoverage) * 0.15 +
+      patternFit(model, "tailDiversity", snapshot.tailDiversity) * 0.13 +
+      patternFit(model, "spreadBand", snapshot.spreadBand) * 0.15 +
+      patternFit(model, "repeatPrevious", snapshot.repeatBand) * 0.1 +
       patternFit(model, "consecutive", snapshot.consecutiveBand) * 0.05;
 
     return Math.round(clamp(fit) * 1000) / 10;
@@ -1071,9 +1075,12 @@
     const lastSeen = Array(46).fill(0);
     const sums = [];
     const oddCounts = [];
+    const lowCounts = [];
+    const repeatCounts = [];
     const seenCombos = new Set();
     const sourceLatest = sourceDraws.at(-1) ?? latest;
     const recentDraws = sourceDraws.slice(-windowSize);
+    let previousNumbers = null;
 
     for (const draw of sourceDraws) {
       const numbers = [...draw.numbers].sort((a, b) => a - b);
@@ -1081,6 +1088,10 @@
       seenCombos.add(key);
       sums.push(numbers.reduce((sum, number) => sum + number, 0));
       oddCounts.push(numbers.filter((number) => number % 2 === 1).length);
+      lowCounts.push(numbers.filter((number) => number <= 22).length);
+      if (previousNumbers) {
+        repeatCounts.push(numbers.filter((number) => previousNumbers.has(number)).length);
+      }
 
       for (const number of numbers) {
         frequency[number] += 1;
@@ -1089,6 +1100,7 @@
       if (Number.isInteger(draw.bonus)) {
         bonusFrequency[draw.bonus] += 1;
       }
+      previousNumbers = new Set(numbers);
     }
 
     for (const draw of recentDraws) {
@@ -1102,6 +1114,13 @@
       sums.length ? sums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / sums.length : 0;
     const oddMean =
       oddCounts.reduce((sum, value) => sum + value, 0) / Math.max(1, oddCounts.length);
+    const sortedSums = [...sums].sort((a, b) => a - b);
+    const quantile = (values, rate) => {
+      if (!values.length) return 0;
+      return values[Math.floor((values.length - 1) * rate)];
+    };
+    const repeatLe2 = repeatCounts.filter((count) => count <= 2).length;
+    const repeatGe3 = repeatCounts.filter((count) => count >= 3).length;
 
     return {
       frequency,
@@ -1112,6 +1131,14 @@
       sumMean: mean,
       sumStd: Math.sqrt(variance),
       oddMean,
+      balanceProfile: {
+        sumQ25: quantile(sortedSums, 0.25),
+        sumQ75: quantile(sortedSums, 0.75),
+        oddCommon: "2~4",
+        lowCommon: "2~4",
+        repeatLe2Pct: repeatCounts.length ? Math.round((repeatLe2 / repeatCounts.length) * 1000) / 10 : 0,
+        repeatGe3Pct: repeatCounts.length ? Math.round((repeatGe3 / repeatCounts.length) * 1000) / 10 : 0,
+      },
       recentWindow: windowSize,
       latestDraw: sourceLatest?.draw ?? 0,
       latestNumbers: new Set(sourceLatest?.numbers ?? []),
@@ -1403,20 +1430,23 @@
     const repeatLatest = numbers.filter((number) => stats.latestNumbers.has(number)).length;
     const numberScore =
       numbers.reduce((total, number) => total + scores[number].score, 0) / 6;
-    const sumScore = clamp(
+    const sumMeanScore = clamp(
       1 - Math.abs(sum - stats.sumMean) / Math.max(26, stats.sumStd * 1.65),
     );
-    const oddScore = odd >= 2 && odd <= 4 ? 1 : odd === 1 || odd === 5 ? 0.55 : 0.25;
-    const lowScore = low >= 2 && low <= 4 ? 1 : low === 1 || low === 5 ? 0.58 : 0.25;
+    const sumScore =
+      softPatternFit(stats.patternModel, "sumBand", snapshot.sumBand) * 0.72 + sumMeanScore * 0.28;
+    const oddScore = softPatternFit(stats.patternModel, "odd", odd);
+    const lowScore = softPatternFit(stats.patternModel, "low", low);
     const spread = snapshot.spread;
-    const spreadScore = spread >= 24 && spread <= 39 ? 1 : clamp(1 - Math.abs(spread - 31) / 24);
-    const groupScore = Math.max(...maxGroup) <= 3 ? 1 : 0.52;
-    const repeatScore = repeatLatest <= 2 ? 1 : 0.45;
+    const spreadScore = softPatternFit(stats.patternModel, "spreadBand", snapshot.spreadBand);
+    const groupScore = Math.max(softPatternFit(stats.patternModel, "sectorCoverage", sectorCoverage), Math.max(...maxGroup) <= 3 ? 0.74 : 0.42);
+    const repeatPatternScore = softPatternFit(stats.patternModel, "repeatPrevious", snapshot.repeatBand);
+    const repeatScore = repeatLatest <= 2 ? Math.max(0.66, repeatPatternScore) : repeatPatternScore * 0.72;
     const seenScore = stats.seenCombos.has(numbers.join("-")) ? 0.2 : 1;
-    const consecutiveScore = consecutive <= 2 ? 1 : 0.62;
+    const consecutiveScore = softPatternFit(stats.patternModel, "consecutive", snapshot.consecutiveBand);
     const favoredScore = favoredCount >= 2 && favoredCount <= 4 ? 1 : 0.7;
-    const sectorScore = sectorCoverage >= 4 ? 1 : sectorCoverage === 3 ? 0.78 : 0.48;
-    const tailScore = tailDiversity >= 5 ? 1 : tailDiversity === 4 ? 0.82 : 0.58;
+    const sectorScore = softPatternFit(stats.patternModel, "sectorCoverage", sectorCoverage);
+    const tailScore = softPatternFit(stats.patternModel, "tailDiversity", tailDiversity);
     const pairSpread = numbers
       .slice(1)
       .map((number, index) => number - numbers[index]);
@@ -2889,6 +2919,7 @@
         ? "동행복권 공식 JSON"
         : "공개 회차 목록 보조 수집";
     const recentYears = (stats.recentWindow / 52).toFixed(1);
+    const balance = stats.balanceProfile;
 
     document.querySelector("#patternReport").innerHTML = `
       <div class="pattern-line">
@@ -2905,11 +2936,11 @@
       </div>
       <div class="pattern-line">
         <span>균형 기준</span>
-        <strong>전체 평균 합계 ${stats.sumMean.toFixed(1)}, 평균 홀수 ${stats.oddMean.toFixed(1)}개를 조합 점수에 반영합니다.</strong>
+        <strong>평균값 하나를 맞추기보다 실제 당첨번호가 많이 몰린 중앙 범위를 봅니다. 전체 회차 중앙 50%는 합계 ${balance.sumQ25}~${balance.sumQ75}, 홀수 ${balance.oddCommon}개, 저번호 ${balance.lowCommon}개입니다.</strong>
       </div>
       <div class="pattern-line">
         <span>최근 중복</span>
-        <strong>직전 회차 번호와 겹치는 개수입니다. 0~2개는 허용하고, 3개 이상은 점수를 낮춥니다.</strong>
+        <strong>직전 회차와 0~2개 겹친 경우가 ${balance.repeatLe2Pct}%이고, 3개 이상 겹친 경우는 ${balance.repeatGe3Pct}%입니다. 그래서 0~2개는 허용하고 3개 이상만 강하게 낮춥니다.</strong>
       </div>
     `;
   }
