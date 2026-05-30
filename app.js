@@ -1789,6 +1789,10 @@
     return `<span class="ball ${rangeClass(number)}">${number}</span>`;
   }
 
+  function renderAuditBall(number) {
+    return `<b class="audit-ball ${rangeClass(number)}">${number}</b>`;
+  }
+
   function pickRandomCandidates(pool, target) {
     const candidates = [...pool];
     const rng = mulberry32(hashString(`${Date.now()}-${generation}-${Math.random()}`));
@@ -2136,7 +2140,7 @@
       </div>
       <div class="candidate-best-line">
         <span>가장 많이 맞은 후보 조합</span>
-        <div class="ball-line compact-ball-line">${bestNumbers.map(renderBall).join("")}</div>
+        <div class="ball-line compact-ball-line">${bestNumbers.map(renderAuditBall).join("")}</div>
         <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
           best?.tier,
         )}</strong>
@@ -2781,8 +2785,8 @@
           <span>${latest.date || dataset.latestDate || ""} 추첨</span>
           <div class="draw-balls">
             ${latest.numbers.map(renderBall).join("")}
-            <span class="draw-plus">+</span>
-            <span class="ball bonus-ball">${latest.bonus}</span>
+            <b class="draw-plus">+</b>
+            <b class="ball bonus-ball">${latest.bonus}</b>
           </div>
         </div>
         <div class="draw-prize-grid">

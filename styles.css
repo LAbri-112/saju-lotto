@@ -789,10 +789,22 @@ button:focus-visible {
   font-weight: 900 !important;
 }
 
+.draw-result-main .draw-balls .ball,
+.draw-result-main .draw-balls .bonus-ball {
+  display: inline-grid;
+  width: 34px;
+  min-width: 34px;
+  color: #fff;
+  font-size: 0.88rem;
+  line-height: 1;
+  place-items: center;
+}
+
 .bonus-ball {
-  background: #6a7471;
-  outline: 3px solid #ffc928;
-  outline-offset: -3px;
+  border: 3px solid #ffc928;
+  background: #58635f;
+  outline: 0;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 0 0 2px rgba(255, 201, 40, 0.22);
 }
 
 .draw-prize-grid {
@@ -1047,14 +1059,18 @@ button:focus-visible {
   margin-bottom: 0;
 }
 
-.ball-line.compact-ball-line .ball {
+.ball-line.compact-ball-line .audit-ball {
   display: inline-grid;
+  aspect-ratio: 1;
   width: 44px;
   min-width: 0;
+  border-radius: 50%;
   color: #fff;
   font-size: 0.96rem;
+  font-weight: 900;
   line-height: 1;
   place-items: center;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14);
 }
 
 .metric {
@@ -1287,26 +1303,31 @@ button:focus-visible {
 }
 
 .ball.range-1,
+.audit-ball.range-1,
 .heat.range-1 {
   background: var(--amber);
 }
 
 .ball.range-2,
+.audit-ball.range-2,
 .heat.range-2 {
   background: var(--blue);
 }
 
 .ball.range-3,
+.audit-ball.range-3,
 .heat.range-3 {
   background: var(--coral);
 }
 
 .ball.range-4,
+.audit-ball.range-4,
 .heat.range-4 {
   background: #6a7471;
 }
 
 .ball.range-5,
+.audit-ball.range-5,
 .heat.range-5 {
   background: var(--green);
 }
@@ -1331,7 +1352,7 @@ button:focus-visible {
 
 .analysis-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-top: 12px;
 }
@@ -2009,7 +2030,7 @@ button:focus-visible {
     gap: 6px;
   }
 
-  .ball-line.compact-ball-line .ball {
+  .ball-line.compact-ball-line .audit-ball {
     width: 38px;
     font-size: 0.9rem;
   }
