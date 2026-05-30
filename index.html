@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v33" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v34" />
   </head>
   <body>
     <main class="app-shell">
@@ -93,6 +93,7 @@
                 <button class="help-button" type="button" data-help="한국 표준시는 동경 135도 기준입니다. 실제 출생지는 이보다 서쪽인 경우가 많아서, 지역 경도 차이만큼 태양시가 몇 분 늦어집니다. 예를 들어 서울은 약 -32분, 원주는 약 -28분 보정됩니다. 1987~1988년처럼 서머타임이 있던 기간은 법정시에서 1시간을 되돌려 계산합니다.">?</button>
               </div>
               <select id="birthPlace" name="birthPlace">
+                <option value="unknown">출생지역 모름</option>
                 <option value="seoul" selected>서울특별시</option>
                 <option value="incheon">인천광역시</option>
                 <option value="suwon">경기 수원시</option>
@@ -118,8 +119,8 @@
                   <button class="help-button" type="button" data-help="전통 자시 기준은 23:30부터 하루가 바뀐다고 보는 방식입니다. 야자시/조자시는 자시를 둘로 나누어 23:30~23:59는 밤 자시, 00:00~01:29는 새벽 자시로 보고 날짜 경계는 자정에 둡니다. 어느 쪽이 정답이라기보다 학파 차이라서, 자시 근처 출생자는 두 방식을 비교하는 것이 좋습니다.">?</button>
                 </div>
                 <select id="midnightRule" name="midnightRule">
-                  <option value="split" selected>야자시/조자시</option>
-                  <option value="traditional">전통 자시</option>
+                  <option value="traditional" selected>전통 자시</option>
+                  <option value="split">야자시/조자시</option>
                 </select>
               </div>
             </div>
@@ -401,7 +402,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v33"></script>
-    <script src="app.js?v=feedback-v33"></script>
+    <script src="data/lotto-results.js?v=feedback-v34"></script>
+    <script src="app.js?v=feedback-v34"></script>
   </body>
 </html>

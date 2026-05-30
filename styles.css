@@ -1448,6 +1448,12 @@ button:focus-visible {
   line-height: 1;
 }
 
+.reading-row .mini-audit-balls {
+  grid-column: 2 / -1;
+  justify-content: flex-start;
+  align-self: start;
+}
+
 .metric {
   min-height: 86px;
   padding: 14px;
@@ -2543,6 +2549,10 @@ button:focus-visible {
   .reading-row {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .reading-row .mini-audit-balls {
+    grid-column: 1 / -1;
   }
 
   .learning-row {

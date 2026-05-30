@@ -148,6 +148,7 @@
   ];
 
   const birthPlaces = {
+    unknown: { label: "출생지역 모름", lat: null, lng: null },
     seoul: { label: "서울특별시", lat: 37.5665, lng: 126.978 },
     incheon: { label: "인천광역시", lat: 37.4563, lng: 126.7052 },
     suwon: { label: "경기 수원시", lat: 37.2636, lng: 127.0286 },
@@ -606,7 +607,7 @@
   }
 
   function selectedBirthPlace() {
-    return birthPlaces[birthPlace?.value] ?? birthPlaces.seoul;
+    return birthPlaces[birthPlace?.value] ?? birthPlaces.unknown;
   }
 
   function localDateValue(year, month, day, hour = 0, minute = 0) {
@@ -623,6 +624,7 @@
   }
 
   function localSolarCorrectionMinutes(place) {
+    if (!Number.isFinite(place?.lng)) return 0;
     return Math.round((place.lng - 135) * 4);
   }
 
@@ -651,6 +653,7 @@
     const selectedBranch = Number(birthBranch.value || 6);
     const midpoint = midpointForBranch(selectedBranch);
     const place = selectedBirthPlace();
+    const hasKnownPlace = Number.isFinite(place.lng);
     const dstMinutes = isKoreanDst(year || 1990, month || 1, day || 1, midpoint.hour, midpoint.minute) ? -60 : 0;
     const solarMinutes = localSolarCorrectionMinutes(place);
     const correctionEnabled = Boolean(timeCorrection?.checked) && !unknownTime.checked;
@@ -670,6 +673,7 @@
       solarMinutes,
       dstMinutes,
       totalCorrection,
+      hasKnownPlace,
       original: {
         year: year || 1990,
         month: month || 1,
@@ -686,7 +690,7 @@
         minute: adjusted.minute,
         branch: branchForClock(adjusted.hour, adjusted.minute),
       },
-      midnightRule: midnightRule?.value ?? "split",
+      midnightRule: midnightRule?.value ?? "traditional",
       unknownHour: unknownTime.checked,
     };
   }
@@ -701,9 +705,10 @@
     const adjustedLabel = branchRangeLabel(correction.adjusted.branch);
     const dstText = correction.dstMinutes ? "서머타임 -1시간 포함" : "서머타임 없음";
     const ruleText = correction.midnightRule === "traditional" ? "전통 자시 기준" : "야자시/조자시 기준";
-    timeCorrectionStatus.textContent = `${correction.place.label} 기준 태양시 ${formatMinutes(
-      correction.solarMinutes,
-    )}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
+    const placeText = correction.hasKnownPlace
+      ? `${correction.place.label} 기준 태양시 ${formatMinutes(correction.solarMinutes)}`
+      : "출생지역 모름 · 지역 태양시 보정 0분";
+    timeCorrectionStatus.textContent = `${placeText}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
       correction.adjusted.hour,
     ).padStart(2, "0")}:${String(correction.adjusted.minute).padStart(2, "0")} · ${adjustedLabel} · ${ruleText}`;
   }
