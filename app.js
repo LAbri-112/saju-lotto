@@ -3722,8 +3722,6 @@
 
     birthDate.addEventListener("input", () => {
       window.clearTimeout(refreshTimer);
-      const next = normalizeBirthDateText(birthDate.value);
-      if (next !== birthDate.value) birthDate.value = next;
       birthDate.setCustomValidity("");
     });
 
