@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v26" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v30" />
   </head>
   <body>
     <main class="app-shell">
@@ -64,7 +64,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="birthBranch">출생시각</label>
-                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 30분 보정표를 씁니다. 자시 23:30~01:29, 축시 01:30~03:29, 인시 03:30~05:29, 묘시 05:30~07:29, 진시 07:30~09:29, 사시 09:30~11:29, 오시 11:30~13:29, 미시 13:30~15:29, 신시 15:30~17:29, 유시 17:30~19:29, 술시 19:30~21:29, 해시 21:30~23:29입니다.">?</button>
+                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 30분 보정표를 씁니다. 야자시/조자시는 자시를 둘로 보는 방식입니다. 쉽게 말해 밤 23:30~자정 전은 전날 밤의 자시로 볼지, 자정 이후는 새날의 자시로 볼지 나누는 해석입니다. 생일 경계에 가까운 사람만 결과가 달라집니다. 자시 23:30~01:29, 축시 01:30~03:29, 인시 03:30~05:29, 묘시 05:30~07:29, 진시 07:30~09:29, 사시 09:30~11:29, 오시 11:30~13:29, 미시 13:30~15:29, 신시 15:30~17:29, 유시 17:30~19:29, 술시 19:30~21:29, 해시 21:30~23:29입니다. 서머타임과 출생지역 미세시차 보정은 다음 고도화 항목으로 분리해 더 정확히 넣을 예정입니다.">?</button>
                 </div>
                 <select id="birthBranch" name="birthBranch">
                   <option value="0">자시 23:30~01:29</option>
@@ -363,7 +363,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v26"></script>
-    <script src="app.js?v=feedback-v26"></script>
+    <script src="data/lotto-results.js?v=feedback-v30"></script>
+    <script src="app.js?v=feedback-v30"></script>
   </body>
 </html>

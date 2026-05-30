@@ -1249,7 +1249,7 @@
     return "friend";
   }
 
-  function buildSajuProfile() {
+  function buildSajuProfile(modeOverride = interpretationMode.value) {
     const birth = parseBirth();
     const solarMonth = getSolarMonth(birth);
     const code = birth.month * 100 + birth.day;
@@ -1343,12 +1343,12 @@
     if (["인", "묘", "진"].includes(monthBranch)) climateElement = "metal";
     if (climateElement) usefulScores[climateElement] += 0.45;
 
-    if (interpretationMode.value === "wealth") {
+    if (modeOverride === "wealth") {
       usefulScores[wealthElement] += 0.72;
       usefulScores[outputElement] += 0.28;
     }
 
-    if (interpretationMode.value === "climate" && climateElement) {
+    if (modeOverride === "climate" && climateElement) {
       usefulScores[climateElement] += 0.82;
     }
 
@@ -2153,6 +2153,207 @@
     );
   }
 
+  function personalFitScore(meta) {
+    return Math.round((meta.practicalScore * 0.68 + meta.signalScore * 0.2 + meta.gateScore * 0.12) * 10) / 10;
+  }
+
+  function buildPersonalPortfolio() {
+    const selectedWindow = clamp(Number(recentWindow.value) || 50, 20, 500);
+    const windowOptions = [20, 50, 100, 200].includes(selectedWindow)
+      ? [20, 50, 100, 200]
+      : [20, 50, 100, 200, selectedWindow];
+    const scoreFloor = clamp(Number(minScore.value) || 80, 0, 100);
+    const modes = ["balance", "wealth", "climate"];
+    const modeProfiles = Object.fromEntries(modes.map((mode) => [mode, buildSajuProfile(mode)]));
+    const scanWeights = Array.from({ length: 101 }, (_, index) => index);
+    const maxRecords = Math.min(60, Math.max(0, draws.length - 20));
+    const startIndex = Math.max(20, draws.length - maxRecords);
+    const records = [];
+
+    for (let index = startIndex; index < draws.length; index += 1) {
+      const draw = draws[index];
+      const priorDraws = draws.slice(0, index);
+      if (!draw?.numbers?.length || priorDraws.length < 20) continue;
+
+      let best = null;
+      const exactByWeight = [];
+
+      for (const windowSize of windowOptions.filter((size) => priorDraws.length >= Math.min(size, 20))) {
+        const statsBeforeDraw = buildStats(windowSize, priorDraws);
+
+        for (const mode of modes) {
+          const modeSaju = modeProfiles[mode];
+
+          for (const weight of scanWeights) {
+            const scores = buildNumberScores(statsBeforeDraw, modeSaju, weight / 100);
+            const meta = scoreCombination(
+              draw.numbers.slice().sort((a, b) => a - b),
+              scores,
+              statsBeforeDraw,
+              modeSaju,
+            );
+            const fit = personalFitScore(meta);
+            const eligible = meta.score >= scoreFloor;
+            const item = {
+              mode,
+              weight,
+              windowSize,
+              meta,
+              fit,
+              eligible,
+            };
+
+            if (eligible) exactByWeight.push(item);
+            if (!best || item.fit > best.fit || (item.fit === best.fit && item.meta.score > best.meta.score)) {
+              best = item;
+            }
+          }
+        }
+      }
+
+      records.push({
+        draw,
+        best,
+        exactByWeight,
+        eligible: exactByWeight.length > 0,
+      });
+    }
+
+    const ranges = [
+      { label: "0~20%", min: 0, max: 20 },
+      { label: "21~40%", min: 21, max: 40 },
+      { label: "41~60%", min: 41, max: 60 },
+      { label: "61~80%", min: 61, max: 80 },
+      { label: "81~100%", min: 81, max: 100 },
+    ].map((range) => ({
+      ...range,
+      count: records.filter((record) => record.best?.weight >= range.min && record.best.weight <= range.max).length,
+    }));
+    const topRange = ranges.slice().sort((a, b) => b.count - a.count || a.min - b.min)[0];
+    const modeCounts = modes
+      .map((mode) => ({
+        mode,
+        label: modeName(mode),
+        count: records.filter((record) => record.best?.mode === mode).length,
+      }))
+      .sort((a, b) => b.count - a.count);
+    const windowCounts = windowOptions
+      .map((windowSize) => ({
+        windowSize,
+        count: records.filter((record) => record.best?.windowSize === windowSize).length,
+      }))
+      .sort((a, b) => b.count - a.count || a.windowSize - b.windowSize);
+
+    return {
+      records,
+      latest: records.at(-1) ?? null,
+      ranges,
+      topRange,
+      modeCounts,
+      windowCounts,
+      scoreFloor,
+      selectedWindow,
+      windowOptions,
+      eligibleCount: records.filter((record) => record.eligible).length,
+    };
+  }
+
+  function renderPersonalPortfolio(portfolio) {
+    if (!portfolio.records.length || !portfolio.latest?.best) {
+      return `
+        <div class="candidate-audit-empty">
+          <strong>개인 재현 검증을 하기에는 회차 데이터가 부족합니다</strong>
+          <p>회차 데이터가 더 쌓이면 생년월일과 출생시각 기준으로 사주 반영률별 검증을 보여줍니다.</p>
+        </div>
+      `;
+    }
+
+    const latest = portfolio.latest;
+    const best = latest.best;
+    const bestEligible = latest.exactByWeight
+      .slice()
+      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score)[0];
+    const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
+    const latestDraw = latest.draw;
+    const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회 · 필터 ${portfolio.scoreFloor}점`;
+    const candidateLine = bestEligible
+      ? `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 ${modeName(
+          bestEligible.mode,
+        )} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회에서 후보권에 들어왔습니다.`
+      : `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 현재 필터 ${portfolio.scoreFloor}점 기준에서는 후보권 밖이었습니다. 가장 가까운 설정은 ${settingLine}입니다.`;
+    const modeTags = portfolio.modeCounts
+      .map((item) => `<span>${item.label} ${item.count}회</span>`)
+      .join("");
+    const windowTags = portfolio.windowCounts
+      .map((item) => `<span>최근 ${item.windowSize}회 ${item.count}회</span>`)
+      .join("");
+
+    return `
+      <div class="personal-portfolio-card">
+        <div class="portfolio-head">
+          <div>
+            <span>캐시와 무관한 개인 재현 검증</span>
+            <strong>생년월일·출생시각 기준으로 사주 0~100%를 회차별 다시 계산</strong>
+          </div>
+          <b>${portfolio.eligibleCount}/${portfolio.records.length}회 후보권</b>
+        </div>
+        <div class="portfolio-latest">
+          <div>
+            <span>${latestDraw.draw}회 당첨번호가 가장 가까웠던 설정</span>
+            <div class="ball-line compact-ball-line">${latestDraw.numbers.map(renderAuditBall).join("")}</div>
+          </div>
+          <div class="portfolio-score">
+            <strong>${best.fit}</strong>
+            <span>개인 적합</span>
+          </div>
+        </div>
+        <p>${candidateLine}</p>
+        <div class="store-tags">
+          <span>스캔 ${portfolio.windowOptions.map((value) => `${value}회`).join("/")}</span>
+          <span>사주 0~100%</span>
+          <span>해석모드 3종</span>
+        </div>
+        <div class="store-tags">
+          <span>${settingLine}</span>
+          <span>분포 ${best.meta.score}점</span>
+          <span>실전 ${best.meta.practicalScore}점</span>
+        </div>
+        <div class="portfolio-bars">
+          ${portfolio.ranges
+            .map(
+              (range) => `
+                <div class="portfolio-bar-row">
+                  <span>${range.label}</span>
+                  <i><b style="width:${Math.max(6, (range.count / maxRange) * 100)}%"></b></i>
+                  <strong>${range.count}회</strong>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+        <div class="store-tags">${modeTags}${windowTags}</div>
+        <details class="portfolio-draw-details">
+          <summary>최근 회차별 보기</summary>
+          <div class="portfolio-draw-list">
+            ${portfolio.records
+              .slice(-8)
+              .reverse()
+              .map((record) => {
+                const item = record.best;
+                return `
+                  <div>
+                    <strong>${record.draw.draw}회</strong>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · 개인적합 ${item.fit} · ${record.eligible ? "후보권" : "후보권 밖"}</span>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </details>
+      </div>
+    `;
+  }
+
   function snapshotSettingLabel(snapshot) {
     const settings = snapshot.settings ?? {};
     return `최근 ${settings.recentWindow ?? "-"}회 · 사주 ${settings.sajuWeight ?? 0}% · ${modeName(
@@ -2277,12 +2478,15 @@
     const container = document.querySelector("#candidateAuditSummary");
     if (!container) return;
 
+    const portfolio = buildPersonalPortfolio();
+    const portfolioHtml = renderPersonalPortfolio(portfolio);
     const history = readRecommendationHistory();
     if (!history.length) {
       container.innerHTML = `
+        ${portfolioHtml}
         <div class="candidate-audit-empty">
-          <strong>아직 검증할 추천 기록이 없습니다</strong>
-          <p>추천을 한 번 생성하면 후보군이 이 기기에 저장되고, 다음 회차 당첨번호가 들어온 뒤 여기에서 바로 비교됩니다.</p>
+          <strong>실제 저장 후보 기록은 아직 없습니다</strong>
+          <p>위 개인 재현 검증은 저장 기록 없이도 다시 계산됩니다. 단, 실제로 추천 버튼을 눌러 저장된 후보 기록은 이 기기에만 남습니다.</p>
         </div>
       `;
       return;
@@ -2304,6 +2508,7 @@
     if (!checks.length) {
       const latestSnapshot = history[0];
       container.innerHTML = `
+        ${portfolioHtml}
         <div class="candidate-audit-empty">
           <strong>${latestSnapshot.expectedDraw}회 당첨번호를 기다리는 중</strong>
           <p>${latestSnapshot.basisLatestDraw}회 기준 후보 ${formatNumber(
@@ -2336,38 +2541,42 @@
       .join("");
 
     container.innerHTML = `
-      <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
-        <div class="audit-result-main">
-          <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
-          <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "정확한 6개 조합은 후보군에 없었습니다"}</strong>
-          <em>당첨번호 ${result.win.join(", ")} + 보너스 ${draw.bonus}</em>
+      ${portfolioHtml}
+      <details class="saved-history-details">
+        <summary>실제로 눌러 저장된 후보 기록 보기</summary>
+        <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
+          <div class="audit-result-main">
+            <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
+            <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "정확한 6개 조합은 후보군에 없었습니다"}</strong>
+            <em>당첨번호 ${result.win.join(", ")} + 보너스 ${draw.bonus}</em>
+          </div>
+          <div class="audit-result-side">
+            <span>최대 일치</span>
+            <strong>${result.maxOverlap}개</strong>
+            <em>${formatNumber(maxSameCount)}개 후보가 이만큼 맞았습니다</em>
+          </div>
         </div>
-        <div class="audit-result-side">
-          <span>최대 일치</span>
-          <strong>${result.maxOverlap}개</strong>
-          <em>${formatNumber(maxSameCount)}개 후보가 이만큼 맞았습니다</em>
+        <div class="candidate-best-line">
+          <span>가장 많이 맞은 후보 조합</span>
+          <div class="ball-line compact-ball-line">${bestNumbers.map(renderAuditBall).join("")}</div>
+          <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
+            best?.tier,
+          )}</strong>
         </div>
-      </div>
-      <div class="candidate-best-line">
-        <span>가장 많이 맞은 후보 조합</span>
-        <div class="ball-line compact-ball-line">${bestNumbers.map(renderAuditBall).join("")}</div>
-        <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
-          best?.tier,
-        )}</strong>
-      </div>
-      <div class="store-tags">
-        <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
-        <span>최종 추천 ${formatNumber(snapshot.selected.length)}개</span>
-        <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
-        ${tierTags}
-      </div>
-      <div class="candidate-scope-list">
-        <strong>설정별 후보군 확인</strong>
-        ${renderSnapshotGroupRow("전체 저장 후보", relevantSnapshots, draw)}
-        ${renderSnapshotGroupRow("사주 0% 통계 추천후보", noSajuSnapshots, draw)}
-        ${renderSnapshotGroupRow("사주 반영 추천후보", sajuSnapshots, draw)}
-      </div>
-      ${renderSettingAdjustmentHint(draw, snapshot, saju)}
+        <div class="store-tags">
+          <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
+          <span>최종 추천 ${formatNumber(snapshot.selected.length)}개</span>
+          <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
+          ${tierTags}
+        </div>
+        <div class="candidate-scope-list">
+          <strong>저장 기록 기준 설정별 확인</strong>
+          ${renderSnapshotGroupRow("전체 저장 후보", relevantSnapshots, draw)}
+          ${renderSnapshotGroupRow("사주 0% 통계 추천후보", noSajuSnapshots, draw)}
+          ${renderSnapshotGroupRow("사주 반영 추천후보", sajuSnapshots, draw)}
+        </div>
+        ${renderSettingAdjustmentHint(draw, snapshot, saju)}
+      </details>
     `;
   }
 
@@ -2383,11 +2592,11 @@
       metal: { x: 18, y: 39 },
     };
     const plainRoles = {
-      self: "나의 힘",
-      resource: "도움",
-      output: "표현",
-      wealth: "돈",
-      officer: "책임",
+      self: { short: "비겁", plain: "나의 힘" },
+      resource: { short: "인성", plain: "도움" },
+      output: { short: "식상", plain: "표현" },
+      wealth: { short: "재성", plain: "돈" },
+      officer: { short: "관성", plain: "책임" },
     };
     const meanings = {
       wood: "성장",
@@ -2402,7 +2611,7 @@
       if (key === saju.outputElement) return plainRoles.output;
       if (key === saju.wealthElement) return plainRoles.wealth;
       if (key === saju.officerElement) return plainRoles.officer;
-      return "균형";
+      return { short: "균형", plain: "균형" };
     };
     const line = (from, to, className) => {
       const a = positions[from];
@@ -2417,10 +2626,11 @@
         const pct = (saju.counts[key] / total) * 100;
         const position = positions[key];
         const isFavored = saju.favored.includes(key);
+        const role = roleForElement(key);
         return `
           <div class="element-node ${isFavored ? "is-favored" : ""}" style="--x:${position.x}%; --y:${position.y}%; --color:${element.color}; --fill-color:${element.color}33; --fill:${pct.toFixed(1)}%;">
-            <span>${element.label}</span>
-            <em>${meanings[key]} · ${roleForElement(key)}</em>
+            <span>${element.label}(${role.short})</span>
+            <em>${meanings[key]} · ${role.plain}</em>
             <strong>${pct.toFixed(1)}%</strong>
           </div>
         `;
