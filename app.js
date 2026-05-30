@@ -488,6 +488,8 @@
 
   const form = document.querySelector("#settingsForm");
   const birthDate = document.querySelector("#birthDate");
+  const birthCalendar = document.querySelector("#birthCalendar");
+  const birthCalendarStatus = document.querySelector("#birthCalendarStatus");
   const birthBranch = document.querySelector("#birthBranch");
   const birthPlace = document.querySelector("#birthPlace");
   const timeCorrection = document.querySelector("#timeCorrection");
@@ -525,6 +527,18 @@
   const personalPortfolioCache = new Map();
   const recommendationResultCache = new Map();
   const replayCandidateCache = new Map();
+  const profileStorageKey = "saju-lotto-profile-v1";
+  const lunarFormatter = (() => {
+    try {
+      return new Intl.DateTimeFormat("ko-KR-u-ca-chinese", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -578,6 +592,147 @@
     ).padStart(2, "0")}`;
   }
 
+  function isoFromParts(year, month, day) {
+    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function parseIsoDateParts(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return {
+      year: Number(match[1]),
+      month: Number(match[2]),
+      day: Number(match[3]),
+    };
+  }
+
+  function lunarPartsFromSolar(year, month, day) {
+    if (!lunarFormatter) return null;
+    const date = new Date(Date.UTC(year, month - 1, day, 12));
+    const parts = Object.fromEntries(
+      lunarFormatter
+        .formatToParts(date)
+        .filter((part) => ["relatedYear", "year", "month", "day"].includes(part.type))
+        .map((part) => [part.type, part.value]),
+    );
+    const lunarYear = Number(parts.relatedYear ?? parts.year);
+    const lunarMonth = Number(String(parts.month ?? "").replace(/\D/g, ""));
+    const lunarDay = Number(parts.day);
+    if (![lunarYear, lunarMonth, lunarDay].every(Number.isFinite)) return null;
+    return {
+      year: lunarYear,
+      month: lunarMonth,
+      day: lunarDay,
+      label: `음력 ${isoFromParts(lunarYear, lunarMonth, lunarDay)}`,
+    };
+  }
+
+  function solarPartsFromLunar(year, month, day) {
+    if (!lunarFormatter) return null;
+    const start = new Date(Date.UTC(year, 0, 1, 12));
+    const end = new Date(Date.UTC(year + 1, 2, 20, 12));
+
+    for (let time = start.getTime(); time <= end.getTime(); time += 86400000) {
+      const date = new Date(time);
+      const lunar = lunarPartsFromSolar(
+        date.getUTCFullYear(),
+        date.getUTCMonth() + 1,
+        date.getUTCDate(),
+      );
+      if (lunar?.year === year && lunar.month === month && lunar.day === day) {
+        return {
+          year: date.getUTCFullYear(),
+          month: date.getUTCMonth() + 1,
+          day: date.getUTCDate(),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  function selectedBirthDateParts() {
+    const parts = parseIsoDateParts(birthDate.value) ?? { year: 1990, month: 1, day: 1 };
+    if (birthCalendar?.value !== "lunar") {
+      return {
+        ...parts,
+        input: parts,
+        calendar: "solar",
+        converted: false,
+      };
+    }
+
+    const solar = solarPartsFromLunar(parts.year, parts.month, parts.day);
+    return {
+      ...(solar ?? parts),
+      input: parts,
+      calendar: "lunar",
+      converted: Boolean(solar),
+    };
+  }
+
+  function selectValueIfAvailable(select, value) {
+    if (!select || value == null) return;
+    if ([...select.options].some((option) => option.value === String(value))) {
+      select.value = String(value);
+    }
+  }
+
+  function readSavedProfile() {
+    if (typeof localStorage === "undefined") return null;
+    try {
+      return JSON.parse(localStorage.getItem(profileStorageKey) ?? "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function saveProfile() {
+    if (typeof localStorage === "undefined") return;
+    if (!parseIsoDateParts(birthDate.value)) return;
+
+    const profile = {
+      birthCalendar: birthCalendar?.value ?? "solar",
+      birthDate: birthDate.value,
+      birthBranch: birthBranch?.value ?? "6",
+      unknownTime: Boolean(unknownTime?.checked),
+      birthPlace: birthPlace?.value ?? "unknown",
+      timeCorrection: Boolean(timeCorrection?.checked),
+      midnightRule: midnightRule?.value ?? "traditional",
+      setCount: setCount?.value ?? "5",
+      topOnly: Boolean(topOnly?.checked),
+      walkRange: walkRange?.value ?? "10",
+      savedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+    } catch {
+      // Profile memory is optional; the app still works without browser storage.
+    }
+  }
+
+  function restoreProfile() {
+    const profile = readSavedProfile();
+    if (!profile) return false;
+
+    selectValueIfAvailable(birthCalendar, profile.birthCalendar);
+    if (typeof profile.birthDate === "string") birthDate.value = profile.birthDate;
+    selectValueIfAvailable(birthBranch, profile.birthBranch);
+    if (unknownTime) unknownTime.checked = Boolean(profile.unknownTime);
+    selectValueIfAvailable(birthPlace, profile.birthPlace);
+    if (timeCorrection && typeof profile.timeCorrection === "boolean") {
+      timeCorrection.checked = profile.timeCorrection;
+    }
+    selectValueIfAvailable(midnightRule, profile.midnightRule);
+    if (setCount && profile.setCount != null) setCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
+    if (topOnly && typeof profile.topOnly === "boolean") topOnly.checked = profile.topOnly;
+    selectValueIfAvailable(walkRange, profile.walkRange);
+    if (birthBranch && unknownTime) birthBranch.disabled = unknownTime.checked;
+
+    return true;
+  }
+
   function boundedCacheGet(cache, key, compute, limit = 12) {
     if (cache.has(key)) return cache.get(key);
 
@@ -594,6 +749,7 @@
   function birthStateKey(mode = interpretationMode?.value ?? "balance") {
     return [
       dataset.latestDraw,
+      birthCalendar?.value,
       birthDate?.value,
       birthBranch?.value,
       unknownTime?.checked,
@@ -664,6 +820,28 @@
     return true;
   }
 
+  function updateBirthCalendarPreview() {
+    if (!birthCalendarStatus || !birthDate?.value) return;
+    const input = parseIsoDateParts(birthDate.value);
+    if (!input) {
+      birthCalendarStatus.textContent = "생년월일을 1998-08-27처럼 입력해주세요.";
+      return;
+    }
+
+    if (birthCalendar?.value === "lunar") {
+      const solar = solarPartsFromLunar(input.year, input.month, input.day);
+      birthCalendarStatus.textContent = solar
+        ? `음력 ${birthDate.value} 입력 · 양력 ${isoFromParts(solar.year, solar.month, solar.day)}로 바꿔 사주를 계산합니다.`
+        : `음력 ${birthDate.value} 입력 · 이 브라우저에서 양력 변환을 확인하지 못해 입력일 기준으로 계산합니다.`;
+      return;
+    }
+
+    const lunar = lunarPartsFromSolar(input.year, input.month, input.day);
+    birthCalendarStatus.textContent = lunar
+      ? `양력 ${birthDate.value} 입력 · 참고 음력 ${isoFromParts(lunar.year, lunar.month, lunar.day)}입니다.`
+      : `양력 ${birthDate.value} 기준으로 계산합니다.`;
+  }
+
   function branchForClock(hour, minute = 0) {
     const totalMinutes = mod((Number(hour) || 0) * 60 + (Number(minute) || 0), 1440);
     return Math.floor(mod(totalMinutes - 1410, 1440) / 120);
@@ -714,9 +892,8 @@
   }
 
   function computeBirthCorrection() {
-    const [year, month, day] = (birthDate.value || "1990-01-01")
-      .split("-")
-      .map(Number);
+    const birthParts = selectedBirthDateParts();
+    const { year, month, day } = birthParts;
     const selectedBranch = Number(birthBranch.value || 6);
     const midpoint = midpointForBranch(selectedBranch);
     const place = selectedBirthPlace();
@@ -748,6 +925,9 @@
         hour: midpoint.hour,
         minute: midpoint.minute,
         branch: selectedBranch,
+        calendar: birthParts.calendar,
+        input: birthParts.input,
+        converted: birthParts.converted,
       },
       adjusted: {
         year: finalDate.getUTCFullYear(),
@@ -775,7 +955,10 @@
     const placeText = correction.hasKnownPlace
       ? `${correction.place.label} 기준 태양시 ${formatMinutes(correction.solarMinutes)}`
       : "출생지역 모름 · 지역 태양시 보정 0분";
-    timeCorrectionStatus.textContent = `${placeText}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
+    const calendarText = correction.original.calendar === "lunar"
+      ? `음력 ${isoFromParts(correction.original.input.year, correction.original.input.month, correction.original.input.day)} 입력 · 양력 ${isoFromParts(correction.original.year, correction.original.month, correction.original.day)} 계산`
+      : `양력 ${isoFromParts(correction.original.year, correction.original.month, correction.original.day)} 계산`;
+    timeCorrectionStatus.textContent = `${calendarText}. ${placeText}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
       correction.adjusted.hour,
     ).padStart(2, "0")}:${String(correction.adjusted.minute).padStart(2, "0")} · ${adjustedLabel} · ${ruleText}`;
   }
@@ -3287,9 +3470,17 @@
     const correctionText = saju.birth.correction?.unknownHour
       ? "시각 모름으로 시간 기둥은 제외해 봅니다."
       : `${saju.birth.correction.place.label} 기준 ${saju.birth.correction.correctionEnabled ? "지역·서머타임 보정 적용" : "지역 보정 꺼짐"} · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 방식입니다.`;
+    const original = saju.birth.correction?.original;
+    const calendarText = original?.calendar === "lunar"
+      ? `음력 ${isoFromParts(original.input.year, original.input.month, original.input.day)}로 입력했고, 양력 ${isoFromParts(original.year, original.month, original.day)}로 변환해 명식을 계산했습니다.`
+      : `양력 ${isoFromParts(original.year, original.month, original.day)} 기준으로 명식을 계산했습니다.`;
 
     document.querySelector("#sajuReading").innerHTML = `
       ${renderPillarChart(saju)}
+      <div class="reading-row">
+        <span>달력 기준</span>
+        <p>${calendarText}</p>
+      </div>
       <div class="reading-row">
         <span>시간 보정</span>
         <p>${correctionText}</p>
@@ -3776,6 +3967,7 @@
     }
 
     clampBirthDateInput();
+    updateBirthCalendarPreview();
     updateTimeCorrectionPreview();
     const stats = buildStats(Number(recentWindow.value));
     const saju = buildSajuProfile();
@@ -3979,7 +4171,10 @@
   function init() {
     setupHelpButtons();
     registerServiceWorker();
+    restoreProfile();
     clampBirthDateInput();
+    updateBirthCalendarPreview();
+    applyAutoSajuSettings();
     renderStaticSummary();
     refresh();
 
@@ -3992,11 +4187,13 @@
         return;
       }
       applyAutoSajuSettings();
+      saveProfile();
       refresh({ forceNew: true });
     });
 
     for (const control of [
       recentWindow,
+      birthCalendar,
       birthBranch,
       birthPlace,
       timeCorrection,
@@ -4008,8 +4205,14 @@
       interpretationMode,
       walkRange,
     ]) {
-      control.addEventListener("input", () => scheduleRefresh());
-      control.addEventListener("change", () => scheduleRefresh());
+      control.addEventListener("input", () => {
+        saveProfile();
+        scheduleRefresh();
+      });
+      control.addEventListener("change", () => {
+        saveProfile();
+        scheduleRefresh();
+      });
     }
 
     birthDate.addEventListener("input", () => {
@@ -4020,6 +4223,8 @@
     birthDate.addEventListener("change", () => {
       if (clampBirthDateInput()) {
         birthDate.dataset.previousValue = birthDate.value;
+        updateBirthCalendarPreview();
+        saveProfile();
         scheduleRefresh({}, 320);
       }
     });
@@ -4040,12 +4245,15 @@
 
       if (clampBirthDateInput()) {
         birthDate.dataset.previousValue = birthDate.value;
+        updateBirthCalendarPreview();
+        saveProfile();
         scheduleRefresh({}, 320);
       }
     });
 
     unknownTime.addEventListener("change", () => {
       birthBranch.disabled = unknownTime.checked;
+      saveProfile();
       scheduleRefresh();
     });
 

@@ -1,12 +1,12 @@
-const CACHE_NAME = "saju-lotto-v53";
+const CACHE_NAME = "saju-lotto-v54";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v48",
-  "./app.js?v=feedback-v48",
+  "./styles.css?v=feedback-v49",
+  "./app.js?v=feedback-v49",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v48"
+  "./data/lotto-results.js?v=feedback-v49"
 ];
 
 self.addEventListener("install", (event) => {
