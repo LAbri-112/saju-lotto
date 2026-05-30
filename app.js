@@ -2263,51 +2263,8 @@
     }
   }
 
-  function saveRecommendationSnapshot(result) {
-    if (!result.auditCandidates?.length) return;
-
-    const selected = result.items.map((item) => ({
-      n: item.numbers,
-      s: item.meta.score,
-      g: item.meta.gateScore,
-      sig: item.meta.signalScore,
-      p: item.meta.practicalScore,
-      b: item.meta.band,
-      bl: item.meta.bucketLabel,
-    }));
-    const signature = JSON.stringify({
-      draw: dataset.latestDraw,
-      selected: selected.map((item) => candidateKey(item.n)),
-      scoreFloor: result.scoreFloor,
-      recentWindow: recentWindow.value,
-      sajuWeight: sajuWeight.value,
-      mode: interpretationMode.value,
-      learningTarget: result.learningProfile?.targetScore,
-    });
-    const history = readRecommendationHistory();
-
-    if (history[0]?.signature === signature) return;
-
-    history.unshift({
-      id: `${dataset.latestDraw}-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      basisLatestDraw: dataset.latestDraw,
-      basisLatestDate: dataset.latestDate,
-      expectedDraw: dataset.latestDraw + 1,
-      signature,
-      settings: {
-        recentWindow: Number(recentWindow.value),
-        sajuWeight: Number(sajuWeight.value),
-        mode: interpretationMode.value,
-        scoreFloor: result.scoreFloor,
-        setCount: Number(setCount.value),
-        learningTarget: result.learningProfile?.targetScore,
-        learningBand: result.learningProfile?.topBucketLabel,
-      },
-      selected,
-      candidates: result.auditCandidates,
-    });
-    writeRecommendationHistory(history);
+  function saveRecommendationSnapshot(_result) {
+    // Saved click history is intentionally ignored; recommendations use objective replay only.
   }
 
   function compareSnapshotWithDraw(snapshot, draw) {
@@ -2462,6 +2419,9 @@
 
   function renderRecommendationAudit(learningProfile) {
     const container = document.querySelector("#recommendationAudit");
+    if (!container) return;
+    container.innerHTML = "";
+    return;
     const history = readRecommendationHistory();
 
     if (!history.length) {
@@ -2582,6 +2542,27 @@
     };
   }
 
+  function deriveLatestAutoSajuSetting(records) {
+    const latest = records.at(-1);
+    if (!latest?.best) return null;
+
+    const exactSettings = (latest.exactByWeight ?? [])
+      .slice()
+      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score);
+    const picked = exactSettings[0] ?? latest.best;
+
+    return {
+      mode: picked.mode,
+      weight: picked.weight,
+      windowSize: picked.windowSize,
+      basisDraw: latest.draw?.draw,
+      exact: exactSettings.length > 0,
+      exactCount: exactSettings.length,
+      sourceCount: 1,
+      hitCount: exactSettings.length > 0 ? 1 : 0,
+    };
+  }
+
   function buildPersonalPortfolio() {
     const selectedWindow = clamp(Number(recentWindow.value) || 50, 20, 500);
     const windowOptions = [20, 50, 100, 200].includes(selectedWindow)
@@ -2669,7 +2650,7 @@
         count: records.filter((record) => record.best?.windowSize === windowSize).length,
       }))
       .sort((a, b) => b.count - a.count || a.windowSize - b.windowSize);
-    const autoSetting = deriveAutoSajuSetting(records);
+    const autoSetting = deriveLatestAutoSajuSetting(records);
 
     return {
       records,
@@ -2978,6 +2959,8 @@
 
     const portfolio = getCachedPersonalPortfolio();
     const portfolioHtml = renderPersonalPortfolio(portfolio);
+    container.innerHTML = portfolioHtml;
+    return;
     const history = readRecommendationHistory();
     if (!history.length) {
       container.innerHTML = `
@@ -3820,7 +3803,6 @@
     renderFortunePanel(saju);
     lastRecommendationResult = result;
     renderRecommendations(result);
-    if (options.saveSnapshot) saveRecommendationSnapshot(result);
     renderRecommendationAudit(learningProfile);
     renderCandidateAuditSummary(stats, saju);
     renderElementBars(saju);
@@ -3951,8 +3933,12 @@
     syncSajuWeight(setting.weight, false);
 
     if (autoSajuStatus) {
+      const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
+      const reasonText = setting.exact
+        ? `${basisText}당첨번호가 추천 후보 안에 있었던 설정을 적용했습니다.`
+        : `${basisText}당첨번호와 가장 가까웠던 설정을 적용했습니다.`;
       autoSajuStatus.textContent =
-        `자동 적용됨: ${autoSajuSettingLabel(setting)} · 최근 재현 ${setting.sourceCount}회 중 ${setting.hitCount}회는 당첨번호가 추천 후보 안에 들어왔던 흐름을 우선 반영했습니다.`;
+        `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
     }
 
     return setting;
@@ -4003,7 +3989,7 @@
         return;
       }
       applyAutoSajuSettings();
-      refresh({ forceNew: true, saveSnapshot: true });
+      refresh({ forceNew: true });
     });
 
     for (const control of [

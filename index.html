@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v46" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v47" />
   </head>
   <body>
     <main class="app-shell">
@@ -349,9 +349,9 @@
               <div class="section-heading compact">
                 <div class="heading-with-help">
                   <h2>내 후보 검증</h2>
-                  <button class="help-button" type="button" data-help="이 브라우저에 저장된 추천 후보군을 기준으로, 다음 회차 당첨번호가 후보 안에 있었는지와 가장 많이 맞은 후보 조합을 보여줍니다. 기록은 서버로 보내지 않고 이 기기 안에만 저장됩니다.">?</button>
+                  <button class="help-button" type="button" data-help="저장 기록이 아니라 생년월일·출생시각 기준으로 최근 당첨번호를 설정별로 다시 넣어 계산합니다. 어떤 사주 반영률, 해석 모드, 최근 흐름 기준에서 당첨번호가 자동 선별 기준에 가장 가까웠는지 보여줍니다.">?</button>
                 </div>
-                <p>지난 회차 내 추천 후보와 당첨번호 비교</p>
+                <p>저장 기록 없이 설정별 객관 재현</p>
               </div>
               <div id="candidateAuditSummary" class="candidate-audit-summary"></div>
             </div>
@@ -378,32 +378,13 @@
             </div>
           </section>
 
-          <details class="analysis-panel audit-panel audit-details">
-            <summary class="audit-summary">
-              <span>
-                <strong>추천 기록 검증</strong>
-                <small>내 후보와 당첨번호 비교는 필요할 때만 열어보세요</small>
-              </span>
-              <span class="audit-summary-action">펼치기</span>
-            </summary>
-            <div class="audit-content">
-              <div class="section-heading compact">
-                <div class="heading-with-help">
-                  <h2 id="audit-title">추천 기록 검증</h2>
-                  <button class="help-button" type="button" data-help="이 브라우저에서 실제로 받은 추천 후보를 저장해두고, 새 회차 데이터가 들어오면 당첨번호가 후보 안에 있었는지 확인합니다. 기록은 서버로 보내지 않고 내 기기 브라우저에만 저장됩니다.">?</button>
-                </div>
-                <p>최근 추천 후보와 새 당첨번호의 일치 여부만 가볍게 확인합니다</p>
-              </div>
-              <div id="recommendationAudit" class="recommendation-audit"></div>
-            </div>
-          </details>
         </section>
       </section>
     </main>
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v46"></script>
-    <script src="app.js?v=feedback-v46"></script>
+    <script src="data/lotto-results.js?v=feedback-v47"></script>
+    <script src="app.js?v=feedback-v47"></script>
   </body>
 </html>
