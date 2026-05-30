@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v30" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v32" />
   </head>
   <body>
     <main class="app-shell">
@@ -64,7 +64,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="birthBranch">출생시각</label>
-                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 30분 보정표를 씁니다. 야자시/조자시는 자시를 둘로 보는 방식입니다. 쉽게 말해 밤 23:30~자정 전은 전날 밤의 자시로 볼지, 자정 이후는 새날의 자시로 볼지 나누는 해석입니다. 생일 경계에 가까운 사람만 결과가 달라집니다. 자시 23:30~01:29, 축시 01:30~03:29, 인시 03:30~05:29, 묘시 05:30~07:29, 진시 07:30~09:29, 사시 09:30~11:29, 오시 11:30~13:29, 미시 13:30~15:29, 신시 15:30~17:29, 유시 17:30~19:29, 술시 19:30~21:29, 해시 21:30~23:29입니다. 서머타임과 출생지역 미세시차 보정은 다음 고도화 항목으로 분리해 더 정확히 넣을 예정입니다.">?</button>
+                  <button class="help-button" type="button" data-help="태어난 시간을 모르면 시각 모름을 체크하세요. 시간대는 30분 보정표를 씁니다. 자시는 23:30~01:29입니다. 야자시/조자시는 이 자시를 밤 자시와 새벽 자시로 나누는 방식입니다. 쉽게 말해 23:30~23:59는 밤에 걸친 자시, 00:00~01:29는 새벽 자시로 봅니다. 전통 자시 기준은 23:30부터 새 날로 볼 수 있고, 야자시/조자시 기준은 자정을 날짜 경계로 봅니다. 생일 경계에 가까운 사람만 결과가 달라집니다.">?</button>
                 </div>
                 <select id="birthBranch" name="birthBranch">
                   <option value="0">자시 23:30~01:29</option>
@@ -86,6 +86,44 @@
                 <span>시각 모름</span>
               </label>
             </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="birthPlace">출생지역</label>
+                <button class="help-button" type="button" data-help="한국 표준시는 동경 135도 기준입니다. 실제 출생지는 이보다 서쪽인 경우가 많아서, 지역 경도 차이만큼 태양시가 몇 분 늦어집니다. 예를 들어 서울은 약 -32분, 원주는 약 -28분 보정됩니다. 1987~1988년처럼 서머타임이 있던 기간은 법정시에서 1시간을 되돌려 계산합니다.">?</button>
+              </div>
+              <select id="birthPlace" name="birthPlace">
+                <option value="seoul" selected>서울특별시</option>
+                <option value="incheon">인천광역시</option>
+                <option value="suwon">경기 수원시</option>
+                <option value="wonju">강원 원주시</option>
+                <option value="chuncheon">강원 춘천시</option>
+                <option value="gangneung">강원 강릉시</option>
+                <option value="daejeon">대전광역시</option>
+                <option value="daegu">대구광역시</option>
+                <option value="gwangju">광주광역시</option>
+                <option value="busan">부산광역시</option>
+                <option value="jeju">제주특별자치도</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label class="check-row">
+                <input id="timeCorrection" name="timeCorrection" type="checkbox" checked />
+                <span>지역·서머타임 보정</span>
+              </label>
+              <div class="field-group inline-field">
+                <div class="label-row">
+                  <label for="midnightRule">자시 기준</label>
+                  <button class="help-button" type="button" data-help="전통 자시 기준은 23:30부터 하루가 바뀐다고 보는 방식입니다. 야자시/조자시는 자시를 둘로 나누어 23:30~23:59는 밤 자시, 00:00~01:29는 새벽 자시로 보고 날짜 경계는 자정에 둡니다. 어느 쪽이 정답이라기보다 학파 차이라서, 자시 근처 출생자는 두 방식을 비교하는 것이 좋습니다.">?</button>
+                </div>
+                <select id="midnightRule" name="midnightRule">
+                  <option value="split" selected>야자시/조자시</option>
+                  <option value="traditional">전통 자시</option>
+                </select>
+              </div>
+            </div>
+            <p id="timeCorrectionStatus" class="time-correction-note helper-text">출생지역과 자시 기준을 선택하면 보정 시간이 표시됩니다.</p>
 
               <div class="field-group">
                 <div class="label-row">
@@ -363,7 +401,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v30"></script>
-    <script src="app.js?v=feedback-v30"></script>
+    <script src="data/lotto-results.js?v=feedback-v32"></script>
+    <script src="app.js?v=feedback-v32"></script>
   </body>
 </html>

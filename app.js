@@ -147,6 +147,25 @@
     { label: "해시", range: "21:30~23:29", branch: 11, midpoint: "22:30" },
   ];
 
+  const birthPlaces = {
+    seoul: { label: "서울특별시", lat: 37.5665, lng: 126.978 },
+    incheon: { label: "인천광역시", lat: 37.4563, lng: 126.7052 },
+    suwon: { label: "경기 수원시", lat: 37.2636, lng: 127.0286 },
+    wonju: { label: "강원 원주시", lat: 37.3422, lng: 127.9202 },
+    chuncheon: { label: "강원 춘천시", lat: 37.8813, lng: 127.7298 },
+    gangneung: { label: "강원 강릉시", lat: 37.7519, lng: 128.8761 },
+    daejeon: { label: "대전광역시", lat: 36.3504, lng: 127.3845 },
+    daegu: { label: "대구광역시", lat: 35.8714, lng: 128.6014 },
+    gwangju: { label: "광주광역시", lat: 35.1595, lng: 126.8526 },
+    busan: { label: "부산광역시", lat: 35.1796, lng: 129.0756 },
+    jeju: { label: "제주특별자치도", lat: 33.4996, lng: 126.5312 },
+  };
+
+  const koreaDstRanges = [
+    { start: [1987, 5, 10, 2, 0], end: [1987, 10, 11, 3, 0] },
+    { start: [1988, 5, 8, 2, 0], end: [1988, 10, 9, 3, 0] },
+  ];
+
   const luckyCatalog = {
     wood: {
       colors: ["세이지 그린", "청록", "밝은 데님"],
@@ -469,6 +488,10 @@
   const form = document.querySelector("#settingsForm");
   const birthDate = document.querySelector("#birthDate");
   const birthBranch = document.querySelector("#birthBranch");
+  const birthPlace = document.querySelector("#birthPlace");
+  const timeCorrection = document.querySelector("#timeCorrection");
+  const midnightRule = document.querySelector("#midnightRule");
+  const timeCorrectionStatus = document.querySelector("#timeCorrectionStatus");
   const unknownTime = document.querySelector("#unknownTime");
   const recentWindow = document.querySelector("#recentWindow");
   const sajuWeight = document.querySelector("#sajuWeight");
@@ -549,6 +572,109 @@
 
   function branchForHour(hour) {
     return branchForClock(hour, 0);
+  }
+
+  function selectedBirthPlace() {
+    return birthPlaces[birthPlace?.value] ?? birthPlaces.seoul;
+  }
+
+  function localDateValue(year, month, day, hour = 0, minute = 0) {
+    return (((year * 100 + month) * 100 + day) * 100 + hour) * 100 + minute;
+  }
+
+  function isKoreanDst(year, month, day, hour, minute) {
+    const value = localDateValue(year, month, day, hour, minute);
+    return koreaDstRanges.some((range) => {
+      const start = localDateValue(...range.start);
+      const end = localDateValue(...range.end);
+      return value >= start && value < end;
+    });
+  }
+
+  function localSolarCorrectionMinutes(place) {
+    return Math.round((place.lng - 135) * 4);
+  }
+
+  function clockFromMinutes(totalMinutes) {
+    const normalized = mod(totalMinutes, 1440);
+    return {
+      hour: Math.floor(normalized / 60),
+      minute: normalized % 60,
+      minuteOfDay: normalized,
+    };
+  }
+
+  function formatMinutes(value) {
+    if (!value) return "0분";
+    const sign = value > 0 ? "+" : "-";
+    const abs = Math.abs(value);
+    const hours = Math.floor(abs / 60);
+    const minutes = abs % 60;
+    return `${sign}${hours ? `${hours}시간 ` : ""}${minutes}분`;
+  }
+
+  function computeBirthCorrection() {
+    const [year, month, day] = (birthDate.value || "1990-01-01")
+      .split("-")
+      .map(Number);
+    const selectedBranch = Number(birthBranch.value || 6);
+    const midpoint = midpointForBranch(selectedBranch);
+    const place = selectedBirthPlace();
+    const dstMinutes = isKoreanDst(year || 1990, month || 1, day || 1, midpoint.hour, midpoint.minute) ? -60 : 0;
+    const solarMinutes = localSolarCorrectionMinutes(place);
+    const correctionEnabled = Boolean(timeCorrection?.checked) && !unknownTime.checked;
+    const totalCorrection = correctionEnabled ? solarMinutes + dstMinutes : 0;
+    const baseMinutes = midpoint.hour * 60 + midpoint.minute;
+    const adjusted = clockFromMinutes(baseMinutes + totalCorrection);
+    const rawDate = new Date(Date.UTC(year || 1990, (month || 1) - 1, day || 1, 0, baseMinutes + totalCorrection));
+    const useTraditionalMidnight = midnightRule?.value === "traditional" && adjusted.minuteOfDay >= 1410;
+    const finalDate = new Date(rawDate);
+    if (useTraditionalMidnight) {
+      finalDate.setUTCDate(finalDate.getUTCDate() + 1);
+    }
+
+    return {
+      place,
+      correctionEnabled,
+      solarMinutes,
+      dstMinutes,
+      totalCorrection,
+      original: {
+        year: year || 1990,
+        month: month || 1,
+        day: day || 1,
+        hour: midpoint.hour,
+        minute: midpoint.minute,
+        branch: selectedBranch,
+      },
+      adjusted: {
+        year: finalDate.getUTCFullYear(),
+        month: finalDate.getUTCMonth() + 1,
+        day: finalDate.getUTCDate(),
+        hour: adjusted.hour,
+        minute: adjusted.minute,
+        branch: branchForClock(adjusted.hour, adjusted.minute),
+      },
+      midnightRule: midnightRule?.value ?? "split",
+      unknownHour: unknownTime.checked,
+    };
+  }
+
+  function updateTimeCorrectionPreview(correction = computeBirthCorrection()) {
+    if (!timeCorrectionStatus) return;
+    if (correction.unknownHour) {
+      timeCorrectionStatus.textContent = "시각 모름 상태라 지역·서머타임 보정은 명식 시간 계산에 적용하지 않습니다.";
+      return;
+    }
+
+    const adjustedLabel = branchRangeLabel(correction.adjusted.branch);
+    const dstText = correction.dstMinutes ? "서머타임 -1시간 포함" : "서머타임 없음";
+    const ruleText = correction.midnightRule === "traditional" ? "전통 자시 기준" : "야자시/조자시 기준";
+    timeCorrectionStatus.textContent = `${correction.place.label} 기준 태양시 ${formatMinutes(
+      correction.solarMinutes,
+    )}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
+      correction.adjusted.hour,
+    ).padStart(2, "0")}:${String(correction.adjusted.minute).padStart(2, "0")} · ${adjustedLabel} · ${ruleText}`;
   }
 
   function midpointForBranch(branchIndex) {
@@ -1179,20 +1305,17 @@
   }
 
   function parseBirth() {
-    const [year, month, day] = (birthDate.value || "1990-01-01")
-      .split("-")
-      .map(Number);
-    const selectedBranch = Number(birthBranch.value || 6);
-    const midpoint = midpointForBranch(selectedBranch);
+    const correction = computeBirthCorrection();
 
     return {
-      year: year || 1990,
-      month: month || 1,
-      day: day || 1,
-      hour: unknownTime.checked ? 12 : midpoint.hour,
-      minute: unknownTime.checked ? 0 : midpoint.minute,
+      year: correction.adjusted.year,
+      month: correction.adjusted.month,
+      day: correction.adjusted.day,
+      hour: unknownTime.checked ? 12 : correction.adjusted.hour,
+      minute: unknownTime.checked ? 0 : correction.adjusted.minute,
       unknownHour: unknownTime.checked,
-      selectedBranch: unknownTime.checked ? null : selectedBranch,
+      selectedBranch: unknownTime.checked ? null : correction.adjusted.branch,
+      correction,
     };
   }
 
@@ -1379,6 +1502,7 @@
         element: dayElement,
         polarity: stemPolarity(dayStem),
       },
+      dayStemIndex: dayStem,
       strength,
       strengthRatio,
       usefulScores,
@@ -1393,7 +1517,11 @@
       wealthElement,
       officerElement,
       climateElement,
-      calculationNote: "절입일은 앱 내 고정 기준일로 근사 계산",
+      calculationNote: birth.correction?.correctionEnabled
+        ? `${birth.correction.place.label} 태양시 ${formatMinutes(
+            birth.correction.totalCorrection,
+          )} 보정 후 계산`
+        : "지역 시간 보정 없이 계산",
     };
   }
 
@@ -1755,6 +1883,9 @@
       [
         birthDate.value,
         birthBranch.value,
+        birthPlace?.value,
+        timeCorrection?.checked,
+        midnightRule?.value,
         unknownTime.checked,
         recentWindow.value,
         sajuWeight.value,
@@ -2705,6 +2836,46 @@
     return `<div class="mini-audit-balls">${numbers.map(renderAuditBall).join("")}</div>`;
   }
 
+  function renderPillarChart(saju) {
+    const labels = {
+      hour: "생시",
+      day: "생일",
+      month: "생월",
+      year: "생년",
+    };
+    const ordered = saju.pillars.slice().reverse();
+    const stemTenGod = (pillar) => tenGodLabels[tenGod(saju.dayStemIndex, pillar.stemIndex)];
+    const branchTenGod = (pillar) => {
+      const mainHidden = hiddenStems[pillar.branchIndex]?.[0]?.stem ?? pillar.stemIndex;
+      return tenGodLabels[tenGod(saju.dayStemIndex, mainHidden)];
+    };
+    const cell = (pillar, type) => {
+      const elementKey = type === "stem" ? pillar.stemElement : pillar.branchElement;
+      const value = type === "stem" ? pillar.stemName : pillar.branchName;
+      const role = type === "stem" ? stemTenGod(pillar) : branchTenGod(pillar);
+      return `
+        <div class="pillar-cell" style="--pillar-color:${elements[elementKey].color}">
+          <strong>${value}</strong>
+          <span>${role}</span>
+        </div>
+      `;
+    };
+
+    return `
+      <div class="pillar-chart" style="--pillar-columns:${ordered.length}">
+        <div class="pillar-row pillar-head">
+          ${ordered.map((pillar) => `<span>${labels[pillar.kind]}</span>`).join("")}
+        </div>
+        <div class="pillar-row">
+          ${ordered.map((pillar) => cell(pillar, "stem")).join("")}
+        </div>
+        <div class="pillar-row">
+          ${ordered.map((pillar) => cell(pillar, "branch")).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   function renderSajuReading(saju) {
     const strengthLabel = {
       weak: "신약, 내 기운을 조금 보태면 편한 편",
@@ -2729,8 +2900,16 @@
       )} 기운을 더 챙깁니다.`,
     }[interpretationMode.value];
     const numberHints = sajuNumberHints(saju, 10);
+    const correctionText = saju.birth.correction?.unknownHour
+      ? "시각 모름으로 시간 기둥은 제외해 봅니다."
+      : `${saju.birth.correction.place.label} 기준 ${saju.birth.correction.correctionEnabled ? "지역·서머타임 보정 적용" : "지역 보정 꺼짐"} · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 방식입니다.`;
 
     document.querySelector("#sajuReading").innerHTML = `
+      ${renderPillarChart(saju)}
+      <div class="reading-row">
+        <span>시간 보정</span>
+        <p>${correctionText}</p>
+      </div>
       <div class="reading-row reading-story">
         <span>풀이</span>
         <p>당신은 ${elementLabel(saju.dayMaster.element)} 기운을 중심으로 보고, 전체 힘은 ${strengthLabel}에 가깝습니다. ${modeIntro}</p>
@@ -3212,6 +3391,7 @@
       return;
     }
 
+    updateTimeCorrectionPreview();
     const stats = buildStats(Number(recentWindow.value));
     const saju = buildSajuProfile();
     const learningProfile = buildLearningProfile(saju);
@@ -3368,8 +3548,12 @@
     });
 
     for (const control of [
+      birthDate,
       recentWindow,
       birthBranch,
+      birthPlace,
+      timeCorrection,
+      midnightRule,
       setCount,
       minScore,
       topOnly,

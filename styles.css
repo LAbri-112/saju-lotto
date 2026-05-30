@@ -487,6 +487,16 @@ button:focus-visible {
   font-weight: 700;
 }
 
+.time-correction-note {
+  border: 1px solid rgba(24, 169, 153, 0.14);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.78), rgba(255, 245, 229, 0.72));
+  padding: 9px 10px;
+  color: var(--ink);
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 .setting-details {
   overflow: hidden;
   border: 1px solid rgba(24, 169, 153, 0.15);
@@ -607,7 +617,7 @@ button:focus-visible {
 
 .element-wheel {
   position: relative;
-  width: min(100%, 304px);
+  width: min(100%, 360px);
   aspect-ratio: 1;
   margin: 4px auto 0;
 }
@@ -621,7 +631,7 @@ button:focus-visible {
 
 .element-wheel-lines line {
   stroke-linecap: round;
-  stroke-width: 2.8;
+  stroke-width: 3.4;
   vector-effect: non-scaling-stroke;
 }
 
@@ -651,8 +661,8 @@ button:focus-visible {
   display: grid;
   place-items: center;
   align-content: center;
-  width: clamp(78px, 27vw, 92px);
-  max-width: 92px;
+  width: clamp(86px, 29vw, 112px);
+  max-width: 112px;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border: 2px solid color-mix(in srgb, var(--color) 34%, #ffffff);
@@ -679,14 +689,14 @@ button:focus-visible {
 
 .element-node span {
   color: var(--color);
-  font-size: 1.02rem;
+  font-size: 1.08rem;
   font-weight: 950;
 }
 
 .element-node em {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-style: normal;
   font-weight: 900;
 }
@@ -694,7 +704,7 @@ button:focus-visible {
 .element-node strong {
   margin-top: 5px;
   color: var(--ink);
-  font-size: 1.02rem;
+  font-size: 1.12rem;
   font-weight: 950;
 }
 
@@ -1891,6 +1901,55 @@ button:focus-visible {
 .mapping-reading {
   display: grid;
   gap: 9px;
+}
+
+.pillar-chart {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(33, 45, 69, 0.14);
+  border-radius: 8px;
+  background: rgba(33, 45, 69, 0.14);
+  margin-bottom: 4px;
+}
+
+.pillar-row {
+  display: grid;
+  grid-template-columns: repeat(var(--pillar-columns), minmax(0, 1fr));
+  gap: 1px;
+}
+
+.pillar-row > span,
+.pillar-cell {
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.pillar-row > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.pillar-cell strong,
+.pillar-cell span {
+  display: block;
+}
+
+.pillar-cell strong {
+  color: var(--pillar-color);
+  font-size: clamp(1.35rem, 5vw, 1.86rem);
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.pillar-cell span {
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 850;
 }
 
 .reading-row {
