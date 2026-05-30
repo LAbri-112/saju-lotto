@@ -2372,24 +2372,84 @@
   }
 
   function renderElementBars(saju) {
-    const max = Math.max(...Object.values(saju.counts), 1);
-    const html = Object.entries(elements)
-      .map(([key, element]) => {
-        const value = saju.counts[key];
-        const width = Math.max(8, (value / max) * 100);
+    const total = Object.values(saju.counts).reduce((sum, value) => sum + value, 0) || 1;
+    const strongest = elementKeys.slice().sort((a, b) => saju.counts[b] - saju.counts[a])[0];
+    const weakest = elementKeys.slice().sort((a, b) => saju.counts[a] - saju.counts[b])[0];
+    const positions = {
+      water: { x: 50, y: 16 },
+      wood: { x: 82, y: 39 },
+      fire: { x: 70, y: 78 },
+      earth: { x: 30, y: 78 },
+      metal: { x: 18, y: 39 },
+    };
+    const plainRoles = {
+      self: "나의 힘",
+      resource: "도움",
+      output: "표현",
+      wealth: "돈",
+      officer: "책임",
+    };
+    const meanings = {
+      wood: "성장",
+      fire: "활기",
+      earth: "안정",
+      metal: "정리",
+      water: "지혜",
+    };
+    const roleForElement = (key) => {
+      if (key === saju.dayMaster.element) return plainRoles.self;
+      if (key === saju.resourceElement) return plainRoles.resource;
+      if (key === saju.outputElement) return plainRoles.output;
+      if (key === saju.wealthElement) return plainRoles.wealth;
+      if (key === saju.officerElement) return plainRoles.officer;
+      return "균형";
+    };
+    const line = (from, to, className) => {
+      const a = positions[from];
+      const b = positions[to];
+      return `<line class="${className}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+    };
+    const generatedLines = elementKeys.map((key) => line(key, generates[key], "generate-line")).join("");
+    const controlledLines = elementKeys.map((key) => line(key, controls[key], "control-line")).join("");
+    const nodes = elementKeys
+      .map((key) => {
+        const element = elements[key];
+        const pct = (saju.counts[key] / total) * 100;
+        const position = positions[key];
+        const isFavored = saju.favored.includes(key);
         return `
-          <div class="element-row">
-            <strong>${element.label}</strong>
-            <span class="element-track">
-              <span class="element-fill" style="width:${width}%; background:${element.color}"></span>
-            </span>
-            <span>${value.toFixed(1)}</span>
+          <div class="element-node ${isFavored ? "is-favored" : ""}" style="--x:${position.x}%; --y:${position.y}%; --color:${element.color}; --fill-color:${element.color}33; --fill:${pct.toFixed(1)}%;">
+            <span>${element.label}</span>
+            <em>${meanings[key]} · ${roleForElement(key)}</em>
+            <strong>${pct.toFixed(1)}%</strong>
           </div>
         `;
       })
       .join("");
 
-    document.querySelector("#elementBars").innerHTML = `${html}
+    document.querySelector("#elementBars").innerHTML = `
+      <div class="element-wheel-legend">
+        <span><i class="legend-generate"></i>살려주는 흐름</span>
+        <span><i class="legend-control"></i>눌러주는 흐름</span>
+      </div>
+      <div class="element-wheel" aria-label="오행 비율 원형표">
+        <svg class="element-wheel-lines" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <marker id="arrow-generate" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L5,2.5 L0,5 Z"></path>
+            </marker>
+            <marker id="arrow-control" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L5,2.5 L0,5 Z"></path>
+            </marker>
+          </defs>
+          <g>${generatedLines}</g>
+          <g>${controlledLines}</g>
+        </svg>
+        ${nodes}
+      </div>
+      <p class="element-wheel-summary">가장 강한 기운은 ${elementLabel(strongest)}, 가장 보완할 기운은 ${elementLabel(
+        weakest,
+      )}입니다. 색이 차오른 면적이 클수록 그 오행이 많이 잡힌 것입니다.</p>
       <div class="card-meta">간이 명식 ${saju.pillarText}</div>`;
   }
 
