@@ -2,7 +2,9 @@ name: Update lotto data
 
 on:
   schedule:
-    - cron: "30 14 * * 6"
+    - cron: "45 11 * * 6"
+    - cron: "10 12 * * 6"
+    - cron: "30 12 * * 6"
     - cron: "30 0 * * 0"
   workflow_dispatch:
 
