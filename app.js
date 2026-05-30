@@ -519,6 +519,10 @@
   let userRegionLabel = "";
   let activeFortunePeriod = "today";
   let lastRecommendationResult = null;
+  let refreshTimer = null;
+  const learningProfileCache = new Map();
+  const personalPortfolioCache = new Map();
+  const recommendationResultCache = new Map();
 
   function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -570,6 +574,58 @@
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
       date.getDate(),
     ).padStart(2, "0")}`;
+  }
+
+  function boundedCacheGet(cache, key, compute, limit = 12) {
+    if (cache.has(key)) return cache.get(key);
+
+    const value = compute();
+    cache.set(key, value);
+
+    while (cache.size > limit) {
+      cache.delete(cache.keys().next().value);
+    }
+
+    return value;
+  }
+
+  function birthStateKey(mode = interpretationMode?.value ?? "balance") {
+    return [
+      dataset.latestDraw,
+      birthDate?.value,
+      birthBranch?.value,
+      unknownTime?.checked,
+      birthPlace?.value,
+      timeCorrection?.checked,
+      midnightRule?.value,
+      mode,
+    ].join("|");
+  }
+
+  function recommendationCacheKey() {
+    return [
+      "recommendation",
+      birthStateKey(),
+      recentWindow.value,
+      sajuWeight.value,
+      interpretationMode.value,
+      minScore.value,
+      topOnly.checked,
+      setCount.value,
+      userRegionLabel,
+      walkRange.value,
+      userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
+    ].join("|");
+  }
+
+  function getCachedLearningProfile(saju) {
+    const key = ["learning", birthStateKey(interpretationMode.value), recentWindow.value].join("|");
+    return boundedCacheGet(learningProfileCache, key, () => buildLearningProfile(saju), 10);
+  }
+
+  function getCachedPersonalPortfolio() {
+    const key = ["portfolio", birthStateKey("all"), recentWindow.value, minScore.value].join("|");
+    return boundedCacheGet(personalPortfolioCache, key, buildPersonalPortfolio, 8);
   }
 
   function clampBirthDateInput() {
@@ -1561,7 +1617,7 @@
     };
   }
 
-  function buildNumberScores(stats, saju, weightOverride = Number(sajuWeight.value) / 100) {
+  function numberScoreFactory(stats, saju) {
     const frequencyNorm = normalizeMap(stats.frequency, (value) => value);
     const recentNorm = normalizeMap(stats.recentFrequency, (value) => value);
     const bonusNorm = normalizeMap(stats.bonusFrequency, (value) => value);
@@ -1569,13 +1625,12 @@
       number === 0 ? null : stats.latestDraw - drawNo,
     );
     const gapNorm = normalizeMap(gapValues, (value) => Math.log1p(value));
-    const weight = clamp(Number(weightOverride) || 0, 0, 1);
-    const scores = Array(46).fill(null);
     const maxUseful = Math.max(...Object.values(saju.usefulScores));
 
-    for (let number = 1; number <= 45; number += 1) {
+    return (number, weightOverride = Number(sajuWeight.value) / 100) => {
       const blend = numberElementBlend(number);
       const primaryElement = primaryNumberElement(number);
+      const weight = clamp(Number(weightOverride) || 0, 0, 1);
       const polarityScore =
         (number % 2 === 1 ? "yang" : "yin") === saju.dayMaster.polarity ? 0.08 : 0;
       const sajuScore = clamp(
@@ -1589,7 +1644,7 @@
         gapNorm[number] * 0.2 +
         bonusNorm[number] * 0.13;
 
-      scores[number] = {
+      return {
         number,
         element: primaryElement,
         blend,
@@ -1597,8 +1652,26 @@
         statScore,
         score: statScore * (1 - weight) + sajuScore * weight,
       };
+    };
+  }
+
+  function buildNumberScores(stats, saju, weightOverride = Number(sajuWeight.value) / 100) {
+    const getNumberScore = numberScoreFactory(stats, saju);
+    const scores = Array(46).fill(null);
+
+    for (let number = 1; number <= 45; number += 1) {
+      scores[number] = getNumberScore(number, weightOverride);
     }
 
+    return scores;
+  }
+
+  function buildScopedNumberScores(stats, saju, weightOverride, numbers) {
+    const getNumberScore = numberScoreFactory(stats, saju);
+    const scores = Array(46).fill(null);
+    numbers.forEach((number) => {
+      scores[number] = getNumberScore(number, weightOverride);
+    });
     return scores;
   }
 
@@ -1807,9 +1880,15 @@
       if (priorDraws.length < 30 || !draw?.numbers?.length) continue;
 
       const historicalStats = buildStats(windowSize, priorDraws);
-      const historicalScores = buildNumberScores(historicalStats, saju);
+      const historicalNumbers = draw.numbers.slice().sort((a, b) => a - b);
+      const historicalScores = buildScopedNumberScores(
+        historicalStats,
+        saju,
+        Number(sajuWeight.value) / 100,
+        historicalNumbers,
+      );
       const meta = scoreCombination(
-        draw.numbers.slice().sort((a, b) => a - b),
+        historicalNumbers,
         historicalScores,
         historicalStats,
         saju,
@@ -1818,7 +1897,7 @@
       records.push({
         draw: draw.draw,
         date: draw.date,
-        numbers: draw.numbers.slice().sort((a, b) => a - b),
+        numbers: historicalNumbers,
         score: meta.score,
         signalScore: meta.signalScore,
         gateScore: meta.gateScore,
@@ -2347,14 +2426,15 @@
 
       for (const windowSize of windowOptions.filter((size) => priorDraws.length >= Math.min(size, 20))) {
         const statsBeforeDraw = buildStats(windowSize, priorDraws);
+        const winNumbers = draw.numbers.slice().sort((a, b) => a - b);
 
         for (const mode of modes) {
           const modeSaju = modeProfiles[mode];
 
           for (const weight of scanWeights) {
-            const scores = buildNumberScores(statsBeforeDraw, modeSaju, weight / 100);
+            const scores = buildScopedNumberScores(statsBeforeDraw, modeSaju, weight / 100, winNumbers);
             const meta = scoreCombination(
-              draw.numbers.slice().sort((a, b) => a - b),
+              winNumbers,
               scores,
               statsBeforeDraw,
               modeSaju,
@@ -2645,7 +2725,7 @@
     const container = document.querySelector("#candidateAuditSummary");
     if (!container) return;
 
-    const portfolio = buildPersonalPortfolio();
+    const portfolio = getCachedPersonalPortfolio();
     const portfolioHtml = renderPersonalPortfolio(portfolio);
     const history = readRecommendationHistory();
     if (!history.length) {
@@ -3420,7 +3500,7 @@
     renderLatestDrawResult();
   }
 
-  function refresh() {
+  function refresh(options = {}) {
     if (!draws.length) {
       document.querySelector("#scoreSummary").textContent =
         "당첨 번호 데이터를 찾지 못했습니다.";
@@ -3431,9 +3511,23 @@
     updateTimeCorrectionPreview();
     const stats = buildStats(Number(recentWindow.value));
     const saju = buildSajuProfile();
-    const learningProfile = buildLearningProfile(saju);
+    const learningProfile = getCachedLearningProfile(saju);
     const scores = buildNumberScores(stats, saju);
-    const result = generateRecommendations(stats, scores, saju, learningProfile);
+    const resultKey = recommendationCacheKey();
+    const result = options.forceNew
+      ? generateRecommendations(stats, scores, saju, learningProfile)
+      : boundedCacheGet(
+          recommendationResultCache,
+          resultKey,
+          () => generateRecommendations(stats, scores, saju, learningProfile),
+          8,
+        );
+    if (options.forceNew) {
+      recommendationResultCache.set(resultKey, result);
+      while (recommendationResultCache.size > 8) {
+        recommendationResultCache.delete(recommendationResultCache.keys().next().value);
+      }
+    }
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
     const sajuText =
       Number(sajuWeight.value) === 0
@@ -3447,7 +3541,7 @@
     renderFortunePanel(saju);
     lastRecommendationResult = result;
     renderRecommendations(result);
-    saveRecommendationSnapshot(result);
+    if (options.saveSnapshot) saveRecommendationSnapshot(result);
     renderRecommendationAudit(learningProfile);
     renderCandidateAuditSummary(stats, saju);
     renderElementBars(saju);
@@ -3557,7 +3651,15 @@
     sajuWeight.value = String(next);
     sajuWeightNumber.value = String(next);
     sajuWeightOut.textContent = `${next}%`;
-    if (shouldRefresh) refresh();
+    if (shouldRefresh) scheduleRefresh();
+  }
+
+  function scheduleRefresh(options = {}, delay = 180) {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => {
+      refreshTimer = null;
+      refresh(options);
+    }, delay);
   }
 
   async function applyCurrentLocation(position) {
@@ -3582,7 +3684,7 @@
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      refresh();
+      refresh({ forceNew: true, saveSnapshot: true });
     });
 
     for (const control of [
@@ -3599,12 +3701,13 @@
       interpretationMode,
       walkRange,
     ]) {
-      control.addEventListener("input", refresh);
-      control.addEventListener("change", refresh);
+      control.addEventListener("input", () => scheduleRefresh());
+      control.addEventListener("change", () => scheduleRefresh());
     }
 
     unknownTime.addEventListener("change", () => {
       birthBranch.disabled = unknownTime.checked;
+      scheduleRefresh();
     });
 
     sajuWeight.addEventListener("input", () => syncSajuWeight(sajuWeight.value));
@@ -3621,7 +3724,7 @@
       button.addEventListener("click", () => {
         activeFortunePeriod = button.dataset.period || "today";
         fortuneTabs.forEach((tab) => tab.classList.toggle("is-active", tab === button));
-        refresh();
+        scheduleRefresh({}, 60);
       });
     });
 
