@@ -2565,6 +2565,7 @@
       : "없음";
     const statusText = bestEligible ? "추천 후보 안" : "추천 후보 밖";
     const statusClass = bestEligible ? "is-hit" : "is-miss";
+    const hitLocationTitle = bestEligible ? foundSettingLine : "이번 회차에서는 없음";
     const candidateLine = bestEligible
       ? `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 안에 있었습니다. 실제로 들어왔던 설정은 ${foundSettingLine}입니다.`
       : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 밖에 있었습니다. 다만 가장 가까운 위치는 ${settingLine} 설정이었습니다.`;
@@ -2584,6 +2585,13 @@
     const windowTags = portfolio.windowCounts
       .map((item) => `<span>최근 ${item.windowSize}회 ${item.count}회</span>`)
       .join("");
+    const topMode = portfolio.modeCounts[0];
+    const topWindow = portfolio.windowCounts[0];
+    const topRange = portfolio.topRange;
+    const topRangeLabel = topRange ? rangeLabels[topRange.label] ?? topRange.label : "";
+    const summarySentence = topMode && topRange && topWindow
+      ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, 최근 ${topWindow.windowSize}회 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
+      : "";
 
     return `
       <div class="personal-portfolio-card">
@@ -2599,6 +2607,11 @@
             <span>${latestDraw.draw}회 당첨번호</span>
             <div class="ball-line compact-ball-line">${latestDraw.numbers.map(renderAuditBall).join("")}</div>
           </div>
+        </div>
+        <div class="portfolio-hit-location ${statusClass}">
+          <span>당첨번호가 실제로 있었던 위치</span>
+          <strong>${hitLocationTitle}</strong>
+          <p>${bestEligible ? "이 설정에서는 당첨번호 6개 조합이 자동 추천 후보 안에 들어왔습니다." : "이번 회차 당첨번호 6개 조합은 자동 추천 후보 안에 들어온 설정이 없었습니다."}</p>
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
@@ -2619,6 +2632,7 @@
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
           <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 자동 추천 후보 안에 들어온 회차는 ${portfolio.eligibleCount}회입니다.</p>
+          ${summarySentence ? `<p class="portfolio-note">${summarySentence}</p>` : ""}
           <div class="portfolio-bars">
             ${portfolio.ranges
               .map(

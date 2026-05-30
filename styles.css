@@ -1192,6 +1192,37 @@ button:focus-visible {
   margin: 0;
 }
 
+.portfolio-hit-location {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(75, 136, 235, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+}
+
+.portfolio-hit-location.is-hit {
+  border-color: rgba(24, 169, 153, 0.28);
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.94), rgba(255, 255, 255, 0.86));
+}
+
+.portfolio-hit-location.is-miss {
+  border-color: rgba(240, 111, 136, 0.26);
+  background: linear-gradient(135deg, rgba(255, 247, 249, 0.94), rgba(255, 255, 255, 0.86));
+}
+
+.portfolio-hit-location span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.portfolio-hit-location strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
 .portfolio-position-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
