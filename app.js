@@ -523,6 +523,7 @@
   const learningProfileCache = new Map();
   const personalPortfolioCache = new Map();
   const recommendationResultCache = new Map();
+  const replayCandidateCache = new Map();
 
   function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -2361,6 +2362,103 @@
     return tier ? `${tier}등` : "낙첨";
   }
 
+  function settingLabelFromReplayItem(item) {
+    if (!item) return "확인 불가";
+    return `${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회`;
+  }
+
+  function drawIndexOf(draw) {
+    return draws.findIndex((item) => item.draw === draw.draw);
+  }
+
+  function replayBestCandidateForDraw(draw, setting) {
+    if (!draw || !setting) return null;
+    const key = [
+      "replay-best",
+      birthStateKey(setting.mode),
+      draw.draw,
+      setting.mode,
+      setting.weight,
+      setting.windowSize,
+    ].join("|");
+
+    return boundedCacheGet(
+      replayCandidateCache,
+      key,
+      () => {
+        const drawIndex = drawIndexOf(draw);
+        const priorDraws = drawIndex >= 0 ? draws.slice(0, drawIndex) : draws.filter((item) => item.draw < draw.draw);
+        if (priorDraws.length < 20) return null;
+
+        const statsBeforeDraw = buildStats(setting.windowSize, priorDraws);
+        const modeSaju = buildSajuProfile(setting.mode);
+        const scores = buildNumberScores(statsBeforeDraw, modeSaju, setting.weight / 100);
+        const seed = hashString(
+          [
+            "replay",
+            birthStateKey(setting.mode),
+            draw.draw,
+            setting.mode,
+            setting.weight,
+            setting.windowSize,
+          ].join("|"),
+        );
+        const rng = mulberry32(seed);
+        const candidateMap = new Map();
+        const candidateBudget = 2600;
+
+        for (let index = 0; index < candidateBudget; index += 1) {
+          const numbers = makeCandidate(scores, rng);
+          candidateMap.set(numbers.join("-"), {
+            numbers,
+            meta: scoreCombination(numbers, scores, statsBeforeDraw, modeSaju, null),
+          });
+        }
+
+        const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+        for (const candidate of preliminary.slice(0, 90)) {
+          const improved = improveCandidate(candidate.numbers, scores, statsBeforeDraw, modeSaju, null);
+          candidateMap.set(improved.numbers.join("-"), improved);
+        }
+
+        const ranked = [...candidateMap.values()].sort((a, b) => {
+          return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+        });
+        const filtered = ranked.filter((candidate) => candidate.meta.score >= 80);
+        const pool = (filtered.length ? filtered : ranked).slice(0, 420);
+        const snapshot = {
+          selected: pool.slice(0, Number(setCount.value) || 5).map((candidate) => ({
+            n: candidate.numbers,
+            s: candidate.meta.score,
+            g: candidate.meta.gateScore,
+            sig: candidate.meta.signalScore,
+            p: candidate.meta.practicalScore,
+            b: candidate.meta.band,
+            bl: candidate.meta.bucketLabel,
+          })),
+          candidates: pool.map((candidate) => ({
+            n: candidate.numbers,
+            s: candidate.meta.score,
+            g: candidate.meta.gateScore,
+            sig: candidate.meta.signalScore,
+            p: candidate.meta.practicalScore,
+            b: candidate.meta.band,
+            bl: candidate.meta.bucketLabel,
+          })),
+        };
+        const result = compareSnapshotWithDraw(snapshot, draw);
+
+        return {
+          setting,
+          label: settingLabelFromReplayItem(setting),
+          candidateCount: snapshot.candidates.length,
+          result,
+        };
+      },
+      10,
+    );
+  }
+
   function renderRecommendationAudit(learningProfile) {
     const container = document.querySelector("#recommendationAudit");
     const history = readRecommendationHistory();
@@ -2563,15 +2661,23 @@
     const foundSettingLine = bestEligible
       ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회`
       : "없음";
-    const statusText = bestEligible ? "추천 후보 안" : "추천 후보 밖";
-    const statusClass = bestEligible ? "is-hit" : "is-miss";
-    const hitLocationTitle = bestEligible ? foundSettingLine : "이번 회차에서는 없음";
-    const candidateLine = bestEligible
-      ? `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 안에 있었습니다. 실제로 들어왔던 설정은 ${foundSettingLine}입니다.`
-      : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 추천 후보 밖에 있었습니다. 다만 가장 가까운 위치는 ${settingLine} 설정이었습니다.`;
+    const replaySetting = bestEligible ?? best;
+    const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
+    const replayBest = replay?.result?.bestMatch;
+    const replayNumbers = replayBest?.n ?? [];
+    const replayText = replayBest
+      ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
+      : "계산 대기";
+    const replayExact = Boolean(replay?.result?.candidate);
+    const statusText = replayExact ? "정확한 조합 있음" : "정확한 조합 없음";
+    const statusClass = replayExact ? "is-hit" : "is-miss";
+    const hitLocationTitle = replayExact ? replay.label : "이번 회차에서는 없음";
+    const candidateLine = replayExact
+      ? `${latestDraw.draw}회 당첨번호 6개 조합은 회차 직전 추천 후보 안에 실제로 있었습니다. 설정은 ${replay.label}입니다.`
+      : `${latestDraw.draw}회 당첨번호 6개 조합은 회차 직전 추천 후보 안에 정확히 있지는 않았습니다. 가장 많이 맞은 후보는 ${replayText}였습니다.`;
     const positionMeaning = bestEligible
-      ? "이 설정으로 추천했다면 당첨번호 조합이 앱의 추천 후보 목록에 올라올 수 있었다는 뜻입니다."
-      : "이 설정이 가장 가까웠지만, 앱이 실제 추천 후보로 올리기에는 자동 기준을 넘지 못했다는 뜻입니다.";
+      ? `자동 기준상 당첨번호와 가장 가까운 설정은 ${foundSettingLine}입니다. 아래 최다 일치 후보는 이 설정으로 다시 만든 후보 중에서 골랐습니다.`
+      : `자동 기준상 가장 가까웠던 설정은 ${settingLine}입니다. 아래 최다 일치 후보는 이 설정으로 다시 만든 후보 중에서 골랐습니다.`;
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -2592,7 +2698,6 @@
     const summarySentence = topMode && topRange && topWindow
       ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, 최근 ${topWindow.windowSize}회 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
       : "";
-
     return `
       <div class="personal-portfolio-card">
         <div class="portfolio-head">
@@ -2611,7 +2716,13 @@
         <div class="portfolio-hit-location ${statusClass}">
           <span>당첨번호가 실제로 있었던 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${bestEligible ? "이 설정에서는 당첨번호 6개 조합이 자동 추천 후보 안에 들어왔습니다." : "이번 회차 당첨번호 6개 조합은 자동 추천 후보 안에 들어온 설정이 없었습니다."}</p>
+          <p>${replayExact ? "이 설정으로 회차 직전 추천 후보를 만들면 당첨번호 6개 조합이 실제 후보 안에 들어옵니다." : "이번 회차 당첨번호 6개 조합은 회차 직전 추천 후보 안에 정확히 들어오지는 않았습니다."}</p>
+        </div>
+        <div class="portfolio-replay-card">
+          <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
+          <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
+          <strong>${replayText}</strong>
+          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 후보 ${formatNumber(replay.candidateCount)}개 중 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
@@ -2626,7 +2737,8 @@
           </div>
         </div>
         <div class="store-tags">
-          <span>후보권에 실제로 들어온 설정: ${foundSettingLine}</span>
+          <span>정확한 조합 실제 위치: ${replayExact ? replay.label : "없음"}</span>
+          <span>자동 기준상 가까운 설정: ${foundSettingLine}</span>
           <span>저장 기록이 아니라 현재 입력값으로 다시 계산</span>
         </div>
         <details class="portfolio-draw-details">
@@ -2835,7 +2947,18 @@
       return;
     }
 
-    const { snapshot, draw, result } = checks[0];
+    const bestSavedChecks = checks
+      .slice()
+      .sort((a, b) => {
+        return (
+          b.result.maxOverlap - a.result.maxOverlap ||
+          Number(b.result.bestMatch?.bonusMatch) - Number(a.result.bestMatch?.bonusMatch) ||
+          b.draw.draw - a.draw.draw ||
+          new Date(b.snapshot.createdAt).getTime() - new Date(a.snapshot.createdAt).getTime()
+        );
+      })
+      .slice(0, 3);
+    const { snapshot, draw, result } = bestSavedChecks[0];
     const exactFound = Boolean(result.candidate);
     const best = result.bestMatch;
     const bestNumbers = best?.n ?? [];
@@ -2855,11 +2978,26 @@
       .filter((item) => item.count > 0)
       .map((item) => `<span>${item.tier}등 후보 ${formatNumber(item.count)}개</span>`)
       .join("");
+    const savedBestRows = bestSavedChecks
+      .map(({ snapshot: itemSnapshot, draw: itemDraw, result: itemResult }, index) => {
+        const itemBest = itemResult.bestMatch;
+        return `
+          <div>
+            <span>${index + 1}</span>
+            <div>
+              <strong>${itemSnapshot.basisLatestDraw}회 추천 → ${itemDraw.draw}회 검증</strong>
+              <div class="mini-audit-balls">${(itemBest?.n ?? []).map(renderAuditBall).join("")}</div>
+              <em>${itemResult.maxOverlap}개 일치${itemBest?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(itemBest?.tier)} · ${snapshotSettingLabel(itemSnapshot)}</em>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
 
     container.innerHTML = `
       ${portfolioHtml}
       <details class="saved-history-details">
-        <summary>실제로 눌러 저장된 후보 기록 보기</summary>
+        <summary>과거 추천 후보 중 최다 일치 기록 보기</summary>
         <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
           <div class="audit-result-main">
             <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
@@ -2878,6 +3016,11 @@
           <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
             best?.tier,
           )}</strong>
+          <em>${snapshotSettingLabel(snapshot)} 설정으로 만들어진 후보입니다.</em>
+        </div>
+        <div class="saved-best-list">
+          <strong>최다 일치 후보 TOP ${bestSavedChecks.length}</strong>
+          ${savedBestRows}
         </div>
         <div class="store-tags">
           <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
