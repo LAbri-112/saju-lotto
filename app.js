@@ -2068,6 +2068,88 @@
       .join("");
   }
 
+  function renderCandidateAuditSummary() {
+    const container = document.querySelector("#candidateAuditSummary");
+    if (!container) return;
+
+    const history = readRecommendationHistory();
+    if (!history.length) {
+      container.innerHTML = `
+        <div class="candidate-audit-empty">
+          <strong>아직 검증할 추천 기록이 없습니다</strong>
+          <p>추천을 한 번 생성하면 후보군이 이 기기에 저장되고, 다음 회차 당첨번호가 들어온 뒤 여기에서 바로 비교됩니다.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const checks = history
+      .flatMap((snapshot) =>
+        draws
+          .filter((draw) => draw.draw > snapshot.basisLatestDraw)
+          .map((draw) => ({ snapshot, draw, result: compareSnapshotWithDraw(snapshot, draw) })),
+      )
+      .sort((a, b) => {
+        return (
+          b.draw.draw - a.draw.draw ||
+          new Date(b.snapshot.createdAt).getTime() - new Date(a.snapshot.createdAt).getTime()
+        );
+      });
+
+    if (!checks.length) {
+      const latestSnapshot = history[0];
+      container.innerHTML = `
+        <div class="candidate-audit-empty">
+          <strong>${latestSnapshot.expectedDraw}회 당첨번호를 기다리는 중</strong>
+          <p>${latestSnapshot.basisLatestDraw}회 기준 후보 ${formatNumber(
+            latestSnapshot.candidates.length,
+          )}개가 저장되어 있습니다. 새 회차가 반영되면 자동으로 비교됩니다.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const { snapshot, draw, result } = checks[0];
+    const exactFound = Boolean(result.candidate);
+    const best = result.bestMatch;
+    const bestNumbers = best?.n ?? [];
+    const maxSameCount = snapshot.candidates.filter(
+      (item) => overlap(item.n, result.win) === result.maxOverlap,
+    ).length;
+    const tierTags = result.tierCounts
+      .filter((item) => item.count > 0)
+      .map((item) => `<span>${item.tier}등 후보 ${formatNumber(item.count)}개</span>`)
+      .join("");
+
+    container.innerHTML = `
+      <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
+        <div class="audit-result-main">
+          <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
+          <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "정확한 6개 조합은 후보군에 없었습니다"}</strong>
+          <em>당첨번호 ${result.win.join(", ")} + 보너스 ${draw.bonus}</em>
+        </div>
+        <div class="audit-result-side">
+          <span>최대 일치</span>
+          <strong>${result.maxOverlap}개</strong>
+          <em>${formatNumber(maxSameCount)}개 후보가 이만큼 맞았습니다</em>
+        </div>
+      </div>
+      <div class="candidate-best-line">
+        <span>가장 많이 맞은 후보 조합</span>
+        <div class="ball-line compact-ball-line">${bestNumbers.map(renderBall).join("")}</div>
+        <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
+          best?.tier,
+        )}</strong>
+      </div>
+      <div class="store-tags">
+        <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
+        <span>최종 추천 ${formatNumber(snapshot.selected.length)}개</span>
+        <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
+        ${tierTags}
+      </div>
+    `;
+  }
+
   function renderElementBars(saju) {
     const max = Math.max(...Object.values(saju.counts), 1);
     const html = Object.entries(elements)
@@ -2619,20 +2701,39 @@
 
     document.querySelector("#hotList").innerHTML = ranked
       .slice(0, 6)
-      .map((number) => {
-        return `<li>${number} <span>전체 ${stats.frequency[number]}회, 최근 ${stats.recentFrequency[number]}회</span></li>`;
-      })
+      .map((number, index) => renderHotColdItem(number, index, "hot", stats))
       .join("");
 
     document.querySelector("#coldList").innerHTML = cold
       .slice(0, 6)
-      .map((number) => {
-        const gap = latest.draw - stats.lastSeen[number];
-        return `<li>${number} <span>${gap}회 미출현, 전체 ${stats.frequency[number]}회</span></li>`;
-      })
+      .map((number, index) => renderHotColdItem(number, index, "cold", stats))
       .join("");
 
     renderPatternReport(stats);
+  }
+
+  function renderHotColdItem(number, index, type, stats) {
+    const total = stats.frequency[number] || 0;
+    const recent = stats.recentFrequency[number] || 0;
+    const gap = latest.draw - stats.lastSeen[number];
+    const isHot = type === "hot";
+    const label = isHot ? "Hot" : "Cold";
+    const meaning = isHot ? "최근 흐름에서 눈에 띄는 공" : "오랫동안 쉬고 있는 공";
+    const detail = isHot
+      ? `최근 ${recent}회 · 전체 ${total}회`
+      : `${gap}회째 미출현 · 전체 ${total}회`;
+
+    return `
+      <li class="hot-cold-item ${isHot ? "is-hot" : "is-cold"}" title="${number}번 · ${detail}">
+        <span class="hot-cold-rank">${index + 1}</span>
+        <span class="hot-cold-ball">${renderBall(number)}</span>
+        <span class="hot-cold-copy">
+          <strong>${label} ${number}번</strong>
+          <span>${meaning}</span>
+          <em>${detail}</em>
+        </span>
+      </li>
+    `;
   }
 
   function renderPatternReport(stats) {
@@ -2763,12 +2864,12 @@
     renderRecommendations(result);
     saveRecommendationSnapshot(result);
     renderRecommendationAudit(learningProfile);
+    renderCandidateAuditSummary();
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);
     renderPurchaseReading(saju);
     renderLuckyKit(saju);
-    renderHeatmap(stats);
     renderHotCold(stats, scores);
   }
 

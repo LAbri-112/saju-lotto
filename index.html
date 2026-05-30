@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v17" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v19" />
   </head>
   <body>
     <main class="app-shell">
@@ -310,12 +310,12 @@
             <div class="analysis-panel">
               <div class="section-heading compact">
                 <div class="heading-with-help">
-                  <h2>번호 열지도</h2>
-                  <button class="help-button" type="button" data-help="번호 열지도는 1번부터 45번까지 과거 당첨번호에 얼마나 자주 나왔는지 색 진하기로 보여주는 표입니다. 색이 진할수록 전체 회차에서 더 자주 나온 번호이고, 옅을수록 덜 나온 번호입니다. 당첨을 보장하는 표가 아니라 번호 흐름을 한눈에 비교하는 참고용입니다. 각 칸에 마우스를 올리면 전체 출현 횟수, 최근 출현 횟수, 마지막 출현 후 지난 회차를 볼 수 있습니다.">?</button>
+                  <h2>내 후보 검증</h2>
+                  <button class="help-button" type="button" data-help="이 브라우저에 저장된 추천 후보군을 기준으로, 다음 회차 당첨번호가 후보 안에 있었는지와 가장 많이 맞은 후보 조합을 보여줍니다. 기록은 서버로 보내지 않고 이 기기 안에만 저장됩니다.">?</button>
                 </div>
-                <p id="heatmapCaption">진할수록 과거에 더 자주 나온 번호입니다</p>
+                <p>지난 회차 내 추천 후보와 당첨번호 비교</p>
               </div>
-              <div id="numberHeatmap" class="number-heatmap"></div>
+              <div id="candidateAuditSummary" class="candidate-audit-summary"></div>
             </div>
 
             <div class="analysis-panel">
@@ -362,7 +362,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v17"></script>
-    <script src="app.js?v=feedback-v17"></script>
+    <script src="data/lotto-results.js?v=feedback-v19"></script>
+    <script src="app.js?v=feedback-v19"></script>
   </body>
 </html>
