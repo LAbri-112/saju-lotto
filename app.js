@@ -513,6 +513,7 @@
   const latestDrawResult = document.querySelector("#latestDrawResult");
   const candidateStats = document.querySelector("#candidateStats");
   const shuffleCandidates = document.querySelector("#shuffleCandidates");
+  const autoSajuStatus = document.querySelector("#autoSajuStatus");
 
   let generation = 0;
   let userPosition = null;
@@ -624,7 +625,7 @@
   }
 
   function getCachedPersonalPortfolio() {
-    const key = ["portfolio", birthStateKey("all"), recentWindow.value].join("|");
+    const key = ["portfolio", birthStateKey("all")].join("|");
     return boundedCacheGet(personalPortfolioCache, key, buildPersonalPortfolio, 8);
   }
 
@@ -2538,6 +2539,49 @@
     return Math.round((meta.practicalScore * 0.68 + meta.signalScore * 0.2 + meta.gateScore * 0.12) * 10) / 10;
   }
 
+  function deriveAutoSajuSetting(records) {
+    const source = records
+      .map((record, index) => {
+        const item = record.exactByWeight?.[0] ?? record.best;
+        if (!item) return null;
+        const recency = records.length ? (index + 1) / records.length : 1;
+        return {
+          ...item,
+          exact: Boolean(record.exactByWeight?.length),
+          vote: 1 + recency * 0.35 + (record.exactByWeight?.length ? 0.75 : 0),
+        };
+      })
+      .filter(Boolean);
+
+    if (!source.length) return null;
+
+    const pickWeighted = (keyFn) => {
+      const buckets = new Map();
+      for (const item of source) {
+        const key = keyFn(item);
+        buckets.set(key, (buckets.get(key) ?? 0) + item.vote);
+      }
+      return [...buckets.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0]?.[0];
+    };
+
+    const mode = pickWeighted((item) => item.mode) ?? "balance";
+    const windowSize = Number(pickWeighted((item) => item.windowSize)) || 50;
+    const focused = source.filter((item) => item.mode === mode && item.windowSize === windowSize);
+    const weightItems = focused.length ? focused : source.filter((item) => item.mode === mode);
+    const pool = weightItems.length ? weightItems : source;
+    const weightedTotal = pool.reduce((sum, item) => sum + item.weight * item.vote, 0);
+    const voteTotal = pool.reduce((sum, item) => sum + item.vote, 0) || 1;
+    const weight = Math.round(clamp(weightedTotal / voteTotal, 0, 100));
+
+    return {
+      mode,
+      weight,
+      windowSize,
+      sourceCount: source.length,
+      hitCount: source.filter((item) => item.exact).length,
+    };
+  }
+
   function buildPersonalPortfolio() {
     const selectedWindow = clamp(Number(recentWindow.value) || 50, 20, 500);
     const windowOptions = [20, 50, 100, 200].includes(selectedWindow)
@@ -2625,6 +2669,7 @@
         count: records.filter((record) => record.best?.windowSize === windowSize).length,
       }))
       .sort((a, b) => b.count - a.count || a.windowSize - b.windowSize);
+    const autoSetting = deriveAutoSajuSetting(records);
 
     return {
       records,
@@ -2636,6 +2681,7 @@
       scoreFloor,
       selectedWindow,
       windowOptions,
+      autoSetting,
       eligibleCount: records.filter((record) => record.eligible).length,
     };
   }
@@ -3272,7 +3318,7 @@
       </div>
       <div class="reading-row">
         <span>보완할 점</span>
-        <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 재미 보정에서는 더 편안한 조합으로 읽습니다.</p>
+        <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 반영에서는 더 편안한 조합으로 읽습니다.</p>
       </div>
       <div class="reading-row">
         <span>맞는 번호</span>
@@ -3431,7 +3477,7 @@
     const lottoTip =
       Number(sajuWeight.value) === 0
         ? "번호는 사주보다 과거 당첨분포를 먼저 보고 고르는 편이 좋습니다."
-        : "사주 반영은 재미 보정으로만 두고, 최종 선택은 당첨분포에 가까운 후보를 우선하세요.";
+        : "사주 반영은 자동 세팅을 참고하되, 최종 선택은 당첨분포에 가까운 후보를 우선하세요.";
 
     return {
       ...meta,
@@ -3765,10 +3811,7 @@
       }
     }
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
-    const sajuText =
-      Number(sajuWeight.value) === 0
-        ? "사주 재미보정 꺼짐"
-        : `사주 재미보정 ${sajuWeight.value}%`;
+    const sajuText = `사주 반영 ${sajuWeight.value}%`;
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
@@ -3882,6 +3925,39 @@
     }
   }
 
+  function autoSajuSettingLabel(setting) {
+    if (!setting) return "";
+    return `${modeName(setting.mode)} · 사주 ${setting.weight}% · 최근 ${setting.windowSize}회`;
+  }
+
+  function applyAutoSajuSettings() {
+    const portfolio = getCachedPersonalPortfolio();
+    const setting = portfolio.autoSetting;
+    if (!setting) {
+      if (autoSajuStatus) {
+        autoSajuStatus.textContent = "자동 세팅을 계산할 회차 데이터가 아직 부족합니다.";
+      }
+      return null;
+    }
+
+    if ([...recentWindow.options].some((option) => Number(option.value) === Number(setting.windowSize))) {
+      recentWindow.value = String(setting.windowSize);
+    }
+
+    if ([...interpretationMode.options].some((option) => option.value === setting.mode)) {
+      interpretationMode.value = setting.mode;
+    }
+
+    syncSajuWeight(setting.weight, false);
+
+    if (autoSajuStatus) {
+      autoSajuStatus.textContent =
+        `자동 적용됨: ${autoSajuSettingLabel(setting)} · 최근 재현 ${setting.sourceCount}회 중 ${setting.hitCount}회는 당첨번호가 추천 후보 안에 들어왔던 흐름을 우선 반영했습니다.`;
+    }
+
+    return setting;
+  }
+
   function syncSajuWeight(value, shouldRefresh = true) {
     const next = Math.round(clamp(Number(value) || 0, 0, 100));
     sajuWeight.value = String(next);
@@ -3926,6 +4002,7 @@
         birthDate.reportValidity();
         return;
       }
+      applyAutoSajuSettings();
       refresh({ forceNew: true, saveSnapshot: true });
     });
 

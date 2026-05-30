@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v45" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v46" />
   </head>
   <body>
     <main class="app-shell">
@@ -26,7 +26,7 @@
       <section class="notice">
         <strong>추천의 중심은 과거 당첨번호 분포입니다.</strong>
         <span>
-          사주는 기본 0%로 두고, 원하는 사람만 재미 보정으로 섞을 수 있습니다.
+          추천 생성 시 생년월일·출생시각 기준으로 사주 반영 세팅을 자동으로 맞춥니다.
           모든 조합의 1등 확률은 같으며 당첨을 보장하지 않습니다.
         </span>
       </section>
@@ -176,14 +176,14 @@
 
             <details class="setting-details">
               <summary>
-                <span>사주 재미 보정</span>
-                <small>기본 0%, 원할 때만 켜기</small>
+                <span>사주 반영</span>
+                <small>추천 생성 시 자동 세팅</small>
               </summary>
               <div class="setting-body">
                 <div class="field-group">
                   <div class="label-row">
                     <label for="sajuWeight">사주 반영</label>
-                    <button class="help-button" type="button" data-help="기본값은 0%입니다. 추천번호의 중심은 과거 당첨번호가 많이 모였던 분포이고, 사주 반영은 그 후보 안에서 내 오행과 맞는 번호를 살짝 섞는 재미 보정입니다. 통계 중심으로 보고 싶으면 0%, 사주 놀이를 더 느끼고 싶으면 원하는 만큼 올리면 됩니다.">?</button>
+                    <button class="help-button" type="button" data-help="추천 생성 버튼을 누르면 생년월일·출생시각 기준으로 과거 회차를 되돌려보고, 이 사람에게 당첨번호가 더 자주 후보 안에 들어왔던 사주 반영률을 자동으로 맞춥니다. 직접 조절할 수도 있지만 추천 생성 시에는 자동 세팅이 우선 적용됩니다.">?</button>
                   </div>
                   <div class="range-line range-with-buttons">
                     <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
@@ -205,6 +205,7 @@
                     <option value="climate">조후 균형형</option>
                   </select>
                 </div>
+                <p id="autoSajuStatus" class="helper-text">추천 생성 버튼을 누르면 개인 재현 결과로 최근 흐름·해석 모드·사주 반영률을 자동 세팅합니다.</p>
               </div>
             </details>
 
@@ -402,7 +403,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v45"></script>
-    <script src="app.js?v=feedback-v45"></script>
+    <script src="data/lotto-results.js?v=feedback-v46"></script>
+    <script src="app.js?v=feedback-v46"></script>
   </body>
 </html>
