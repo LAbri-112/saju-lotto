@@ -182,12 +182,55 @@
 
   const storeCandidates = [
     {
+      name: "흥양마중물",
+      address: "강원 원주시 치악로 2335 1층",
+      lat: 37.4085,
+      lng: 128.0158,
+      region: ["강원", "원주시", "소초면", "흥양리"],
+      note: "원주시에서 1등 배출 이력이 가장 많이 알려진 명당 후보",
+      firstWins: 6,
+      firstDraws: [1139, 1131, 883, 871, 739, 646],
+      tags: ["원주", "1등다수", "명당"],
+      element: "water",
+      direction: "north",
+      source: "regional-public-ranking",
+    },
+    {
+      name: "주택복권방",
+      address: "강원 원주시 우산초교길 29 1층",
+      lat: 37.3692,
+      lng: 127.9398,
+      region: ["강원", "원주시", "우산동"],
+      note: "원주시 우산동권에서 1등 배출 이력이 여러 번 알려진 후보",
+      firstWins: 5,
+      firstDraws: [1143, 1123, 1115, 1084, 917],
+      tags: ["원주", "1등다수", "생활권"],
+      element: "metal",
+      direction: "north",
+      source: "regional-public-ranking",
+    },
+    {
+      name: "복권나라",
+      address: "강원 원주시 평원로 23 1층",
+      lat: 37.3494,
+      lng: 127.9506,
+      region: ["강원", "원주시", "중앙동"],
+      note: "원주시 중앙동권에서 1등 배출 이력이 알려진 후보",
+      firstWins: 3,
+      firstDraws: [1126, 1100, 992],
+      tags: ["원주", "1등다수", "중앙권"],
+      element: "earth",
+      direction: "center",
+      source: "regional-public-ranking",
+    },
+    {
       name: "스파",
       address: "서울 노원구 동일로 1493 주공10단지종합상가111",
       lat: 37.6605,
       lng: 127.0736,
       region: ["서울", "노원구", "상계동"],
       note: "동행복권 당첨 판매점 목록에 반복 등장하는 서울권 명당 후보",
+      firstWins: 49,
       tags: ["전통명당", "상가", "유동인구"],
       element: "metal",
       direction: "north",
@@ -677,11 +720,19 @@
         const km = distanceKm(userPosition, store);
         return km != null && km <= 25;
       });
+      const regional = trimmed
+        ? storeCandidates.filter((store) =>
+            isBroadLocationQuery(trimmed)
+              ? storeMatchesBroadQuery(store, trimmed)
+              : storeMatchesPreciseQuery(store, trimmed),
+          )
+        : [];
 
       if (!trimmed) return nearby;
 
       const precise = nearby.filter((store) => storeMatchesPreciseQuery(store, trimmed));
       if (precise.length) return precise;
+      if (regional.length) return regional;
 
       if (isBroadLocationQuery(trimmed)) {
         return nearby.filter((store) => storeMatchesBroadQuery(store, trimmed));
@@ -807,18 +858,14 @@
     ];
   }
 
-  function buildStoreRecommendations(saju) {
+  function buildStoreRecommendations() {
     const query = userRegionLabel;
-    const primary = saju.favored[0];
-    const secondary = saju.favored[1] ?? primary;
-    const wealth = saju.wealthElement;
-    const primaryDirection = directionKeyForElement(primary);
-    const wealthDirection = directionKeyForElement(wealth);
 
     return scopedStoreCandidates(query)
       .map((store) => {
         const local = locationScore(store, query);
         const km = distanceKm(userPosition, store);
+        const firstWins = Number(store.firstWins ?? 1);
         const distanceBoost =
           km == null
             ? 0
@@ -831,52 +878,37 @@
                   : km <= 15
                     ? 38
                     : km <= 40
-                      ? 18
-                      : Math.max(0, 12 - Math.log10(km) * 5);
-        const distancePenalty =
-          km == null || km <= 40 ? 0 : Math.min(34, Math.log10(km / 40) * 18);
-        const elementScore =
-          (store.element === primary ? 24 : 0) +
-          (store.element === secondary ? 14 : 0) +
-          (store.element === wealth ? 16 : 0);
-        const directionScore =
-          (store.direction === primaryDirection ? 16 : 0) +
-          (store.direction === wealthDirection ? 10 : 0);
+                  ? 18
+                  : Math.max(0, 12 - Math.log10(km) * 5);
+        const distancePenalty = km == null || km <= 45 ? 0 : Math.min(42, Math.log10(km / 45) * 24);
+        const winScore = Math.min(120, firstWins * 24);
         const vibeScore =
-          (store.tags.includes("명당") || store.tags.includes("전통명당") ? 8 : 0) +
-          (store.tags.includes("역세권") || store.tags.includes("상권") ? 5 : 0) +
-          (store.tags.includes("동네형") || store.tags.includes("생활권") ? 4 : 0);
-        const fallbackScore = query ? 0 : store.region.includes("서울") ? 8 : 4;
-        const score =
-          local +
-          distanceBoost +
-          elementScore +
-          directionScore +
-          vibeScore +
-          fallbackScore -
-          distancePenalty;
+          (store.tags.includes("명당") || store.tags.includes("전통명당") ? 12 : 0) +
+          (store.tags.includes("1등다수") ? 16 : 0) +
+          (store.tags.includes("생활권") ? 5 : 0);
+        const score = local * 1.8 + winScore + distanceBoost + vibeScore - distancePenalty;
         const localReason =
           km != null
-            ? `현재 위치에서 약 ${distanceLabel(km)} 거리입니다. 가까운 실제 동선 점수를 가장 크게 반영했습니다.`
+            ? `현재 위치에서 약 ${distanceLabel(km)} 거리입니다.`
             : local > 0
-            ? "입력한 생활권과 주소권이 맞습니다."
+            ? "현재 지역명과 주소권이 맞는 후보입니다."
             : query
-              ? "입력 지역과 직접 일치하지는 않아, 명당성·오행 흐름 중심으로 보조 추천합니다."
-              : "동네를 입력하면 지역 적합도가 더 정교해집니다.";
+              ? "현재 지역과 완전히 일치하지 않아 보조 후보로만 봅니다."
+              : "현재 위치를 누르면 지역 후보가 더 정확해집니다.";
+        const drawText = store.firstDraws?.length
+          ? `대표 회차 ${store.firstDraws.slice(0, 5).join(", ")}`
+          : "세부 회차는 지도와 공개 판매점 정보를 함께 확인하세요.";
 
         return {
           ...store,
           km,
+          firstWins,
           score,
           fit: Math.max(45, Math.min(99, Math.round(56 + score * 0.36))),
           reasons: [
+            `1등 배출 ${firstWins}회 이력이 알려진 판매점입니다.`,
+            drawText,
             localReason,
-            `${elementLabel(store.element)} 기운 판매점으로 ${elementLabel(primary)} 보완 흐름과 ${
-              store.element === primary ? "직접 맞습니다" : "함께 비교할 만합니다"
-            }.`,
-            store.direction === primaryDirection
-              ? "오늘 보완 방향과도 맞아 구매 동선 후보로 좋습니다."
-              : "보완 방향과 다를 때는 추천 시간대를 맞춰 균형을 잡는 쪽이 좋습니다.",
           ],
         };
       })
@@ -2176,9 +2208,10 @@
     const bestMatch = summary.best.result.bestMatch;
     const exact = summary.exact;
     const bestNumbers = bestMatch?.n ?? [];
+    const settingText = snapshotSettingLabel((exact ?? summary.best).snapshot);
     const exactText = exact
       ? `${snapshotSettingLabel(exact.snapshot)} 후보군에 정확한 6개 조합이 있었습니다.`
-      : `정확한 6개 조합은 없었고, 최대 ${summary.best.result.maxOverlap}개까지 맞았습니다.`;
+      : `${settingText}으로 만든 후보군에서는 정확한 6개 조합이 없었습니다. 대신 최대 ${summary.best.result.maxOverlap}개까지 맞았습니다.`;
 
     return `
       <div class="candidate-scope-row ${exact ? "is-hit" : "is-miss"}">
@@ -2187,6 +2220,7 @@
           <span>${formatNumber(summary.recordCount)}개 기록 · 후보 ${formatNumber(
             summary.candidateTotal,
           )}개 확인</span>
+          <span>${settingText}</span>
         </div>
         <b>${exact ? "있음" : "없음"}</b>
         <p>${exactText}</p>
@@ -2226,15 +2260,15 @@
         : { label: `사주 ${sajuWeight.value}% 반영형`, meta: sajuMeta };
     const floorText =
       betterMeta.meta.score >= floor
-        ? `분포 필터 ${floor}점 기준은 통과권이었습니다. 정확한 조합이 후보군에 없었다면 필터보다 후보 생성 폭과 랜덤 배치의 영향이 큽니다.`
-        : `분포 필터를 ${Math.floor(betterMeta.meta.score)}점 이하로 낮춰야 이 조합이 점수 기준에서 탈락하지 않습니다.`;
+        ? `필터 ${floor}점 조건은 넘는 편이라, 이 번호가 빠진 이유는 후보를 몇 개까지 저장했는지와 랜덤 생성 폭의 영향이 큽니다.`
+        : `필터를 ${Math.floor(betterMeta.meta.score)}점 이하로 낮췄다면 이 번호가 후보 자격에서 빠지지 않았을 가능성이 큽니다.`;
 
     return `
       <div class="candidate-setting-hint">
-        <strong>설정 조정 힌트</strong>
-        <p>${draw.draw}회 당첨번호는 ${betterMeta.label}에서 더 가깝게 평가됩니다. 분포점수 ${betterMeta.meta.score}점, 실전근접 ${betterMeta.meta.practicalScore}점입니다.</p>
+        <strong>어떤 설정이면 가까웠나</strong>
+        <p>${draw.draw}회 당첨번호는 ${betterMeta.label} 설정에서 더 자연스럽게 들어오는 편입니다. 이때 후보 적합도는 ${betterMeta.meta.score}점, 실제 당첨패턴과의 가까움은 ${betterMeta.meta.practicalScore}점입니다.</p>
         <p>${floorText}</p>
-        <p>단, 이 앱은 모든 814만 조합을 전부 보여주는 방식이 아니라 후보군을 생성해 검증하므로, “점수 기준 통과”와 “저장 후보 안에 실제 존재”는 다를 수 있습니다.</p>
+        <p>다음부터는 후보 저장 폭을 넓히고, 사주 반영 0%와 사주 반영값을 각각 한 번씩 생성해두면 어떤 쪽에서 더 가까웠는지 비교하기 좋습니다.</p>
       </div>
     `;
   }
@@ -2365,51 +2399,84 @@
       .join("")}</div>`;
   }
 
+  function friendlyTenGod(label) {
+    return (
+      {
+        비견: "내 고집과 추진력",
+        겁재: "경쟁심과 승부욕",
+        식신: "아이디어와 표현력",
+        상관: "튀는 감각과 변칙성",
+        편재: "기회 포착과 큰돈 감각",
+        정재: "현실적인 돈 관리",
+        편관: "압박을 뚫는 힘",
+        정관: "규칙과 안정감",
+        편인: "직감과 독특한 판단",
+        정인: "도움과 회복력",
+      }[label] ?? label
+    );
+  }
+
+  function sajuNumberHints(saju, limit = 12) {
+    return Array.from({ length: 45 }, (_, index) => index + 1)
+      .map((number) => {
+        const blend = numberElementBlend(number);
+        const score = elementKeys.reduce(
+          (sum, key) => sum + blend[key] * (saju.usefulScores[key] ?? 0),
+          0,
+        );
+        return { number, score };
+      })
+      .sort((a, b) => b.score - a.score || a.number - b.number)
+      .slice(0, limit)
+      .map((item) => item.number);
+  }
+
+  function renderMiniBalls(numbers) {
+    return `<div class="mini-audit-balls">${numbers.map(renderAuditBall).join("")}</div>`;
+  }
+
   function renderSajuReading(saju) {
     const strengthLabel = {
-      weak: "신약",
-      balanced: "중화권",
-      strong: "신강",
+      weak: "신약, 내 기운을 조금 보태면 편한 편",
+      balanced: "중화권, 한쪽으로 크게 치우치지 않은 편",
+      strong: "신강, 내 기운이 강한 편",
     }[saju.strength];
-    const favored = saju.favored.map((key) => `${elementLabel(key)} 보완`);
-    const topTenGods = saju.topTenGods.map(
-      (item) => `${item.label} ${item.value.toFixed(1)}`,
-    );
-    const pillars = saju.pillars
-      .map((pillar) => {
-        const kind = { year: "년", month: "월", day: "일", hour: "시" }[pillar.kind];
-        return `${kind} ${pillar.name}`;
-      })
-      .join(" · ");
+    const favored = saju.favored.map((key) => `${elementLabel(key)} 기운`);
+    const strongest = Object.entries(saju.counts).sort((a, b) => b[1] - a[1])[0];
+    const weakest = Object.entries(saju.counts).sort((a, b) => a[1] - b[1])[0];
+    const topTenGods = saju.topTenGods
+      .slice(0, 3)
+      .map((item) => friendlyTenGod(item.label));
+    const modeIntro = {
+      balance: `지금은 전체 균형을 먼저 봅니다. 강한 ${elementLabel(
+        strongest[0],
+      )} 기운은 조금 덜어내고, 약한 ${elementLabel(weakest[0])} 쪽을 채우는 식입니다.`,
+      wealth: `재성 강화형은 돈을 쓰고 결정하는 감각을 더 봅니다. 당신에게 금전 테마로 읽히는 기운은 ${elementLabel(
+        saju.wealthElement,
+      )}이라서 이 흐름을 조금 더 살립니다.`,
+      climate: `조후 균형형은 태어난 계절의 차갑고 뜨거운 느낌을 봅니다. 계절감이 한쪽으로 치우치지 않도록 ${elementLabel(
+        saju.climateElement ?? saju.favored[0],
+      )} 기운을 더 챙깁니다.`,
+    }[interpretationMode.value];
+    const numberHints = sajuNumberHints(saju, 10);
 
     document.querySelector("#sajuReading").innerHTML = `
-      <div class="reading-row">
-        <span>사주 팔자</span>
-        <strong>${pillars}</strong>
+      <div class="reading-row reading-story">
+        <span>풀이</span>
+        <p>당신은 ${elementLabel(saju.dayMaster.element)} 기운을 중심으로 보고, 전체 힘은 ${strengthLabel}에 가깝습니다. ${modeIntro}</p>
       </div>
       <div class="reading-row">
-        <span>일간</span>
-        <p>${saju.dayMaster.stem} ${elementLabel(saju.dayMaster.element)}${polarityLabel(
-          saju.dayMaster.polarity,
-        )} · ${strengthLabel} ${(saju.strengthRatio * 100).toFixed(1)}%</p>
+        <span>강한 점</span>
+        <p>${topTenGods.join(", ")} 쪽이 눈에 띕니다. 번호를 고를 때는 이 장점을 살리되 한쪽으로 몰리지 않게 보는 편이 좋습니다.</p>
       </div>
       <div class="reading-row">
-        <span>월령</span>
-        <p>${saju.monthCommand.branch}월령 ${elementLabel(
-          saju.monthCommand.element,
-        )} 기운 · ${saju.calculationNote}</p>
+        <span>보완할 점</span>
+        <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 재미 보정에서는 더 편안한 조합으로 읽습니다.</p>
       </div>
       <div class="reading-row">
-        <span>십성</span>
-        ${renderTags(topTenGods)}
-      </div>
-      <div class="reading-row">
-        <span>용신 후보</span>
-        ${renderTags(favored)}
-      </div>
-      <div class="reading-row">
-        <span>재성</span>
-        <p>${elementLabel(saju.wealthElement)} · 로또/금전 테마 모드에서는 이 오행을 추가 가중합니다.</p>
+        <span>맞는 번호</span>
+        <p>현재 해석 모드에서 잘 맞는 쪽으로 잡힌 번호입니다.</p>
+        ${renderMiniBalls(numberHints)}
       </div>
     `;
   }
@@ -2418,29 +2485,36 @@
     const useful = elementKeys
       .slice()
       .sort((a, b) => saju.usefulScores[b] - saju.usefulScores[a])
-      .map((key) => `${elementLabel(key)} ${saju.usefulScores[key].toFixed(2)}`);
+      .map((key) => `${elementLabel(key)} 기운`);
     const modeText = {
-      balance: "부족한 오행과 신강·신약 균형을 우선합니다.",
-      wealth: "일간이 극하는 재성 오행과 식상 흐름을 더 봅니다.",
-      climate: "월령 계절감이 차갑거나 뜨거운 정도를 더 봅니다.",
+      balance: "부족한 기운을 채우고 너무 강한 기운은 누그러뜨리는 방식입니다.",
+      wealth: "금전 판단과 결제 흐름에 해당하는 재성 기운을 조금 더 살리는 방식입니다.",
+      climate: "태어난 계절의 차갑고 뜨거운 느낌을 맞추는 방식입니다.",
     }[interpretationMode.value];
+    const primaryNumbers = sajuNumberHints(saju, 6);
+    const subNumbers = sajuNumberHints(
+      { ...saju, usefulScores: Object.fromEntries(elementKeys.map((key) => [key, key === saju.wealthElement ? 2 : 0.5])) },
+      6,
+    );
 
     document.querySelector("#mappingReading").innerHTML = `
       <div class="reading-row">
-        <span>오행 점수</span>
+        <span>해석</span>
+        <p>${modeText}</p>
+      </div>
+      <div class="reading-row">
+        <span>번호 방향</span>
         ${renderTags(useful)}
       </div>
       <div class="reading-row">
-        <span>번호 변환</span>
-        <p>번호대 50%, 끝수 32%, 5분류 순환 18%로 각 번호의 오행 혼합값을 만들고 용신 후보와 대조합니다.</p>
+        <span>추천 번호감</span>
+        <p>사주 보정만 놓고 보면 아래 번호들이 잘 맞는 쪽입니다. 실제 추천은 여기에 당첨번호 분포를 다시 섞어서 만듭니다.</p>
+        ${renderMiniBalls(primaryNumbers)}
       </div>
       <div class="reading-row">
-        <span>음양 보정</span>
-        <p>홀수는 양, 짝수는 음으로 두어 일간 음양과 맞을 때 소폭 보정합니다.</p>
-      </div>
-      <div class="reading-row">
-        <span>해석 모드</span>
-        <p>${modeText}</p>
+        <span>금전운 번호</span>
+        <p>재성 흐름만 따로 보면 이런 번호들이 돈과 결제 테마에 가깝게 읽힙니다.</p>
+        ${renderMiniBalls(subNumbers)}
       </div>
     `;
   }
@@ -2615,206 +2689,72 @@
     `;
   }
 
-  function buildPurchaseWindows(saju) {
-    const now = new Date();
-    const maxUseful = Math.max(...Object.values(saju.usefulScores));
-    const windows = [];
-
-    for (let dayOffset = 0; dayOffset < 9; dayOffset += 1) {
-      const date = new Date(now);
-      date.setDate(now.getDate() + dayOffset);
-
-      for (const startHour of [7, 9, 11, 13, 15, 17, 19, 21]) {
-        const candidate = new Date(date);
-        candidate.setHours(startHour, 0, 0, 0);
-        if (candidate <= now) continue;
-        if (!isLottoSalesWindow(candidate, startHour)) continue;
-        if (!isLottoSalesWindow(candidate, Math.min(startHour + 1, 23))) continue;
-
-        const branchIndex = branchForHour(startHour);
-        const element = branches[branchIndex][1];
-        const branchName = branches[branchIndex][0];
-        const useful = saju.usefulScores[element] / maxUseful;
-        const wealthBoost = element === saju.wealthElement ? 0.16 : 0;
-        const favoredBoost = saju.favored.includes(element) ? 0.1 : 0;
-        const deadlinePenalty = candidate.getDay() === 6 && startHour >= 17 ? 0.1 : 0;
-
-        windows.push({
-          date: candidate,
-          branchName,
-          element,
-          score: useful + wealthBoost + favoredBoost - deadlinePenalty,
-          range: branchRangeLabel(branchIndex),
-        });
-      }
-    }
-
-    return windows.sort((a, b) => b.score - a.score).slice(0, 3);
-  }
-
-  function buildDayWindows(saju, dayOffset) {
-    const now = new Date();
-    const date = new Date(now);
-    date.setDate(now.getDate() + dayOffset);
-    const maxUseful = Math.max(...Object.values(saju.usefulScores));
-    const windows = [];
-
-    for (const startHour of [7, 9, 11, 13, 15, 17, 19, 21]) {
-      const candidate = new Date(date);
-      candidate.setHours(startHour, 0, 0, 0);
-      if (dayOffset === 0 && candidate <= now) continue;
-      if (!isLottoSalesWindow(candidate, startHour)) continue;
-      if (!isLottoSalesWindow(candidate, Math.min(startHour + 1, 23))) continue;
-
-      const branchIndex = branchForHour(startHour);
-      const element = branches[branchIndex][1];
-      const useful = saju.usefulScores[element] / maxUseful;
-      const wealthBoost = element === saju.wealthElement ? 0.18 : 0;
-      const favoredBoost = saju.favored.includes(element) ? 0.12 : 0;
-
-      windows.push({
-        date: candidate,
-        branchName: branches[branchIndex][0],
-        element,
-        score: useful + wealthBoost + favoredBoost,
-        range: branchRangeLabel(branchIndex),
-      });
-    }
-
-    return windows.sort((a, b) => b.score - a.score);
-  }
-
-  function renderDailyRitual(label, saju, dayOffset) {
-    const windows = buildDayWindows(saju, dayOffset);
-    const primary = saju.favored[0];
-    const wealth = saju.wealthElement;
-    const dayText = dayOffset === 0 ? "오늘" : "내일";
-
-    if (!windows.length) {
-      return `
-        <div class="daily-card">
-          <strong>${label}</strong>
-          <p>${dayText}은 로또 판매 가능 시간 안에서 남은 추천 구간이 부족합니다. 구매보다 번호를 정리하고, ${elementLabel(
-            primary,
-          )} 컬러나 소품을 챙기는 준비 루틴으로 두는 편이 좋아요.</p>
-        </div>
-      `;
-    }
-
-    const best = windows[0];
-    const backup = windows[1] ?? best;
-    const isWealth = best.element === wealth;
-    const isFavored = saju.favored.includes(best.element);
-
-    return `
-      <div class="daily-card">
-        <strong>${label} · ${formatDay(best.date)} ${best.range}</strong>
-        <p>${best.branchName}시의 ${elementLabel(best.element)} 기운을 씁니다. ${
-          isFavored
-            ? `이 시간대는 당신의 보완 오행 후보와 맞아 번호 선택을 마무리하기 좋습니다.`
-            : `보완 오행과 완전히 같지는 않지만, 전체 흐름을 부드럽게 이어주는 시간대입니다.`
-        } ${
-          isWealth
-            ? `특히 재성 오행과 맞기 때문에 구매 행동 자체의 테마가 선명합니다.`
-            : `재성은 ${elementLabel(wealth)}이므로 결제 직전에는 지출 금액을 정해 안정감을 주는 쪽이 좋습니다.`
-        }</p>
-        <p class="mini-note">놓치면 ${backup.range}도 후보입니다. 토요일은 20시 전에 마감되니 늦은 저녁 몰아가기는 피하세요.</p>
-      </div>
-    `;
-  }
-
   function renderPurchaseReading(saju) {
-    const primary = saju.favored[0];
-    const wealth = saju.wealthElement;
-    const primaryDirection = elementDirections[primary];
-    const wealthDirection = elementDirections[wealth];
     const place = userRegionLabel || (userPosition ? `현재 위치 ${coordinateLabel(userPosition)}` : "현재 위치 미확인");
-    const range = meterLabel(walkRange.value);
-    const stores = buildStoreRecommendations(saju);
-    const locationCards = buildLocationSearchRecommendations(saju);
+    const stores = buildStoreRecommendations();
+    const regionQuery = userRegionLabel || "내 주변";
+    const fallbackLinks = [
+      {
+        name: `${regionQuery} 로또 1등 명당 검색`,
+        url: mapSearchUrl(`${regionQuery} 로또 1등 당첨 판매점 명당`, userPosition, 12),
+      },
+      {
+        name: `${regionQuery} 동행복권 판매점 찾기`,
+        url: "https://www.dhlottery.co.kr/prchsplcsrch/home",
+      },
+      {
+        name: `${regionQuery} 로또 판매점 지도`,
+        url: mapSearchUrl(`${regionQuery} 로또 판매점`, userPosition, 14),
+      },
+    ];
 
-    const renderSearchCard = (item, index) => `
-      <article class="store-card">
-        <div class="store-rank">${index + 1}</div>
-        <div>
-          <div class="store-badge">${item.badge}</div>
-          <strong>${item.name}</strong>
-          <p>${item.address}</p>
-          <div class="store-tags">
-            ${item.tags.map((tag) => `<span>${tag}</span>`).join("")}
-          </div>
-          <p class="store-reason">${item.reason}</p>
-          <a class="map-link" href="${item.url}" target="_blank" rel="noreferrer">지도에서 열기</a>
-        </div>
-      </article>
-    `;
-
-    const storeCards = locationCards.length
-      ? locationCards.map(renderSearchCard).join("")
+    const storeCards = stores.length
+      ? stores
+          .map((store, index) => {
+            const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
+            return `
+              <article class="store-card">
+                <div class="store-rank">${index + 1}</div>
+                <div>
+                  <div class="store-badge">${store.firstWins}회 1등 배출</div>
+                  <strong>${store.name}</strong>
+                  <p>${store.address}</p>
+                  <div class="store-tags">
+                    <span>${distanceLabel(store.km)}</span>
+                    <span>${store.region.slice(1, 3).join(" ")}</span>
+                    ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
+                  </div>
+                  <p class="store-reason">${store.reasons.join(" ")}</p>
+                  <a class="map-link" href="${maps}" target="_blank" rel="noreferrer">지도에서 열기</a>
+                </div>
+              </article>
+            `;
+          })
+          .join("")
       : `
           <article class="store-card store-empty">
             <div class="store-rank">!</div>
             <div>
               <div class="store-badge">위치 필요</div>
               <strong>현재 위치를 먼저 반영해 주세요</strong>
-              <p>내 주변 판매점, 사주 방향 ${range} 판매점, 현재 지역 명당 검색은 위치 권한을 받은 뒤에 만들 수 있어요.</p>
+              <p>현재 지역명이 확인되면 그 지역의 1등 배출 이력 후보를 먼저 보여줍니다.</p>
               <button id="inlineUseLocation" class="map-link inline-map-button" type="button">현재 위치 반영</button>
             </div>
           </article>
         `;
 
-    const historyCards = stores.length
-      ? `
-          <div class="store-subhead">현재 지역 공개 당첨 이력 후보</div>
-          ${stores
-          .map((store, index) => {
-            const maps = `https://www.google.com/maps/search/${encodeURIComponent(store.name + " " + store.address)}`;
-            const badge = index === 0 ? "지역 이력 1순위" : "지역 이력 후보";
-            return `
-              <article class="store-card">
-                <div class="store-rank">${index + 1}</div>
-                <div>
-                  <div class="store-badge">${badge}</div>
-                  <strong>${store.name}</strong>
-                  <p>${store.address}</p>
-                  <div class="store-tags">
-                    <span>적합도 ${store.fit}</span>
-                    <span>${distanceLabel(store.km)}</span>
-                    <span>${elementLabel(store.element)} 기운</span>
-                    ${store.tags.slice(0, 2).map((tag) => `<span>${tag}</span>`).join("")}
-                  </div>
-                  <p class="store-reason">${store.reasons.join(" ")}</p>
-                  <a class="map-link" href="${maps}" target="_blank" rel="noreferrer">위치 확인</a>
-                </div>
-              </article>
-            `;
-          })
-          .join("")}
-        `
-      : "";
-
     document.querySelector("#purchaseReading").innerHTML = `
-      <div class="ritual-card intro-ritual">
-        <strong>${place} 기준 구매 리포트</strong>
-        <p>${elementLabel(primary)} 보완은 ${primaryDirection.label} 방향의 ${
-          primaryDirection.vibe
-        } 흐름으로 봅니다. 재성은 ${elementLabel(wealth)}라서 ${wealthDirection.label} 방향의 ${
-          wealthDirection.vibe
-        }도 함께 봅니다. 이동 범위는 ${range}로 두고, 무리한 원정 대신 생활 동선 안에서 기분 좋게 사는 쪽을 우선합니다.</p>
-      </div>
-      ${renderDailyRitual("오늘의 구매운", saju, 0)}
-      ${renderDailyRitual("내일의 구매운", saju, 1)}
       <div class="store-section">
         <div class="store-section-head">
-          <strong>현재 위치 추천 TOP 3</strong>
-          <span>내 주변·사주 방향·지역 명당</span>
+          <strong>${place} 추천 TOP 3</strong>
+          <span>1등 배출 이력이 많은 판매점 순</span>
         </div>
         ${storeCards}
-        ${historyCards}
       </div>
-      <div class="ritual-card">
-        <strong>구매 행동 팁</strong>
-        <p>추천 시간대에 맞춰 도착하고, 매장 앞에서 오래 망설이기보다 미리 고른 번호를 차분히 확인하세요. 예산은 먼저 정하고, 같은 번호를 과하게 반복 구매하지 않는 쪽을 품질 좋은 루틴으로 봅니다.</p>
+      <div class="store-tags store-link-row">
+        ${fallbackLinks
+          .map((item) => `<a class="map-link" href="${item.url}" target="_blank" rel="noreferrer">${item.name}</a>`)
+          .join("")}
       </div>
     `;
 
@@ -2914,25 +2854,17 @@
   }
 
   function renderPatternReport(stats) {
-    const sourceLabel =
-      dataset.source === "dhlottery-official-json"
-        ? "동행복권 공식 JSON"
-        : "공개 회차 목록 보조 수집";
     const recentYears = (stats.recentWindow / 52).toFixed(1);
     const balance = stats.balanceProfile;
 
     document.querySelector("#patternReport").innerHTML = `
       <div class="pattern-line">
-        <span>API 활용</span>
-        <strong>동행복권 getLottoNumber 형식의 drwNo, drwNoDate, drwtNo1~6, bnusNo를 패턴 분석 기준으로 사용합니다.</strong>
-      </div>
-      <div class="pattern-line">
-        <span>현재 데이터</span>
-        <strong>${sourceLabel} · ${dataset.latestDraw}회(${dataset.latestDate})까지 ${formatNumber(dataset.count)}회</strong>
+        <span>데이터</span>
+        <strong>${dataset.latestDraw}회(${dataset.latestDate})까지 ${formatNumber(dataset.count)}회 결과를 기준으로 봅니다.</strong>
       </div>
       <div class="pattern-line">
         <span>최근 흐름</span>
-        <strong>${stats.recentWindow}회는 약 ${recentYears}년치입니다. 200회는 단기 출렁임을 줄이고 장기 흐름을 같이 보려는 선택입니다.</strong>
+        <strong>최근 ${stats.recentWindow}회, 약 ${recentYears}년치를 더 가까운 흐름으로 참고합니다.</strong>
       </div>
       <div class="pattern-line">
         <span>균형 기준</span>
@@ -3015,22 +2947,7 @@
     const learningProfile = buildLearningProfile(saju);
     const scores = buildNumberScores(stats, saju);
     const result = generateRecommendations(stats, scores, saju, learningProfile);
-    const favored = saju.favored.map((key) => elements[key].label).join(", ");
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
-    const filterText =
-      result.scoreFloor > 0
-        ? `, 분포적합 ${result.scoreFloor} 이상 ${result.filteredCount}개 후보`
-        : "";
-    const highQualityText =
-      result.practicalBandCount > 0
-        ? `, 분포 80+ ${result.practicalBandCount}개 / 90+ ${result.highScoreCount}개`
-        : result.highScoreCount > 0
-          ? `, 분포 90+ ${result.highScoreCount}개`
-          : "";
-    const learningText = result.learningProfile?.records?.length
-      ? `, 분포학습 중심 ${result.learningProfile.targetScore}`
-      : "";
-    const topOnlyText = topOnly.checked ? ", 당첨분포 최우선 5장" : ", 분포+다양성 혼합";
     const sajuText =
       Number(sajuWeight.value) === 0
         ? "사주 재미보정 꺼짐"
@@ -3038,7 +2955,7 @@
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel}, 최근 ${recentWindow.value}회, 보완 오행 ${favored}, 과거 당첨분포 중심 / ${sajuText}${filterText}${highQualityText}${learningText}${topOnlyText}`;
+      `${modeLabel} · 최근 ${recentWindow.value}회 · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
 
     renderFortunePanel(saju);
     lastRecommendationResult = result;

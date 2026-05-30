@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v24" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v25" />
   </head>
   <body>
     <main class="app-shell">
@@ -55,7 +55,7 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="birthDate">생년월일</label>
-                <button class="help-button" type="button" data-help="사주 팔자의 년주·월주·일주를 계산하는 기준입니다. 현재 버전은 절입일을 근사해 월령을 잡습니다.">?</button>
+                <button class="help-button" type="button" data-help="태어난 날짜로 기본 성향과 오늘 운세 흐름을 가볍게 읽습니다. 추천 번호는 통계 분포가 중심이고, 사주는 원할 때 재미로 더하는 보정입니다.">?</button>
               </div>
               <input id="birthDate" name="birthDate" type="date" value="1990-01-01" />
             </div>
@@ -171,8 +171,8 @@
 
             <details class="setting-details">
               <summary>
-                <span>복권집·구매 루틴</span>
-                <small>내 위치 기준 추천이 필요할 때</small>
+                <span>지역 명당</span>
+                <small>내 위치 기준 1등 배출 판매점</small>
               </summary>
               <div class="setting-body">
                 <div class="field-row">
@@ -272,7 +272,7 @@
             <div class="analysis-panel">
               <div class="section-heading compact">
                 <h2>명리 분석</h2>
-                <p id="sajuCaption">일간, 월령, 장간, 십성 기반</p>
+                <p id="sajuCaption">내 사주를 쉬운 말로 풀이</p>
               </div>
               <div id="sajuReading" class="saju-reading"></div>
             </div>
@@ -280,17 +280,17 @@
             <div class="analysis-panel">
               <div class="section-heading compact">
                 <h2>번호 연결</h2>
-                <p>오행 균형을 번호 점수로 변환</p>
+                <p>내게 잘 맞는 번호감</p>
               </div>
               <div id="mappingReading" class="mapping-reading"></div>
             </div>
           </section>
 
-          <section class="ritual-grid" aria-label="구매 루틴">
+          <section class="ritual-grid" aria-label="지역 명당과 행운 키트">
             <div class="analysis-panel ritual-panel">
               <div class="section-heading compact">
-                <h2>구매 루틴</h2>
-                <p id="ritualCaption">위치와 사주 흐름을 함께 반영</p>
+                <h2>지역 로또 명당</h2>
+                <p id="ritualCaption">내 위치 기준 1등 배출 이력</p>
               </div>
               <div id="purchaseReading" class="purchase-reading"></div>
             </div>
@@ -363,7 +363,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v24"></script>
-    <script src="app.js?v=feedback-v24"></script>
+    <script src="data/lotto-results.js?v=feedback-v25"></script>
+    <script src="app.js?v=feedback-v25"></script>
   </body>
 </html>
