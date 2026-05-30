@@ -628,19 +628,27 @@
     return boundedCacheGet(personalPortfolioCache, key, buildPersonalPortfolio, 8);
   }
 
+  function normalizeBirthDateText(value) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  }
+
   function clampBirthDateInput() {
-    if (!birthDate) return;
+    if (!birthDate) return false;
 
     const today = new Date();
     const maxIso = dateToIso(today);
     birthDate.max = maxIso;
     birthDate.min = "1900-01-01";
 
-    const value = birthDate.value;
-    if (!value) return;
+    const value = normalizeBirthDateText(birthDate.value);
+    if (value !== birthDate.value) birthDate.value = value;
+    if (!value) return false;
 
     const match = value.match(/^(\d{4,})-(\d{1,2})-(\d{1,2})$/);
-    if (!match) return;
+    if (!match) return false;
 
     const currentYear = today.getFullYear();
     const year = clamp(Number(match[1].slice(0, 4)) || currentYear, 1900, currentYear);
@@ -651,6 +659,8 @@
 
     if (next > maxIso) next = maxIso;
     if (next !== value) birthDate.value = next;
+    birthDate.setCustomValidity("");
+    return true;
   }
 
   function branchForClock(hour, minute = 0) {
@@ -3685,7 +3695,11 @@
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       window.clearTimeout(refreshTimer);
-      clampBirthDateInput();
+      if (!clampBirthDateInput()) {
+        birthDate.setCustomValidity("생년월일을 1998-08-27처럼 입력해주세요.");
+        birthDate.reportValidity();
+        return;
+      }
       refresh({ forceNew: true, saveSnapshot: true });
     });
 
@@ -3708,16 +3722,17 @@
 
     birthDate.addEventListener("input", () => {
       window.clearTimeout(refreshTimer);
+      const next = normalizeBirthDateText(birthDate.value);
+      if (next !== birthDate.value) birthDate.value = next;
+      birthDate.setCustomValidity("");
     });
 
     birthDate.addEventListener("change", () => {
-      clampBirthDateInput();
-      scheduleRefresh({}, 320);
+      if (clampBirthDateInput()) scheduleRefresh({}, 320);
     });
 
     birthDate.addEventListener("blur", () => {
-      clampBirthDateInput();
-      scheduleRefresh({}, 320);
+      if (clampBirthDateInput()) scheduleRefresh({}, 320);
     });
 
     unknownTime.addEventListener("change", () => {
