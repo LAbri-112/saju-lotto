@@ -2652,9 +2652,10 @@
 
     const latest = portfolio.latest;
     const best = latest.best;
-    const bestEligible = latest.exactByWeight
+    const qualifyingSettings = latest.exactByWeight
       .slice()
-      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score)[0];
+      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score);
+    const bestEligible = qualifyingSettings[0];
     const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
     const latestDraw = latest.draw;
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회`;
@@ -2668,16 +2669,16 @@
     const replayText = replayBest
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
-    const replayExact = Boolean(replay?.result?.candidate);
-    const statusText = replayExact ? "정확한 조합 있음" : "정확한 조합 없음";
-    const statusClass = replayExact ? "is-hit" : "is-miss";
-    const hitLocationTitle = replayExact ? replay.label : "이번 회차에서는 없음";
-    const candidateLine = replayExact
-      ? `${latestDraw.draw}회 당첨번호 6개 조합은 회차 직전 추천 후보 안에 실제로 있었습니다. 설정은 ${replay.label}입니다.`
-      : `${latestDraw.draw}회 당첨번호 6개 조합은 회차 직전 추천 후보 안에 정확히 있지는 않았습니다. 가장 많이 맞은 후보는 ${replayText}였습니다.`;
-    const positionMeaning = bestEligible
-      ? `자동 기준상 당첨번호와 가장 가까운 설정은 ${foundSettingLine}입니다. 아래 최다 일치 후보는 이 설정으로 다시 만든 후보 중에서 골랐습니다.`
-      : `자동 기준상 가장 가까웠던 설정은 ${settingLine}입니다. 아래 최다 일치 후보는 이 설정으로 다시 만든 후보 중에서 골랐습니다.`;
+    const foundExactSetting = qualifyingSettings.length > 0;
+    const statusText = foundExactSetting ? "나올 설정 찾음" : "통과 설정 없음";
+    const statusClass = foundExactSetting ? "is-hit" : "is-miss";
+    const hitLocationTitle = foundExactSetting ? foundSettingLine : "자동 기준에서는 없음";
+    const candidateLine = foundExactSetting
+      ? `${latestDraw.draw}회 당첨번호 6개 조합을 모든 설정에 직접 넣어본 결과, ${qualifyingSettings.length}개 설정에서 추천 후보로 인정됐습니다. 가장 먼저 볼 설정은 ${foundSettingLine}입니다.`
+      : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 기준을 통과한 설정이 없었습니다. 그래도 가장 가까운 설정은 ${settingLine}입니다.`;
+    const positionMeaning = foundExactSetting
+      ? `이 설정이면 당첨번호 조합 자체가 후보로 인정됩니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
+      : `이 설정이 가장 가까웠지만, 자동 기준 안으로 들어오지는 못했습니다. 아래에는 그 설정으로 다시 만든 후보 중 가장 많이 맞은 조합을 보여줍니다.`;
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -2698,6 +2699,18 @@
     const summarySentence = topMode && topRange && topWindow
       ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, 최근 ${topWindow.windowSize}회 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
       : "";
+    const qualifyingSettingRows = qualifyingSettings
+      .slice(0, 5)
+      .map(
+        (item, index) => `
+          <div>
+            <span>${index + 1}</span>
+            <strong>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회</strong>
+            <em>이 설정에서는 당첨번호 6개 조합이 자동 추천 후보로 인정됩니다.</em>
+          </div>
+        `,
+      )
+      .join("");
     return `
       <div class="personal-portfolio-card">
         <div class="portfolio-head">
@@ -2714,10 +2727,18 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호가 실제로 있었던 위치</span>
+          <span>당첨번호가 나올 수 있는 설정</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${replayExact ? "이 설정으로 회차 직전 추천 후보를 만들면 당첨번호 6개 조합이 실제 후보 안에 들어옵니다." : "이번 회차 당첨번호 6개 조합은 회차 직전 추천 후보 안에 정확히 들어오지는 않았습니다."}</p>
+          <p>${foundExactSetting ? "당첨번호 자체를 모든 설정에 넣어 찾아낸 결과입니다. 이 설정에서는 6개 조합이 후보로 인정됩니다." : "이번 회차 당첨번호는 자동 기준으로는 후보가 되는 설정을 찾지 못했습니다."}</p>
         </div>
+        ${
+          qualifyingSettingRows
+            ? `<div class="portfolio-setting-list">
+                <strong>당첨번호가 후보로 인정된 설정</strong>
+                ${qualifyingSettingRows}
+              </div>`
+            : ""
+        }
         <div class="portfolio-replay-card">
           <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
@@ -2737,8 +2758,8 @@
           </div>
         </div>
         <div class="store-tags">
-          <span>정확한 조합 실제 위치: ${replayExact ? replay.label : "없음"}</span>
-          <span>자동 기준상 가까운 설정: ${foundSettingLine}</span>
+          <span>당첨번호가 나올 설정: ${hitLocationTitle}</span>
+          <span>통과 설정 ${qualifyingSettings.length}개</span>
           <span>저장 기록이 아니라 현재 입력값으로 다시 계산</span>
         </div>
         <details class="portfolio-draw-details">
