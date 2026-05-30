@@ -1148,7 +1148,8 @@ button:focus-visible {
   color: var(--teal-dark);
   padding: 8px 10px;
   font-size: 0.84rem;
-  white-space: nowrap;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .portfolio-head b.is-miss {
@@ -1390,6 +1391,25 @@ button:focus-visible {
   grid-template-columns: 54px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
+}
+
+.candidate-hit-label,
+.candidate-miss-label {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.candidate-hit-label {
+  background: rgba(24, 169, 153, 0.14);
+  color: var(--teal-dark);
+}
+
+.candidate-miss-label {
+  background: rgba(240, 111, 136, 0.12);
+  color: #b94058;
 }
 
 .saved-history-details {

@@ -2670,11 +2670,11 @@
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
     const foundExactSetting = qualifyingSettings.length > 0;
-    const statusText = foundExactSetting ? "나올 설정 찾음" : "통과 설정 없음";
+    const statusText = foundExactSetting ? "당첨번호가 추천 후보 안에 있었음" : "통과 설정 없음";
     const statusClass = foundExactSetting ? "is-hit" : "is-miss";
     const hitLocationTitle = foundExactSetting ? foundSettingLine : "자동 기준에서는 없음";
     const candidateLine = foundExactSetting
-      ? `${latestDraw.draw}회 당첨번호 6개 조합을 모든 설정에 직접 넣어본 결과, ${qualifyingSettings.length}개 설정에서 추천 후보로 인정됐습니다. 가장 먼저 볼 설정은 ${foundSettingLine}입니다.`
+      ? `${latestDraw.draw}회 당첨번호 6개 조합을 모든 설정에 직접 넣어본 결과, ${qualifyingSettings.length}개 설정에서 당첨번호가 추천 후보 안에 있었습니다. 가장 먼저 볼 설정은 ${foundSettingLine}입니다.`
       : `${latestDraw.draw}회 당첨번호 6개 조합은 자동 기준을 통과한 설정이 없었습니다. 그래도 가장 가까운 설정은 ${settingLine}입니다.`;
     const positionMeaning = foundExactSetting
       ? `이 설정이면 당첨번호 조합 자체가 후보로 인정됩니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
@@ -2706,7 +2706,7 @@
           <div>
             <span>${index + 1}</span>
             <strong>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회</strong>
-            <em>이 설정에서는 당첨번호 6개 조합이 자동 추천 후보로 인정됩니다.</em>
+            <em>이 설정에서는 당첨번호 6개 조합이 추천 후보 안에 있었습니다.</em>
           </div>
         `,
       )
@@ -2716,7 +2716,7 @@
         <div class="portfolio-head">
           <div>
             <span>개인별 당첨번호 위치</span>
-            <strong>${latestDraw.draw}회 당첨번호가 후보 안에 있었는지 확인</strong>
+            <strong>${latestDraw.draw}회 당첨번호가 추천 후보 안에 있었는지 확인</strong>
           </div>
           <b class="${statusClass}">${statusText}</b>
         </div>
@@ -2727,14 +2727,14 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호가 나올 수 있는 설정</span>
+          <span>당첨번호가 추천 후보 안에 있었던 설정</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${foundExactSetting ? "당첨번호 자체를 모든 설정에 넣어 찾아낸 결과입니다. 이 설정에서는 6개 조합이 후보로 인정됩니다." : "이번 회차 당첨번호는 자동 기준으로는 후보가 되는 설정을 찾지 못했습니다."}</p>
+          <p>${foundExactSetting ? "맞습니다. 이 설정에서는 당첨번호 6개 조합이 자동 추천 후보 안에 있었습니다." : "이번 회차 당첨번호는 자동 기준으로는 후보가 되는 설정을 찾지 못했습니다."}</p>
         </div>
         ${
           qualifyingSettingRows
             ? `<div class="portfolio-setting-list">
-                <strong>당첨번호가 후보로 인정된 설정</strong>
+                <strong>당첨번호가 추천 후보 안에 있었던 설정</strong>
                 ${qualifyingSettingRows}
               </div>`
             : ""
@@ -2747,8 +2747,8 @@
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
-            <span>당첨번호 위치</span>
-            <strong>${statusText}</strong>
+          <span>당첨번호 위치</span>
+          <strong>${statusText}</strong>
             <p>${candidateLine}</p>
           </div>
           <div class="portfolio-position-card">
@@ -2758,7 +2758,7 @@
           </div>
         </div>
         <div class="store-tags">
-          <span>당첨번호가 나올 설정: ${hitLocationTitle}</span>
+          <span>당첨번호가 추천 후보 안에 있었던 설정: ${hitLocationTitle}</span>
           <span>통과 설정 ${qualifyingSettings.length}개</span>
           <span>저장 기록이 아니라 현재 입력값으로 다시 계산</span>
         </div>
@@ -2789,10 +2789,13 @@
               .reverse()
               .map((record) => {
                 const item = record.best;
+                const hitLabel = record.eligible
+                  ? '<mark class="candidate-hit-label">당첨번호가 추천 후보 안에 있었음</mark>'
+                  : '<mark class="candidate-miss-label">당첨번호는 추천 후보 밖</mark>';
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${record.eligible ? "추천 후보 안" : "추천 후보 밖"}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${hitLabel}</span>
                   </div>
                 `;
               })
