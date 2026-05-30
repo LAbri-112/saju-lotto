@@ -609,7 +609,6 @@
       recentWindow.value,
       sajuWeight.value,
       interpretationMode.value,
-      minScore.value,
       topOnly.checked,
       setCount.value,
       userRegionLabel,
@@ -624,7 +623,7 @@
   }
 
   function getCachedPersonalPortfolio() {
-    const key = ["portfolio", birthStateKey("all"), recentWindow.value, minScore.value].join("|");
+    const key = ["portfolio", birthStateKey("all"), recentWindow.value].join("|");
     return boundedCacheGet(personalPortfolioCache, key, buildPersonalPortfolio, 8);
   }
 
@@ -2002,6 +2001,30 @@
     };
   }
 
+  function autoScoreFloorFromLearning(learningProfile) {
+    const target = Number(learningProfile?.targetScore);
+    const tolerance = Number(learningProfile?.targetTolerance);
+    const base = Number.isFinite(target) ? target - (Number.isFinite(tolerance) ? tolerance : 2.5) : 80;
+    return clamp(Math.round(base * 2) / 2, 76, 88);
+  }
+
+  function autoFilterCandidates(practicalRanked, target, learningProfile) {
+    let scoreFloor = autoScoreFloorFromLearning(learningProfile);
+    const minimumPool = Math.max(target * 24, 90);
+    let filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
+
+    while (filtered.length < minimumPool && scoreFloor > 70) {
+      scoreFloor = Math.round((scoreFloor - 1) * 10) / 10;
+      filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
+    }
+
+    return {
+      filtered,
+      scoreFloor,
+      autoScoreFloor: scoreFloor,
+    };
+  }
+
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
     generation += 1;
     const seed = hashString(
@@ -2015,7 +2038,6 @@
         recentWindow.value,
         sajuWeight.value,
         interpretationMode.value,
-        minScore.value,
         topOnly.checked,
         userRegionLabel,
         walkRange.value,
@@ -2026,8 +2048,7 @@
     );
     const rng = mulberry32(seed);
     const candidateMap = new Map();
-    const scoreFloor = clamp(Number(minScore.value) || 0, 0, 100);
-    const candidateBudget = scoreFloor >= 80 ? 7600 : 3000;
+    const candidateBudget = 7600;
 
     for (let index = 0; index < candidateBudget; index += 1) {
       const numbers = makeCandidate(scores, rng);
@@ -2040,7 +2061,7 @@
     }
 
     const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-    const improveCount = scoreFloor >= 80 ? 260 : 120;
+    const improveCount = 260;
     for (const candidate of preliminary.slice(0, improveCount)) {
       const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
       candidateMap.set(improved.numbers.join("-"), improved);
@@ -2050,8 +2071,12 @@
     const practicalRanked = [...ranked].sort((a, b) => {
       return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
     });
-    const filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
     const target = clamp(Number(setCount.value) || 5, 1, 10);
+    const { filtered, scoreFloor, autoScoreFloor } = autoFilterCandidates(
+      practicalRanked,
+      target,
+      learningProfile,
+    );
     const selected = [];
     const auditCandidates = ranked.map((candidate) => ({
       n: candidate.numbers,
@@ -2074,6 +2099,7 @@
         ).length,
         highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
         scoreFloor,
+        autoScoreFloor,
         learningProfile,
         auditCandidates,
         pool: filtered,
@@ -2105,6 +2131,7 @@
       ).length,
       highScoreCount: ranked.filter((candidate) => candidate.meta.score >= 90).length,
       scoreFloor,
+      autoScoreFloor,
       learningProfile,
       auditCandidates,
       pool: filtered,
@@ -2175,8 +2202,8 @@
     if (!items.length) {
       container.innerHTML = `
         <div class="empty-state">
-          분포적합 ${result.scoreFloor} 이상 조건을 만족하는 조합이 없습니다.
-          필터를 낮추거나 추천 세트를 줄여 다시 생성해보세요.
+          자동 선별 기준에 맞는 조합이 부족합니다.
+          추천 세트를 줄이거나 다시 생성해보세요.
         </div>
       `;
       return;
@@ -2369,7 +2396,7 @@
     container.innerHTML = checks
       .map(({ snapshot, draw, result }) => {
         const exactText = result.candidate
-          ? `당신의 당첨번호 였던 것은 후보 안에 있었습니다 · ${result.candidate.s}점 · ${result.candidate.bl ?? result.candidate.b ?? ""}`
+          ? `당신의 당첨번호 였던 것은 후보 안에 있었습니다`
           : "후보 안에 없음";
         const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
         const best = result.bestMatch;
@@ -2390,7 +2417,7 @@
             <div class="store-tags">
               <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
               <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
-              <span>필터 ${snapshot.settings.scoreFloor}점</span>
+              <span>자동 선별 기준</span>
             </div>
             <div class="store-tags">${tierTags}</div>
           </div>
@@ -2418,7 +2445,7 @@
     const windowOptions = [20, 50, 100, 200].includes(selectedWindow)
       ? [20, 50, 100, 200]
       : [20, 50, 100, 200, selectedWindow];
-    const scoreFloor = clamp(Number(minScore.value) || 80, 0, 100);
+    const scoreFloor = autoScoreFloorFromLearning(getCachedLearningProfile(buildSajuProfile()));
     const modes = ["balance", "wealth", "climate"];
     const modeProfiles = Object.fromEntries(modes.map((mode) => [mode, buildSajuProfile(mode)]));
     const scanWeights = Array.from({ length: 101 }, (_, index) => index);
@@ -2532,12 +2559,12 @@
       .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score)[0];
     const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
     const latestDraw = latest.draw;
-    const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회 · 필터 ${portfolio.scoreFloor}점`;
+    const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회`;
     const candidateLine = bestEligible
       ? `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 ${modeName(
           bestEligible.mode,
         )} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회에서 후보권에 들어왔습니다.`
-      : `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 현재 필터 ${portfolio.scoreFloor}점 기준에서는 후보권 밖이었습니다. 가장 가까운 설정은 ${settingLine}입니다.`;
+      : `저장된 추천 기록이 아니라, ${latestDraw.draw}회 당첨번호 자체를 모든 설정에 넣어 본 결과 자동 선별 기준에서는 후보권 밖이었습니다. 가장 가까운 설정은 ${settingLine}입니다.`;
     const modeTags = portfolio.modeCounts
       .map((item) => `<span>${item.label} ${item.count}회</span>`)
       .join("");
@@ -2559,10 +2586,6 @@
             <span>${latestDraw.draw}회 당첨번호가 가장 가까웠던 설정</span>
             <div class="ball-line compact-ball-line">${latestDraw.numbers.map(renderAuditBall).join("")}</div>
           </div>
-          <div class="portfolio-score">
-            <strong>${best.fit}</strong>
-            <span>개인 적합</span>
-          </div>
         </div>
         <p>${candidateLine}</p>
         <div class="store-tags">
@@ -2572,8 +2595,7 @@
         </div>
         <div class="store-tags">
           <span>${settingLine}</span>
-          <span>분포 ${best.meta.score}점</span>
-          <span>실전 ${best.meta.practicalScore}점</span>
+          <span>자동 선별 기준 적용</span>
         </div>
         <div class="portfolio-bars">
           ${portfolio.ranges
@@ -2600,7 +2622,7 @@
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · 개인적합 ${item.fit} · ${record.eligible ? "후보권" : "후보권 밖"}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${record.eligible ? "후보권" : "후보권 밖"}</span>
                   </div>
                 `;
               })
@@ -2615,7 +2637,7 @@
     const settings = snapshot.settings ?? {};
     return `최근 ${settings.recentWindow ?? "-"}회 · 사주 ${settings.sajuWeight ?? 0}% · ${modeName(
       settings.mode,
-    )} · 필터 ${settings.scoreFloor ?? "-"}점`;
+    )} · 자동 선별`;
   }
 
   function summarizeSnapshotGroup(snapshots, draw) {
@@ -2695,7 +2717,7 @@
     if (priorDraws.length < 30) return "";
 
     const windowSize = snapshot.settings?.recentWindow ?? (Number(recentWindow.value) || 50);
-    const floor = snapshot.settings?.scoreFloor ?? (Number(minScore.value) || 80);
+    const floor = autoScoreFloorFromLearning(getCachedLearningProfile(saju));
     const statsBeforeDraw = buildStats(windowSize, priorDraws);
     const statOnlyMeta = scoreCombination(
       draw.numbers,
@@ -2718,13 +2740,13 @@
         : { label: `사주 ${sajuWeight.value}% 반영형`, meta: sajuMeta };
     const floorText =
       betterMeta.meta.score >= floor
-        ? `필터 ${floor}점 조건은 넘는 편이라, 이 번호가 빠진 이유는 후보를 몇 개까지 저장했는지와 랜덤 생성 폭의 영향이 큽니다.`
-        : `필터를 ${Math.floor(betterMeta.meta.score)}점 이하로 낮췄다면 이 번호가 후보 자격에서 빠지지 않았을 가능성이 큽니다.`;
+        ? `자동 선별 기준 안쪽에 들어오는 편이라, 이 번호가 빠진 이유는 후보를 몇 개까지 저장했는지와 랜덤 생성 폭의 영향이 큽니다.`
+        : `자동 선별 기준보다 조금 바깥에 있어서, 다음 추천에서는 기준을 더 유연하게 잡도록 보정했습니다.`;
 
     return `
       <div class="candidate-setting-hint">
         <strong>어떤 설정이면 가까웠나</strong>
-        <p>${draw.draw}회 당첨번호는 ${betterMeta.label} 설정에서 더 자연스럽게 들어오는 편입니다. 이때 후보 적합도는 ${betterMeta.meta.score}점, 실제 당첨패턴과의 가까움은 ${betterMeta.meta.practicalScore}점입니다.</p>
+        <p>${draw.draw}회 당첨번호는 ${betterMeta.label} 설정에서 더 자연스럽게 들어오는 편입니다. 숫자 점수보다, 어떤 설정에서 후보권에 가까웠는지만 보시면 됩니다.</p>
         <p>${floorText}</p>
         <p>다음부터는 후보 저장 폭을 넓히고, 사주 반영 0%와 사주 반영값을 각각 한 번씩 생성해두면 어떤 쪽에서 더 가까웠는지 비교하기 좋습니다.</p>
       </div>
