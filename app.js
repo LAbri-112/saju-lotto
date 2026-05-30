@@ -442,10 +442,17 @@
   const helpPopover = document.querySelector("#helpPopover");
   const sajuMinus = document.querySelector("#sajuMinus");
   const sajuPlus = document.querySelector("#sajuPlus");
+  const dailyFortune = document.querySelector("#dailyFortune");
+  const fortuneTabs = document.querySelectorAll(".fortune-tab");
+  const latestDrawResult = document.querySelector("#latestDrawResult");
+  const candidateStats = document.querySelector("#candidateStats");
+  const shuffleCandidates = document.querySelector("#shuffleCandidates");
 
   let generation = 0;
   let userPosition = null;
   let userRegionLabel = "";
+  let activeFortunePeriod = "today";
+  let lastRecommendationResult = null;
 
   function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -477,6 +484,12 @@
 
   function formatNumber(value) {
     return new Intl.NumberFormat("ko-KR").format(value);
+  }
+
+  function formatMoney(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount <= 0) return "정보 없음";
+    return `${formatNumber(amount)}원`;
   }
 
   function formatDay(date) {
@@ -928,6 +941,114 @@
     };
   }
 
+  function emptyPatternBuckets() {
+    return {
+      sumBand: {},
+      odd: {},
+      low: {},
+      sectorCoverage: {},
+      tailDiversity: {},
+      spreadBand: {},
+      consecutive: {},
+      repeatPrevious: {},
+    };
+  }
+
+  function countBucket(buckets, key, value) {
+    buckets[key][value] = (buckets[key][value] ?? 0) + 1;
+  }
+
+  function patternSnapshot(numbers, previousNumbers = null) {
+    const sorted = numbers.slice().sort((a, b) => a - b);
+    const sum = sorted.reduce((total, number) => total + number, 0);
+    const odd = sorted.filter((number) => number % 2 === 1).length;
+    const low = sorted.filter((number) => number <= 22).length;
+    const maxGroup = [0, 0, 0, 0, 0];
+
+    for (const number of sorted) {
+      maxGroup[Math.min(4, Math.floor((number - 1) / 10))] += 1;
+    }
+
+    const consecutive = sorted.filter((number, index) => {
+      return index > 0 && number === sorted[index - 1] + 1;
+    }).length;
+    const sectorCoverage = maxGroup.filter((count) => count > 0).length;
+    const tailDiversity = new Set(sorted.map((number) => number % 10)).size;
+    const spread = sorted.at(-1) - sorted[0];
+    const repeatPrevious = previousNumbers
+      ? sorted.filter((number) => previousNumbers.has(number)).length
+      : 0;
+
+    return {
+      sum,
+      odd,
+      low,
+      maxGroup,
+      consecutive,
+      sectorCoverage,
+      tailDiversity,
+      spread,
+      repeatPrevious,
+      sumBand: Math.floor(sum / 10) * 10,
+      spreadBand: Math.floor(spread / 5) * 5,
+      consecutiveBand: Math.min(3, consecutive),
+      repeatBand: Math.min(4, repeatPrevious),
+    };
+  }
+
+  function buildPatternModel(sourceDraws) {
+    const buckets = emptyPatternBuckets();
+    let previousNumbers = null;
+
+    for (const draw of sourceDraws) {
+      const snapshot = patternSnapshot(draw.numbers, previousNumbers);
+      countBucket(buckets, "sumBand", snapshot.sumBand);
+      countBucket(buckets, "odd", snapshot.odd);
+      countBucket(buckets, "low", snapshot.low);
+      countBucket(buckets, "sectorCoverage", snapshot.sectorCoverage);
+      countBucket(buckets, "tailDiversity", snapshot.tailDiversity);
+      countBucket(buckets, "spreadBand", snapshot.spreadBand);
+      countBucket(buckets, "consecutive", snapshot.consecutiveBand);
+      countBucket(buckets, "repeatPrevious", snapshot.repeatBand);
+      previousNumbers = new Set(draw.numbers);
+    }
+
+    return Object.fromEntries(
+      Object.entries(buckets).map(([key, counts]) => {
+        const values = Object.values(counts);
+        return [
+          key,
+          {
+            counts,
+            max: Math.max(...values, 1),
+            total: values.reduce((sum, value) => sum + value, 0),
+          },
+        ];
+      }),
+    );
+  }
+
+  function patternFit(model, key, value) {
+    const bucket = model?.[key];
+    if (!bucket) return 0.5;
+    return clamp(((bucket.counts[value] ?? 0) + 1) / (bucket.max + 1));
+  }
+
+  function distributionFitScore(stats, snapshot) {
+    const model = stats.patternModel;
+    const fit =
+      patternFit(model, "sumBand", snapshot.sumBand) * 0.26 +
+      patternFit(model, "odd", snapshot.odd) * 0.14 +
+      patternFit(model, "low", snapshot.low) * 0.14 +
+      patternFit(model, "sectorCoverage", snapshot.sectorCoverage) * 0.13 +
+      patternFit(model, "tailDiversity", snapshot.tailDiversity) * 0.11 +
+      patternFit(model, "spreadBand", snapshot.spreadBand) * 0.1 +
+      patternFit(model, "repeatPrevious", snapshot.repeatBand) * 0.07 +
+      patternFit(model, "consecutive", snapshot.consecutiveBand) * 0.05;
+
+    return Math.round(clamp(fit) * 1000) / 10;
+  }
+
   function buildStats(windowSize, sourceDraws = draws) {
     const frequency = Array(46).fill(0);
     const bonusFrequency = Array(46).fill(0);
@@ -979,6 +1100,7 @@
       recentWindow: windowSize,
       latestDraw: sourceLatest?.draw ?? 0,
       latestNumbers: new Set(sourceLatest?.numbers ?? []),
+      patternModel: buildPatternModel(sourceDraws),
     };
   }
 
@@ -1262,21 +1384,11 @@
   }
 
   function scoreCombination(numbers, scores, stats, saju, learningProfile = null) {
-    const sum = numbers.reduce((total, number) => total + number, 0);
-    const odd = numbers.filter((number) => number % 2 === 1).length;
-    const low = numbers.filter((number) => number <= 22).length;
-    const maxGroup = [0, 0, 0, 0, 0];
+    const snapshot = patternSnapshot(numbers, stats.latestNumbers);
+    const { sum, odd, low, maxGroup, consecutive, sectorCoverage, tailDiversity } = snapshot;
     const favoredCount = numbers.filter((number) =>
       saju.favored.includes(primaryNumberElement(number)),
     ).length;
-
-    for (const number of numbers) {
-      maxGroup[Math.min(4, Math.floor((number - 1) / 10))] += 1;
-    }
-
-    const consecutive = numbers.filter((number, index) => {
-      return index > 0 && number === numbers[index - 1] + 1;
-    }).length;
 
     const repeatLatest = numbers.filter((number) => stats.latestNumbers.has(number)).length;
     const numberScore =
@@ -1286,16 +1398,14 @@
     );
     const oddScore = odd >= 2 && odd <= 4 ? 1 : odd === 1 || odd === 5 ? 0.55 : 0.25;
     const lowScore = low >= 2 && low <= 4 ? 1 : low === 1 || low === 5 ? 0.58 : 0.25;
-    const spread = numbers.at(-1) - numbers[0];
+    const spread = snapshot.spread;
     const spreadScore = spread >= 24 && spread <= 39 ? 1 : clamp(1 - Math.abs(spread - 31) / 24);
     const groupScore = Math.max(...maxGroup) <= 3 ? 1 : 0.52;
     const repeatScore = repeatLatest <= 2 ? 1 : 0.45;
     const seenScore = stats.seenCombos.has(numbers.join("-")) ? 0.2 : 1;
     const consecutiveScore = consecutive <= 2 ? 1 : 0.62;
     const favoredScore = favoredCount >= 2 && favoredCount <= 4 ? 1 : 0.7;
-    const sectorCoverage = maxGroup.filter((count) => count > 0).length;
     const sectorScore = sectorCoverage >= 4 ? 1 : sectorCoverage === 3 ? 0.78 : 0.48;
-    const tailDiversity = new Set(numbers.map((number) => number % 10)).size;
     const tailScore = tailDiversity >= 5 ? 1 : tailDiversity === 4 ? 0.82 : 0.58;
     const pairSpread = numbers
       .slice(1)
@@ -1326,9 +1436,12 @@
       sectorScore * 0.07 +
       tailScore * 0.04 +
       spacingScore * 0.02;
-    const qualityScore = signalScore * 0.56 + gateScore * 0.44;
+    const modelScore = Math.round((signalScore * 0.56 + gateScore * 0.44) * 1000) / 10;
+    const distributionScore = distributionFitScore(stats, snapshot);
     const meta = {
-      score: Math.round(qualityScore * 1000) / 10,
+      score: distributionScore,
+      modelScore,
+      distributionScore,
       signalScore: Math.round(signalScore * 1000) / 10,
       gateScore: Math.round(gateScore * 1000) / 10,
       sum,
@@ -1412,11 +1525,11 @@
   }
 
   function scoreBand(score) {
-    if (score >= 90) return "초고점 참고";
-    if (score >= 84) return "실전 1군";
-    if (score >= 80) return "실전 관찰";
-    if (score >= 75) return "보조 관찰";
-    return "낮은 관찰";
+    if (score >= 90) return "분포 최상위";
+    if (score >= 84) return "분포 핵심";
+    if (score >= 80) return "분포 안정";
+    if (score >= 75) return "분포 관찰";
+    return "분포 외곽";
   }
 
   function practicalRankScore(meta, learningProfile = null) {
@@ -1428,22 +1541,20 @@
     const learnedBucketFit =
       learningProfile?.bucketPreference?.[meta.bucketStart] ??
       clamp(1 - Math.abs(meta.score - targetScore) / Math.max(8, targetSpread));
+    const distributionFit = clamp(meta.distributionScore / 100);
     const signalFit = clamp(meta.signalScore / 100);
     const gateFit = clamp(meta.gateScore / 100);
     const diversityFit =
       (clamp(meta.sectorCoverage / 4) + clamp(meta.tailDiversity / 5)) / 2;
     const repeatFit = meta.repeatLatest <= 2 ? 1 : 0.62;
-    const overfitPenalty = meta.score >= 90 ? clamp((meta.score - 89) / 18, 0, 0.12) : 0;
-    const bandBonus = meta.score >= 80 && meta.score < 90 ? 0.06 : 0;
     const practical =
-      scoreFit * 0.32 +
-      learnedBucketFit * 0.14 +
-      gateFit * 0.22 +
-      signalFit * 0.2 +
-      diversityFit * 0.09 +
-      repeatFit * 0.05 +
-      bandBonus -
-      overfitPenalty;
+      distributionFit * 0.58 +
+      gateFit * 0.14 +
+      learnedBucketFit * 0.1 +
+      scoreFit * 0.08 +
+      diversityFit * 0.06 +
+      signalFit * 0.02 +
+      repeatFit * 0.02;
 
     return Math.round(clamp(practical, 0, 1) * 1000) / 10;
   }
@@ -1638,6 +1749,8 @@
         scoreFloor,
         learningProfile,
         auditCandidates,
+        pool: filtered,
+        displayMode: "best",
       };
     }
 
@@ -1667,6 +1780,8 @@
       scoreFloor,
       learningProfile,
       auditCandidates,
+      pool: filtered,
+      displayMode: "best",
     };
   }
 
@@ -1674,14 +1789,58 @@
     return `<span class="ball ${rangeClass(number)}">${number}</span>`;
   }
 
-  function renderRecommendations(result) {
+  function pickRandomCandidates(pool, target) {
+    const candidates = [...pool];
+    const rng = mulberry32(hashString(`${Date.now()}-${generation}-${Math.random()}`));
+    const picked = [];
+
+    while (candidates.length && picked.length < target) {
+      const index = Math.floor(rng() * candidates.length);
+      picked.push(candidates.splice(index, 1)[0]);
+    }
+
+    return picked;
+  }
+
+  function renderCandidateStats(result) {
+    if (!candidateStats) return;
+    const mode = result.displayMode === "random" ? "랜덤 배치" : "분포 최우선";
+    candidateStats.innerHTML = `
+      <div class="candidate-stat-card highlight">
+        <span>추천 후보</span>
+        <strong>${formatNumber(result.filteredCount)}개</strong>
+      </div>
+      <div class="candidate-stat-card">
+        <span>전체 생성</span>
+        <strong>${formatNumber(result.candidateCount)}개</strong>
+      </div>
+      <div class="candidate-stat-card">
+        <span>90+ 참고</span>
+        <strong>${formatNumber(result.highScoreCount)}개</strong>
+      </div>
+      <div class="candidate-stat-card">
+        <span>표시 방식</span>
+        <strong>${mode}</strong>
+      </div>
+    `;
+  }
+
+  function renderRecommendations(result, options = {}) {
     const container = document.querySelector("#recommendations");
-    const items = result.items ?? result;
+    const target = clamp(Number(setCount.value) || 5, 1, 10);
+    const randomized = options.randomize && result.pool?.length;
+    const items = randomized ? pickRandomCandidates(result.pool, target) : result.items ?? result;
+    result.displayMode = randomized ? "random" : "best";
+    renderCandidateStats(result);
+    if (shuffleCandidates) {
+      shuffleCandidates.disabled = !result.pool?.length;
+      shuffleCandidates.textContent = randomized ? "다른 후보 랜덤 배치" : "후보 랜덤 배치";
+    }
 
     if (!items.length) {
       container.innerHTML = `
         <div class="empty-state">
-          추천점수 ${result.scoreFloor}점 이상 조건을 만족하는 조합이 없습니다.
+          분포적합 ${result.scoreFloor} 이상 조건을 만족하는 조합이 없습니다.
           필터를 낮추거나 추천 세트를 줄여 다시 생성해보세요.
         </div>
       `;
@@ -1706,7 +1865,7 @@
               <span class="chip">홀 ${item.meta.odd} / 짝 ${item.meta.even}</span>
               <span class="chip">저 ${item.meta.low} / 고 ${item.meta.high}</span>
               <span class="chip">오행 ${item.meta.favoredCount}</span>
-              <span class="chip">실전순위 ${item.meta.practicalScore}</span>
+              <span class="chip">분포적합 ${item.meta.distributionScore}</span>
               <span class="chip">품질관문 ${item.meta.gateScore}</span>
               <span class="chip" title="직전 회차 당첨번호와 겹치는 개수입니다.">최근중복 ${item.meta.repeatLatest}</span>
             </div>
@@ -1792,69 +1951,63 @@
     const winKey = candidateKey(win);
     const candidate = snapshot.candidates.find((item) => candidateKey(item.n) === winKey);
     const selected = snapshot.selected.find((item) => candidateKey(item.n) === winKey);
-    const maxOverlap = snapshot.candidates.reduce(
-      (best, item) => Math.max(best, overlap(item.n, win)),
-      0,
-    );
+    const evaluate = (item) => {
+      const matchCount = overlap(item.n, win);
+      const bonusMatch = item.n.includes(draw.bonus);
+      const tier =
+        matchCount === 6
+          ? 1
+          : matchCount === 5 && bonusMatch
+            ? 2
+            : matchCount === 5
+              ? 3
+              : matchCount === 4
+                ? 4
+                : matchCount === 3
+                  ? 5
+                  : null;
+      return { ...item, matchCount, bonusMatch, tier };
+    };
+    const evaluated = snapshot.candidates.map(evaluate);
+    const bestMatch = evaluated
+      .slice()
+      .sort((a, b) => {
+        return (
+          b.matchCount - a.matchCount ||
+          Number(b.bonusMatch) - Number(a.bonusMatch) ||
+          (b.s ?? 0) - (a.s ?? 0)
+        );
+      })[0];
+    const tierCounts = [1, 2, 3, 4, 5].map((tier) => ({
+      tier,
+      count: evaluated.filter((item) => item.tier === tier).length,
+    }));
+    const totalWinners = tierCounts.reduce((sum, item) => sum + item.count, 0);
 
-    return { win, candidate, selected, maxOverlap };
+    return {
+      win,
+      candidate,
+      selected,
+      maxOverlap: bestMatch?.matchCount ?? 0,
+      bestMatch,
+      tierCounts,
+      totalWinners,
+    };
   }
 
-  function renderLearningReport(learningProfile) {
-    if (!learningProfile?.records?.length) {
-      return `
-        <div class="audit-card learning-card">
-          <strong>회차별 점수대 학습 준비 중</strong>
-          <p>과거 회차가 충분히 쌓이면 실제 당첨번호가 어느 점수대에 자주 있었는지 계산하고, 다음 추천 우선순위에 반영합니다.</p>
-        </div>
-      `;
-    }
-
-    const threshold = learningProfile.thresholdStats;
-    const recentRows = learningProfile.records
-      .slice(0, 6)
-      .map((record) => {
-        return `
-          <div class="learning-row">
-            <span>${record.draw}회</span>
-            <strong>${record.score}점 · ${record.bucketLabel}</strong>
-            <em>${record.band}</em>
-          </div>
-        `;
-      })
-      .join("");
-    const bucketTags = learningProfile.bucketSummary
-      .map((bucket) => {
-        return `<span>${bucket.label} ${bucket.count}회 · 평균 ${bucket.averageScore}점</span>`;
-      })
-      .join("");
-
-    return `
-      <div class="audit-card learning-card">
-        <strong>회차별 점수대 학습</strong>
-        <p>최근 ${learningProfile.total}회 기준 실제 당첨번호가 가장 자주 머문 구간은 ${learningProfile.topBucketLabel}입니다. 다음 추천은 ${learningProfile.targetScore}점 전후의 실전 후보를 더 우선해서 정렬합니다.</p>
-        <div class="store-tags">
-          <span>80점 이상 ${threshold.atLeast80}/${learningProfile.total}회</span>
-          <span>85점 이상 ${threshold.atLeast85}/${learningProfile.total}회</span>
-          <span>90점 이상 ${threshold.atLeast90}/${learningProfile.total}회</span>
-        </div>
-        <div class="store-tags">${bucketTags}</div>
-        <div class="learning-list">${recentRows}</div>
-      </div>
-    `;
+  function tierLabel(tier) {
+    return tier ? `${tier}등` : "낙첨";
   }
 
   function renderRecommendationAudit(learningProfile) {
     const container = document.querySelector("#recommendationAudit");
     const history = readRecommendationHistory();
-    const learningHtml = renderLearningReport(learningProfile);
 
     if (!history.length) {
       container.innerHTML = `
         <div class="empty-state">
           아직 저장된 추천 기록이 없습니다. 지금 생성된 추천 후보부터 이 브라우저에 저장됩니다.
         </div>
-        ${learningHtml}
       `;
       return;
     }
@@ -1874,7 +2027,6 @@
           <strong>${latestSnapshot.basisLatestDraw}회 기준 추천 후보 저장됨</strong>
           <p>후보 ${formatNumber(latestSnapshot.candidates.length)}개와 최종 추천 ${latestSnapshot.selected.length}개를 저장했습니다. ${latestSnapshot.expectedDraw}회 당첨번호 데이터가 들어오면 여기서 자동으로 비교합니다.</p>
         </div>
-        ${learningHtml}
       `;
       return;
     }
@@ -1882,22 +2034,34 @@
     container.innerHTML = checks
       .map(({ snapshot, draw, result }) => {
         const exactText = result.candidate
-          ? `후보 안에 있음 · ${result.candidate.s}점 · ${result.candidate.bl ?? result.candidate.b ?? ""}`
+          ? `당신의 당첨번호 였던 것은 후보 안에 있었습니다 · ${result.candidate.s}점 · ${result.candidate.bl ?? result.candidate.b ?? ""}`
           : "후보 안에 없음";
         const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
+        const best = result.bestMatch;
+        const bestNumbers = best?.n?.join(", ") ?? "-";
+        const bestTier = tierLabel(best?.tier);
+        const tierTags = result.tierCounts
+          .map((item) => `<span>${item.tier}등 ${formatNumber(item.count)}개</span>`)
+          .join("");
         return `
-          <div class="audit-card">
+          <div class="audit-card hall-card">
             <strong>${snapshot.basisLatestDraw}회 기준 추천 → ${draw.draw}회 검증</strong>
-            <p>당첨번호 ${result.win.join(", ")} · ${exactText} · ${selectedText}</p>
+            <p>${exactText} · ${selectedText}</p>
+            <div class="hall-best">
+              <span>당신의 당첨번호 였던 것은...</span>
+              <strong>${bestNumbers}</strong>
+              <em>최대 ${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${bestTier}</em>
+            </div>
             <div class="store-tags">
               <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
-              <span>최대 ${result.maxOverlap}개 일치</span>
+              <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
               <span>필터 ${snapshot.settings.scoreFloor}점</span>
             </div>
+            <div class="store-tags">${tierTags}</div>
           </div>
         `;
       })
-      .join("") + learningHtml;
+      .join("");
   }
 
   function renderElementBars(saju) {
@@ -2005,6 +2169,177 @@
         <span>해석 모드</span>
         <p>${modeText}</p>
       </div>
+    `;
+  }
+
+  function periodDate(period) {
+    const date = new Date();
+    const offset = { today: 0, tomorrow: 1, week: 3, month: 11 }[period] ?? 0;
+    date.setDate(date.getDate() + offset);
+    return date;
+  }
+
+  function fortunePeriodMeta(period) {
+    return {
+      today: { label: "오늘의 운세", scope: "오늘" },
+      tomorrow: { label: "내일의 운세", scope: "내일" },
+      week: { label: "이번 주 운세", scope: "이번 주" },
+      month: { label: "이번 달 운세", scope: "이번 달" },
+    }[period] ?? { label: "오늘의 운세", scope: "오늘" };
+  }
+
+  function fortuneGrade(score) {
+    if (score >= 86) return "매우 좋음";
+    if (score >= 74) return "좋음";
+    if (score >= 62) return "무난";
+    return "차분";
+  }
+
+  function fortuneMeterClass(score) {
+    if (score >= 86) return "excellent";
+    if (score >= 74) return "good";
+    if (score >= 62) return "steady";
+    return "calm";
+  }
+
+  function buildFortune(saju, period) {
+    const date = periodDate(period);
+    const meta = fortunePeriodMeta(period);
+    const dateKey =
+      period === "month"
+        ? `${date.getFullYear()}-${date.getMonth() + 1}`
+        : period === "week"
+          ? `${date.getFullYear()}-${date.getMonth() + 1}-w${Math.ceil(date.getDate() / 7)}`
+          : `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    const seed = hashString(
+      [
+        birthDate.value,
+        birthTime.value,
+        birthBranch.value,
+        unknownTime.checked,
+        saju.pillarText,
+        interpretationMode.value,
+        period,
+        dateKey,
+      ].join("|"),
+    );
+    const rng = mulberry32(seed);
+    const dayIndex = Math.floor(date.getTime() / 86400000);
+    const dayElement = branches[mod(dayIndex + 8, 12)][1];
+    const primary = saju.favored[0];
+    const secondary = saju.favored[1] ?? primary;
+    const maxUseful = Math.max(...Object.values(saju.usefulScores));
+    const dayFit = saju.usefulScores[dayElement] / maxUseful;
+    const primaryFit = dayElement === primary ? 1 : dayElement === secondary ? 0.82 : 0.58;
+    const wealthFit = dayElement === saju.wealthElement ? 1 : 0.55;
+    const balanceBoost = saju.strength === "balanced" ? 3 : 0;
+    const score = (base, spread, fit) =>
+      Math.round(clamp(base + rng() * spread + fit * 13 + balanceBoost, 38, 96));
+
+    const categories = [
+      {
+        key: "overall",
+        label: "종합운",
+        title: "전체",
+        score: score(56, 21, (dayFit + primaryFit) / 2),
+      },
+      {
+        key: "money",
+        label: "금전운",
+        title: "금전",
+        score: score(54, 22, (dayFit + wealthFit) / 2),
+      },
+      {
+        key: "love",
+        label: "관계운",
+        title: "관계",
+        score: score(52, 23, saju.strength === "weak" ? 0.74 : 0.62),
+      },
+      {
+        key: "work",
+        label: "일/학업운",
+        title: "일",
+        score: score(53, 22, dayElement === saju.officerElement ? 0.9 : dayFit),
+      },
+      {
+        key: "health",
+        label: "건강운",
+        title: "건강",
+        score: score(55, 19, primaryFit),
+      },
+    ];
+
+    const best = categories.slice().sort((a, b) => b.score - a.score)[0];
+    const careful = categories.slice().sort((a, b) => a.score - b.score)[0];
+    const color = luckyCatalog[primary].colors[0];
+    const item = luckyCatalog[primary].item.split(",")[0];
+    const tone =
+      best.score >= 86
+        ? "기세가 붙는 흐름"
+        : best.score >= 74
+          ? "부담 없이 풀리는 흐름"
+          : best.score >= 62
+            ? "차분히 고르면 무난한 흐름"
+            : "속도를 줄일수록 좋은 흐름";
+    const lottoTip =
+      Number(sajuWeight.value) === 0
+        ? "번호는 사주보다 과거 당첨분포를 먼저 보고 고르는 편이 좋습니다."
+        : "사주 반영은 재미 보정으로만 두고, 최종 선택은 당첨분포에 가까운 후보를 우선하세요.";
+
+    return {
+      ...meta,
+      date,
+      dayElement,
+      primary,
+      secondary,
+      categories,
+      best,
+      careful,
+      color,
+      item,
+      tone,
+      lottoTip,
+    };
+  }
+
+  function renderFortunePanel(saju) {
+    if (!dailyFortune) return;
+    const fortune = buildFortune(saju, activeFortunePeriod);
+    const scoreCards = fortune.categories
+      .map((category) => {
+        const width = Math.max(12, category.score);
+        return `
+          <article class="fortune-score ${fortuneMeterClass(category.score)}">
+            <div class="fortune-symbol">${category.title}</div>
+            <strong>${fortuneGrade(category.score)}</strong>
+            <span>${category.label}</span>
+            <div class="fortune-meter">
+              <i style="width:${width}%"></i>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    dailyFortune.innerHTML = `
+      <div class="fortune-score-grid">${scoreCards}</div>
+      <article class="fortune-reading-card">
+        <div>
+          <span class="store-badge">${formatDay(fortune.date)} · ${elementLabel(
+            fortune.dayElement,
+          )} 기운</span>
+          <h3>${fortune.label}은 ${fortune.tone}입니다</h3>
+        </div>
+        <p>${fortune.scope}은 ${fortune.best.label}이 가장 선명하고, ${fortune.careful.label}은 서두르지 않는 편이 좋습니다. ${elementLabel(
+          fortune.primary,
+        )} 보완 기운을 가볍게 챙기면 마음이 정리되고, 금전 판단은 감보다 미리 정한 기준을 따르는 쪽이 안정적입니다.</p>
+        <p>${fortune.lottoTip} 추천 5장은 분포 중심 후보를 먼저 보고, 사주 게이지를 올린 경우에도 마음에 드는 후보를 고르는 정도로 쓰면 좋아요.</p>
+        <div class="store-tags">
+          <span>행운색 ${fortune.color}</span>
+          <span>가벼운 소품 ${fortune.item}</span>
+          <span>주의 ${fortune.careful.label}</span>
+        </div>
+      </article>
     `;
   }
 
@@ -2327,12 +2662,59 @@
     `;
   }
 
+  function renderLatestDrawResult() {
+    if (!latestDrawResult || !latest) return;
+    const secondReady =
+      latest.secondWinners != null && Number.isFinite(Number(latest.secondWinners));
+    const firstWinners = Number(latest.firstWinners ?? 0);
+    const secondWinners = Number(latest.secondWinners ?? 0);
+    const firstPrize = formatMoney(latest.firstPrize);
+    const secondPrize = secondReady ? formatMoney(latest.secondPrize) : "다음 데이터 갱신 후 표시";
+    const totalSales = Number(latest.totalSales ?? 0);
+
+    latestDrawResult.innerHTML = `
+      <div class="draw-result-card">
+        <div class="draw-result-main">
+          <strong>${latest.draw}회 당첨결과</strong>
+          <span>${latest.date || dataset.latestDate || ""} 추첨</span>
+          <div class="draw-balls">
+            ${latest.numbers.map(renderBall).join("")}
+            <span class="draw-plus">+</span>
+            <span class="ball bonus-ball">${latest.bonus}</span>
+          </div>
+        </div>
+        <div class="draw-prize-grid">
+          <div class="draw-prize-card first">
+            <span>1등</span>
+            <strong>${formatNumber(firstWinners)}명</strong>
+            <em>1게임당 ${firstPrize}</em>
+          </div>
+          <div class="draw-prize-card second">
+            <span>2등</span>
+            <strong>${secondReady ? `${formatNumber(secondWinners)}명` : "수집 대기"}</strong>
+            <em>1게임당 ${secondPrize}</em>
+          </div>
+          ${
+            totalSales > 0
+              ? `<div class="draw-prize-card">
+                  <span>총 판매금액</span>
+                  <strong>${formatMoney(totalSales)}</strong>
+                  <em>동행복권 공개값</em>
+                </div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
   function renderStaticSummary() {
     document.querySelector("#latestDraw").textContent = `${dataset.latestDraw}회`;
     document.querySelector("#dataCount").textContent = `${formatNumber(dataset.count)}회`;
     document.querySelector("#latestNumbers").innerHTML = latest.numbers
       .map((number) => `<span class="ball ${rangeClass(number)}">${number}</span>`)
       .join("");
+    renderLatestDrawResult();
   }
 
   function refresh() {
@@ -2351,25 +2733,29 @@
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
     const filterText =
       result.scoreFloor > 0
-        ? `, ${result.scoreFloor}점 이상 ${result.filteredCount}개 후보`
+        ? `, 분포적합 ${result.scoreFloor} 이상 ${result.filteredCount}개 후보`
         : "";
     const highQualityText =
       result.practicalBandCount > 0
-        ? `, 80점대 실전 ${result.practicalBandCount}개 / 90점 이상 참고 ${result.highScoreCount}개`
+        ? `, 분포 80+ ${result.practicalBandCount}개 / 90+ ${result.highScoreCount}개`
         : result.highScoreCount > 0
-          ? `, 90점 이상 참고 ${result.highScoreCount}개`
+          ? `, 분포 90+ ${result.highScoreCount}개`
           : "";
     const learningText = result.learningProfile?.records?.length
-      ? `, 학습중심 ${result.learningProfile.targetScore}점`
+      ? `, 분포학습 중심 ${result.learningProfile.targetScore}`
       : "";
-    const topOnlyText = topOnly.checked ? ", 실전 우선순위로 표시" : "";
+    const topOnlyText = topOnly.checked ? ", 당첨분포 최우선 5장" : ", 분포+다양성 혼합";
+    const sajuText =
+      Number(sajuWeight.value) === 0
+        ? "사주 재미보정 꺼짐"
+        : `사주 재미보정 ${sajuWeight.value}%`;
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel}, 최근 ${recentWindow.value}회, 보완 오행 ${favored}, 통계 ${100 - Number(
-        sajuWeight.value,
-      )}% / 사주 ${sajuWeight.value}%${filterText}${highQualityText}${learningText}${topOnlyText}`;
+      `${modeLabel}, 최근 ${recentWindow.value}회, 보완 오행 ${favored}, 과거 당첨분포 중심 / ${sajuText}${filterText}${highQualityText}${learningText}${topOnlyText}`;
 
+    renderFortunePanel(saju);
+    lastRecommendationResult = result;
     renderRecommendations(result);
     saveRecommendationSnapshot(result);
     renderRecommendationAudit(learningProfile);
@@ -2540,6 +2926,19 @@
 
     sajuMinus.addEventListener("click", () => adjustSajuWeight(-1));
     sajuPlus.addEventListener("click", () => adjustSajuWeight(1));
+
+    fortuneTabs.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeFortunePeriod = button.dataset.period || "today";
+        fortuneTabs.forEach((tab) => tab.classList.toggle("is-active", tab === button));
+        refresh();
+      });
+    });
+
+    shuffleCandidates?.addEventListener("click", () => {
+      if (!lastRecommendationResult?.pool?.length) return;
+      renderRecommendations(lastRecommendationResult, { randomize: true });
+    });
 
     useLocation.addEventListener("click", () => {
       if (!navigator.geolocation) {

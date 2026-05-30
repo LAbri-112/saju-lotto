@@ -971,12 +971,15 @@ button:focus-visible {
 }
 
 .audit-panel {
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 .audit-details {
   padding: 0;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: none;
+  opacity: 0.84;
 }
 
 .audit-summary {
@@ -984,7 +987,7 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px;
+  padding: 12px 14px;
   cursor: pointer;
   list-style: none;
 }
@@ -1000,12 +1003,13 @@ button:focus-visible {
 
 .audit-summary strong {
   color: var(--ink);
+  font-size: 0.92rem;
 }
 
 .audit-summary small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
