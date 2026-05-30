@@ -3684,11 +3684,12 @@
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      window.clearTimeout(refreshTimer);
+      clampBirthDateInput();
       refresh({ forceNew: true, saveSnapshot: true });
     });
 
     for (const control of [
-      birthDate,
       recentWindow,
       birthBranch,
       birthPlace,
@@ -3704,6 +3705,20 @@
       control.addEventListener("input", () => scheduleRefresh());
       control.addEventListener("change", () => scheduleRefresh());
     }
+
+    birthDate.addEventListener("input", () => {
+      window.clearTimeout(refreshTimer);
+    });
+
+    birthDate.addEventListener("change", () => {
+      clampBirthDateInput();
+      scheduleRefresh({}, 320);
+    });
+
+    birthDate.addEventListener("blur", () => {
+      clampBirthDateInput();
+      scheduleRefresh({}, 320);
+    });
 
     unknownTime.addEventListener("change", () => {
       birthBranch.disabled = unknownTime.checked;
