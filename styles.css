@@ -993,7 +993,7 @@ button:focus-visible {
 .audit-result-main em,
 .audit-result-side span,
 .audit-result-side em,
-.candidate-best-line span {
+.candidate-best-line > span {
   display: block;
   color: var(--muted);
   font-size: 0.8rem;
@@ -1041,10 +1041,20 @@ button:focus-visible {
   color: var(--ink);
 }
 
-.compact-ball-line {
-  grid-template-columns: repeat(6, minmax(34px, 42px));
+.ball-line.compact-ball-line {
+  grid-template-columns: repeat(6, 44px);
   justify-content: start;
   margin-bottom: 0;
+}
+
+.ball-line.compact-ball-line .ball {
+  display: inline-grid;
+  width: 44px;
+  min-width: 0;
+  color: #fff;
+  font-size: 0.96rem;
+  line-height: 1;
+  place-items: center;
 }
 
 .metric {
@@ -1373,8 +1383,8 @@ button:focus-visible {
 
 .rank-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .rank-columns > div {
@@ -1382,13 +1392,23 @@ button:focus-visible {
 }
 
 .rank-columns h3 {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(233, 250, 247, 0.92);
+  color: var(--teal-dark);
   margin: 0 0 8px;
-  font-size: 0.9rem;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .rank-list {
   display: grid;
-  gap: 9px;
+  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
+  gap: 8px;
   margin: 0;
   padding-left: 0;
   list-style: none;
@@ -1396,14 +1416,14 @@ button:focus-visible {
 
 .hot-cold-item {
   display: grid;
-  grid-template-columns: 28px 42px minmax(0, 1fr);
+  grid-template-columns: 26px 46px minmax(92px, 1fr);
   align-items: center;
-  gap: 9px;
-  min-height: 62px;
+  gap: 10px;
+  min-height: 58px;
   border: 1px solid rgba(24, 169, 153, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.76);
-  padding: 9px;
+  padding: 8px 10px;
 }
 
 .hot-cold-item.is-hot {
@@ -1418,13 +1438,13 @@ button:focus-visible {
 
 .hot-cold-rank {
   display: inline-grid;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   place-items: center;
   border-radius: 50%;
   background: rgba(233, 250, 247, 0.95);
   color: var(--teal-dark);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -1434,8 +1454,8 @@ button:focus-visible {
 }
 
 .hot-cold-ball .ball {
-  min-width: 42px;
-  font-size: 0.95rem;
+  min-width: 46px;
+  font-size: 1rem;
 }
 
 .hot-cold-copy {
@@ -1444,25 +1464,19 @@ button:focus-visible {
   min-width: 0;
 }
 
-.hot-cold-copy strong,
-.hot-cold-copy span,
-.hot-cold-copy em {
-  overflow-wrap: anywhere;
-}
-
 .hot-cold-copy strong {
   color: var(--ink);
-  font-size: 0.92rem;
+  font-size: 1rem;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
-.hot-cold-copy span,
-.hot-cold-copy em {
+.hot-cold-copy span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
-  font-style: normal;
-  line-height: 1.25;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
 .pattern-report {
@@ -1990,8 +2004,14 @@ button:focus-visible {
     grid-row: span 2;
   }
 
-  .compact-ball-line {
-    grid-template-columns: repeat(6, minmax(36px, 1fr));
+  .ball-line.compact-ball-line {
+    grid-template-columns: repeat(6, 38px);
+    gap: 6px;
+  }
+
+  .ball-line.compact-ball-line .ball {
+    width: 38px;
+    font-size: 0.9rem;
   }
 
   .draw-balls {

@@ -2717,20 +2717,17 @@
     const recent = stats.recentFrequency[number] || 0;
     const gap = latest.draw - stats.lastSeen[number];
     const isHot = type === "hot";
-    const label = isHot ? "Hot" : "Cold";
-    const meaning = isHot ? "최근 흐름에서 눈에 띄는 공" : "오랫동안 쉬고 있는 공";
     const detail = isHot
       ? `최근 ${recent}회 · 전체 ${total}회`
-      : `${gap}회째 미출현 · 전체 ${total}회`;
+      : `${gap}회 미출현 · 전체 ${total}회`;
 
     return `
       <li class="hot-cold-item ${isHot ? "is-hot" : "is-cold"}" title="${number}번 · ${detail}">
         <span class="hot-cold-rank">${index + 1}</span>
         <span class="hot-cold-ball">${renderBall(number)}</span>
         <span class="hot-cold-copy">
-          <strong>${label} ${number}번</strong>
-          <span>${meaning}</span>
-          <em>${detail}</em>
+          <strong>${number}번</strong>
+          <span>${detail}</span>
         </span>
       </li>
     `;
