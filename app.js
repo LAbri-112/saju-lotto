@@ -3726,11 +3726,30 @@
     });
 
     birthDate.addEventListener("change", () => {
-      if (clampBirthDateInput()) scheduleRefresh({}, 320);
+      if (clampBirthDateInput()) {
+        birthDate.dataset.previousValue = birthDate.value;
+        scheduleRefresh({}, 320);
+      }
+    });
+
+    birthDate.addEventListener("focus", () => {
+      window.clearTimeout(refreshTimer);
+      birthDate.dataset.previousValue = birthDate.value || birthDate.dataset.previousValue || "1990-01-01";
+      birthDate.value = "";
+      birthDate.setCustomValidity("");
     });
 
     birthDate.addEventListener("blur", () => {
-      if (clampBirthDateInput()) scheduleRefresh({}, 320);
+      if (!birthDate.value.trim()) {
+        birthDate.value = birthDate.dataset.previousValue || "1990-01-01";
+        birthDate.setCustomValidity("");
+        return;
+      }
+
+      if (clampBirthDateInput()) {
+        birthDate.dataset.previousValue = birthDate.value;
+        scheduleRefresh({}, 320);
+      }
     });
 
     unknownTime.addEventListener("change", () => {
