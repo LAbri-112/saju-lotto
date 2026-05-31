@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v49" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v50" />
   </head>
   <body>
     <main class="app-shell">
@@ -161,13 +161,17 @@
                   <div class="field-group">
                     <div class="label-row">
                       <label for="recentWindow">최근 흐름</label>
-                      <button class="help-button" type="button" data-help="최근 몇 번의 당첨번호를 더 중요하게 볼지 정합니다. 20회는 아주 최근 흐름, 50회는 기본 추천, 100회는 반년~2년 안팎의 안정된 흐름, 200회는 더 긴 장기 흐름을 참고합니다.">?</button>
+                      <button class="help-button" type="button" data-help="최근 몇 번의 당첨번호를 더 중요하게 볼지 정합니다. 20회는 아주 최근 흐름, 50회는 기본 추천, 100~200회는 중기 흐름, 500~1000회와 전체 회차는 장기 흐름입니다. 추천 생성 시에는 개인 재현 결과에 맞는 흐름이 자동 적용됩니다.">?</button>
                     </div>
                     <select id="recentWindow" name="recentWindow">
                       <option value="20">20회</option>
                       <option value="50" selected>50회</option>
                       <option value="100">100회</option>
                       <option value="200">200회</option>
+                      <option value="500">500회</option>
+                      <option value="700">700회</option>
+                      <option value="1000">1000회</option>
+                      <option value="all">전체 회차</option>
                     </select>
                   </div>
                   <div class="field-group is-hidden">
@@ -396,7 +400,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v49"></script>
-    <script src="app.js?v=feedback-v49"></script>
+    <script src="data/lotto-results.js?v=feedback-v50"></script>
+    <script src="app.js?v=feedback-v50"></script>
   </body>
 </html>

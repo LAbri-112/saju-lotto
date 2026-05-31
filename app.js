@@ -523,6 +523,8 @@
   let activeFortunePeriod = "today";
   let lastRecommendationResult = null;
   let refreshTimer = null;
+  let deferredPortfolioTimer = null;
+  let startupAutoTimer = null;
   const learningProfileCache = new Map();
   const personalPortfolioCache = new Map();
   const recommendationResultCache = new Map();
@@ -590,6 +592,39 @@
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
       date.getDate(),
     ).padStart(2, "0")}`;
+  }
+
+  function windowOptionInfo(value, sourceCount = draws.length) {
+    if (String(value) === "all") {
+      return {
+        value: "all",
+        size: Math.max(1, sourceCount),
+        label: "전체 회차",
+      };
+    }
+
+    const size = clamp(Number(value) || 50, 20, Math.max(20, sourceCount || 50));
+    return {
+      value: String(size),
+      size,
+      label: `최근 ${size}회`,
+    };
+  }
+
+  function currentWindowInfo(sourceCount = draws.length) {
+    return windowOptionInfo(recentWindow?.value ?? "50", sourceCount);
+  }
+
+  function settingWindowLabel(setting) {
+    if (!setting) return "최근 흐름";
+    if (setting.windowValue === "all" || setting.windowSize === "all") return "전체 회차";
+    return `최근 ${Number(setting.windowSize) || Number(setting.windowValue) || 50}회`;
+  }
+
+  function availableWindowOptions(selectedValue = recentWindow?.value ?? "50") {
+    const base = ["20", "50", "100", "200", "500", "700", "1000", "all"];
+    const selected = String(selectedValue);
+    return base.includes(selected) ? base : [...base, selected];
   }
 
   function isoFromParts(year, month, day) {
@@ -699,6 +734,7 @@
       birthPlace: birthPlace?.value ?? "unknown",
       timeCorrection: Boolean(timeCorrection?.checked),
       midnightRule: midnightRule?.value ?? "traditional",
+      recentWindow: recentWindow?.value ?? "50",
       setCount: setCount?.value ?? "5",
       topOnly: Boolean(topOnly?.checked),
       walkRange: walkRange?.value ?? "10",
@@ -725,6 +761,7 @@
       timeCorrection.checked = profile.timeCorrection;
     }
     selectValueIfAvailable(midnightRule, profile.midnightRule);
+    selectValueIfAvailable(recentWindow, profile.recentWindow);
     if (setCount && profile.setCount != null) setCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
     if (topOnly && typeof profile.topOnly === "boolean") topOnly.checked = profile.topOnly;
     selectValueIfAvailable(walkRange, profile.walkRange);
@@ -1559,6 +1596,8 @@
     const oddMean =
       oddCounts.reduce((sum, value) => sum + value, 0) / Math.max(1, oddCounts.length);
     const sortedSums = [...sums].sort((a, b) => a - b);
+    const sortedOddCounts = [...oddCounts].sort((a, b) => a - b);
+    const sortedLowCounts = [...lowCounts].sort((a, b) => a - b);
     const quantile = (values, rate) => {
       if (!values.length) return 0;
       return values[Math.floor((values.length - 1) * rate)];
@@ -1578,8 +1617,8 @@
       balanceProfile: {
         sumQ25: quantile(sortedSums, 0.25),
         sumQ75: quantile(sortedSums, 0.75),
-        oddCommon: "2~4",
-        lowCommon: "2~4",
+        oddCommon: `${quantile(sortedOddCounts, 0.25)}~${quantile(sortedOddCounts, 0.75)}`,
+        lowCommon: `${quantile(sortedLowCounts, 0.25)}~${quantile(sortedLowCounts, 0.75)}`,
         repeatLe2Pct: repeatCounts.length ? Math.round((repeatLe2 / repeatCounts.length) * 1000) / 10 : 0,
         repeatGe3Pct: repeatCounts.length ? Math.round((repeatGe3 / repeatCounts.length) * 1000) / 10 : 0,
       },
@@ -2063,9 +2102,8 @@
   }
 
   function buildLearningProfile(saju) {
-    const windowSize = clamp(Number(recentWindow.value) || 50, 10, 500);
-    const minPrior = Math.min(Math.max(windowSize, 30), Math.max(1, draws.length - 1));
-    const startIndex = Math.max(minPrior, draws.length - 200);
+    const selectedWindow = currentWindowInfo(draws.length);
+    const startIndex = Math.max(30, draws.length - 200);
     const records = [];
 
     for (let index = startIndex; index < draws.length; index += 1) {
@@ -2073,7 +2111,8 @@
       const draw = draws[index];
       if (priorDraws.length < 30 || !draw?.numbers?.length) continue;
 
-      const historicalStats = buildStats(windowSize, priorDraws);
+      const windowInfo = windowOptionInfo(selectedWindow.value, priorDraws.length);
+      const historicalStats = buildStats(windowInfo.size, priorDraws);
       const historicalNumbers = draw.numbers.slice().sort((a, b) => a - b);
       const historicalScores = buildScopedNumberScores(
         historicalStats,
@@ -2189,13 +2228,13 @@
   function autoScoreFloorFromLearning(learningProfile) {
     const target = Number(learningProfile?.targetScore);
     const tolerance = Number(learningProfile?.targetTolerance);
-    const base = Number.isFinite(target) ? target - (Number.isFinite(tolerance) ? tolerance : 2.5) : 80;
-    return clamp(Math.round(base * 2) / 2, 76, 88);
+    const base = Number.isFinite(target) ? target - (Number.isFinite(tolerance) ? tolerance + 1.5 : 4) : 78;
+    return clamp(Math.round(base * 2) / 2, 72, 86);
   }
 
   function autoFilterCandidates(practicalRanked, target, learningProfile) {
     let scoreFloor = autoScoreFloorFromLearning(learningProfile);
-    const minimumPool = Math.max(target * 24, 90);
+    const minimumPool = Math.max(target * 90, 420);
     let filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
 
     while (filtered.length < minimumPool && scoreFloor > 70) {
@@ -2505,7 +2544,7 @@
 
   function settingLabelFromReplayItem(item) {
     if (!item) return "확인 불가";
-    return `${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회`;
+    return `${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}`;
   }
 
   function drawIndexOf(draw) {
@@ -2520,7 +2559,7 @@
       draw.draw,
       setting.mode,
       setting.weight,
-      setting.windowSize,
+      setting.windowValue ?? setting.windowSize,
     ].join("|");
 
     return boundedCacheGet(
@@ -2531,7 +2570,8 @@
         const priorDraws = drawIndex >= 0 ? draws.slice(0, drawIndex) : draws.filter((item) => item.draw < draw.draw);
         if (priorDraws.length < 20) return null;
 
-        const statsBeforeDraw = buildStats(setting.windowSize, priorDraws);
+        const windowInfo = windowOptionInfo(setting.windowValue ?? setting.windowSize, priorDraws.length);
+        const statsBeforeDraw = buildStats(windowInfo.size, priorDraws);
         const modeSaju = buildSajuProfile(setting.mode);
         const scores = buildNumberScores(statsBeforeDraw, modeSaju, setting.weight / 100);
         const seed = hashString(
@@ -2541,7 +2581,7 @@
             draw.draw,
             setting.mode,
             setting.weight,
-            setting.windowSize,
+            setting.windowValue ?? setting.windowSize,
           ].join("|"),
         );
         const rng = mulberry32(seed);
@@ -2739,6 +2779,8 @@
       mode: picked.mode,
       weight: picked.weight,
       windowSize: picked.windowSize,
+      windowValue: picked.windowValue,
+      windowLabel: picked.windowLabel,
       basisDraw: latest.draw?.draw,
       exact: exactSettings.length > 0,
       exactCount: exactSettings.length,
@@ -2748,10 +2790,8 @@
   }
 
   function buildPersonalPortfolio() {
-    const selectedWindow = clamp(Number(recentWindow.value) || 50, 20, 500);
-    const windowOptions = [20, 50, 100, 200].includes(selectedWindow)
-      ? [20, 50, 100, 200]
-      : [20, 50, 100, 200, selectedWindow];
+    const selectedWindow = currentWindowInfo(draws.length);
+    const windowOptions = availableWindowOptions(selectedWindow.value);
     const scoreFloor = autoScoreFloorFromLearning(getCachedLearningProfile(buildSajuProfile()));
     const modes = ["balance", "wealth", "climate"];
     const modeProfiles = Object.fromEntries(modes.map((mode) => [mode, buildSajuProfile(mode)]));
@@ -2768,8 +2808,10 @@
       let best = null;
       const exactByWeight = [];
 
-      for (const windowSize of windowOptions.filter((size) => priorDraws.length >= Math.min(size, 20))) {
-        const statsBeforeDraw = buildStats(windowSize, priorDraws);
+      for (const windowValue of windowOptions) {
+        const windowInfo = windowOptionInfo(windowValue, priorDraws.length);
+        if (priorDraws.length < Math.min(windowInfo.size, 20)) continue;
+        const statsBeforeDraw = buildStats(windowInfo.size, priorDraws);
         const winNumbers = draw.numbers.slice().sort((a, b) => a - b);
 
         for (const mode of modes) {
@@ -2788,7 +2830,9 @@
             const item = {
               mode,
               weight,
-              windowSize,
+              windowSize: windowInfo.size,
+              windowValue: windowInfo.value,
+              windowLabel: windowInfo.label,
               meta,
               fit,
               eligible,
@@ -2829,11 +2873,12 @@
       }))
       .sort((a, b) => b.count - a.count);
     const windowCounts = windowOptions
-      .map((windowSize) => ({
-        windowSize,
-        count: records.filter((record) => record.best?.windowSize === windowSize).length,
+      .map((windowValue) => ({
+        windowValue,
+        label: windowOptionInfo(windowValue, draws.length).label,
+        count: records.filter((record) => record.best?.windowValue === String(windowValue)).length,
       }))
-      .sort((a, b) => b.count - a.count || a.windowSize - b.windowSize);
+      .sort((a, b) => b.count - a.count || String(a.windowValue).localeCompare(String(b.windowValue)));
     const autoSetting = deriveLatestAutoSajuSetting(records);
 
     return {
@@ -2869,9 +2914,9 @@
     const bestEligible = qualifyingSettings[0];
     const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
     const latestDraw = latest.draw;
-    const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · 최근 ${best.windowSize}회`;
+    const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)}`;
     const foundSettingLine = bestEligible
-      ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · 최근 ${bestEligible.windowSize}회`
+      ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · ${settingWindowLabel(bestEligible)}`
       : "없음";
     const replaySetting = bestEligible ?? best;
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
@@ -2888,7 +2933,7 @@
     const hitLocationTitle = foundExactSetting ? foundSettingLine : "추천 후보 안에 들어온 설정 없음";
     const candidateLine = foundExactSetting
       ? `${latestDraw.draw}회 당첨번호 6개 조합이 추천 후보 안에 들어온 설정은 ${foundSettingLine}입니다. 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
-      : `모든 해석 모드, 사주 0~100%, 최근 흐름 기준을 다시 넣어봤지만 ${latestDraw.draw}회 당첨번호 6개 전체가 추천 후보 안에 들어온 설정은 없었습니다. 가장 가까운 설정은 ${settingLine}이고, 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였습니다.`;
+      : `모든 해석 모드, 사주 0~100%, 최근 20·50·100·200·500·700·1000회와 전체 회차 기준을 다시 넣어봤지만 ${latestDraw.draw}회 당첨번호 6개 전체가 추천 후보 안에 들어온 설정은 없었습니다. 가장 가까운 설정은 ${settingLine}이고, 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였습니다.`;
     const positionMeaning = foundExactSetting
       ? `이 설정이면 당첨번호 조합 자체가 후보로 인정됩니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
       : `이 설정이 가장 가까웠지만, 자동 기준 안으로 들어오지는 못했습니다. 아래에는 그 설정으로 다시 만든 후보 중 가장 많이 맞은 조합을 보여줍니다.`;
@@ -2903,14 +2948,14 @@
       .map((item) => `<span>${item.label} ${item.count}회</span>`)
       .join("");
     const windowTags = portfolio.windowCounts
-      .map((item) => `<span>최근 ${item.windowSize}회 ${item.count}회</span>`)
+      .map((item) => `<span>${item.label} ${item.count}회</span>`)
       .join("");
     const topMode = portfolio.modeCounts[0];
     const topWindow = portfolio.windowCounts[0];
     const topRange = portfolio.topRange;
     const topRangeLabel = topRange ? rangeLabels[topRange.label] ?? topRange.label : "";
     const summarySentence = topMode && topRange && topWindow
-      ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, 최근 ${topWindow.windowSize}회 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
+      ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, ${topWindow.label} 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
       : "";
     const qualifyingSettingRows = qualifyingSettings
       .slice(0, 5)
@@ -2918,7 +2963,7 @@
         (item, index) => `
           <div>
             <span>${index + 1}</span>
-            <strong>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회</strong>
+            <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
             <em>이 설정에서는 당첨번호 6개 조합이 추천 후보 안에 있었습니다.${index === 0 ? ` 대표 후보 수 ${replayCandidateCount}개.` : ""}</em>
           </div>
         `,
@@ -3008,7 +3053,7 @@
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · 최근 ${item.windowSize}회 · ${hitLabel}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)} · ${hitLabel}</span>
                   </div>
                 `;
               })
@@ -3878,25 +3923,21 @@
   }
 
   function renderPatternReport(stats) {
-    const recentYears = (stats.recentWindow / 52).toFixed(1);
     const balance = stats.balanceProfile;
+    const windowLabel = stats.recentWindow >= dataset.count - 1 ? "전체 회차" : `최근 ${stats.recentWindow}회`;
 
     document.querySelector("#patternReport").innerHTML = `
       <div class="pattern-line">
         <span>데이터</span>
-        <strong>${dataset.latestDraw}회(${dataset.latestDate})까지 ${formatNumber(dataset.count)}회 결과를 기준으로 봅니다.</strong>
-      </div>
-      <div class="pattern-line">
-        <span>최근 흐름</span>
-        <strong>최근 ${stats.recentWindow}회, 약 ${recentYears}년치를 더 가까운 흐름으로 참고합니다.</strong>
+        <strong>${dataset.latestDraw}회(${dataset.latestDate})까지 공개된 ${formatNumber(dataset.count)}개 회차의 1등 당첨번호와 보너스 번호를 모두 분석합니다. 현재 선택한 흐름은 ${windowLabel}입니다.</strong>
       </div>
       <div class="pattern-line">
         <span>균형 기준</span>
-        <strong>평균값 하나를 맞추기보다 실제 당첨번호가 많이 몰린 중앙 범위를 봅니다. 전체 회차 중앙 50%는 합계 ${balance.sumQ25}~${balance.sumQ75}, 홀수 ${balance.oddCommon}개, 저번호 ${balance.lowCommon}개입니다.</strong>
+        <strong>평균값 하나가 아니라 실제 당첨번호가 많이 몰린 중앙 50% 범위를 봅니다. 현재 데이터 기준 중앙 범위는 합계 ${balance.sumQ25}~${balance.sumQ75}, 홀수 ${balance.oddCommon}개, 저번호 ${balance.lowCommon}개입니다.</strong>
       </div>
       <div class="pattern-line">
         <span>최근 중복</span>
-        <strong>직전 회차와 0~2개 겹친 경우가 ${balance.repeatLe2Pct}%이고, 3개 이상 겹친 경우는 ${balance.repeatGe3Pct}%입니다. 그래서 0~2개는 허용하고 3개 이상만 강하게 낮춥니다.</strong>
+        <strong>직전 회차와 0~2개 겹친 경우가 ${balance.repeatLe2Pct}%이고, 3개 이상 겹친 경우는 ${balance.repeatGe3Pct}%입니다. 그래서 0~2개 중복은 정상 범위로 보고, 3개 이상만 강하게 낮춥니다.</strong>
       </div>
     `;
   }
@@ -3969,7 +4010,8 @@
     clampBirthDateInput();
     updateBirthCalendarPreview();
     updateTimeCorrectionPreview();
-    const stats = buildStats(Number(recentWindow.value));
+    const selectedWindow = currentWindowInfo(draws.length);
+    const stats = buildStats(selectedWindow.size);
     const saju = buildSajuProfile();
     const learningProfile = getCachedLearningProfile(saju);
     const scores = buildNumberScores(stats, saju);
@@ -3993,13 +4035,25 @@
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel} · 최근 ${recentWindow.value}회 · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
+      `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
 
     renderFortunePanel(saju);
     lastRecommendationResult = result;
     renderRecommendations(result);
     renderRecommendationAudit(learningProfile);
-    renderCandidateAuditSummary(stats, saju);
+    if (options.skipPortfolio) {
+      const auditContainer = document.querySelector("#candidateAuditSummary");
+      if (auditContainer) {
+        auditContainer.innerHTML = `
+          <div class="candidate-audit-empty">
+            <strong>개인 맞춤 재현 계산 준비 중</strong>
+            <p>첫 화면을 먼저 띄운 뒤, 사주 0~100%와 여러 최근 흐름 기준을 잠시 후 다시 계산합니다.</p>
+          </div>
+        `;
+      }
+    } else {
+      renderCandidateAuditSummary(stats, saju);
+    }
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);
@@ -4104,7 +4158,7 @@
 
   function autoSajuSettingLabel(setting) {
     if (!setting) return "";
-    return `${modeName(setting.mode)} · 사주 ${setting.weight}% · 최근 ${setting.windowSize}회`;
+    return `${modeName(setting.mode)} · 사주 ${setting.weight}% · ${settingWindowLabel(setting)}`;
   }
 
   function applyAutoSajuSettings() {
@@ -4117,7 +4171,10 @@
       return null;
     }
 
-    if ([...recentWindow.options].some((option) => Number(option.value) === Number(setting.windowSize))) {
+    const windowValue = String(setting.windowValue ?? setting.windowSize);
+    if ([...recentWindow.options].some((option) => option.value === windowValue)) {
+      recentWindow.value = windowValue;
+    } else if ([...recentWindow.options].some((option) => Number(option.value) === Number(setting.windowSize))) {
       recentWindow.value = String(setting.windowSize);
     }
 
@@ -4151,8 +4208,32 @@
     window.clearTimeout(refreshTimer);
     refreshTimer = window.setTimeout(() => {
       refreshTimer = null;
-      refresh(options);
+      const refreshOptions = { skipPortfolio: true, ...options };
+      refresh(refreshOptions);
+      if (refreshOptions.skipPortfolio) scheduleDeferredPersonalReplay();
     }, delay);
+  }
+
+  function scheduleDeferredPersonalReplay(delay = 720) {
+    window.clearTimeout(deferredPortfolioTimer);
+    deferredPortfolioTimer = window.setTimeout(() => {
+      deferredPortfolioTimer = null;
+      renderCandidateAuditSummary(null, null);
+    }, delay);
+  }
+
+  function scheduleStartupAutoSettings() {
+    window.clearTimeout(startupAutoTimer);
+    startupAutoTimer = window.setTimeout(() => {
+      startupAutoTimer = null;
+      const setting = applyAutoSajuSettings();
+      if (setting) {
+        saveProfile();
+        refresh({ forceNew: true });
+      } else {
+        scheduleDeferredPersonalReplay(120);
+      }
+    }, 420);
   }
 
   async function applyCurrentLocation(position) {
@@ -4174,9 +4255,9 @@
     restoreProfile();
     clampBirthDateInput();
     updateBirthCalendarPreview();
-    applyAutoSajuSettings();
     renderStaticSummary();
-    refresh();
+    refresh({ skipPortfolio: true });
+    scheduleStartupAutoSettings();
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
