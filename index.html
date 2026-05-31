@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v50" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v51" />
   </head>
   <body>
     <main class="app-shell">
@@ -304,7 +304,21 @@
               </div>
               <p>동행복권 공개 데이터를 기준으로 표시합니다</p>
             </div>
-            <div id="latestDrawResult" class="latest-draw-result"></div>
+            <div id="latestDrawResult" class="latest-draw-result">
+              <div class="draw-result-card draw-result-placeholder">
+                <div class="draw-result-main">
+                  <strong>이번 회차 당첨번호 준비 중</strong>
+                  <span>앱이 열리면 최신 회차 정보로 바로 바뀝니다.</span>
+                </div>
+                <div class="draw-prize-grid">
+                  <div class="draw-prize-card first">
+                    <span>1등 정보</span>
+                    <strong>불러오는 중</strong>
+                    <em>동행복권 공개 데이터를 기준으로 표시합니다.</em>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section class="fortune-panel analysis-panel" aria-labelledby="fortune-title">
@@ -348,7 +362,16 @@
                 <h2>지역 로또 명당</h2>
                 <p id="ritualCaption">내 위치 기준 1등 배출 이력</p>
               </div>
-              <div id="purchaseReading" class="purchase-reading"></div>
+              <div id="purchaseReading" class="purchase-reading">
+                <article class="store-card store-empty">
+                  <div class="store-rank">1</div>
+                  <div>
+                    <div class="store-badge">지역 명당</div>
+                    <strong>내 주변 로또 명당 준비 중</strong>
+                    <p>위치 또는 지역 기준으로 1등 배출 이력이 많은 판매점을 먼저 보여드립니다.</p>
+                  </div>
+                </article>
+              </div>
             </div>
 
             <div class="analysis-panel ritual-panel">
@@ -356,7 +379,12 @@
                 <h2>개운 키트</h2>
                 <p>색상, 의상, 음식, 소품 추천</p>
               </div>
-              <div id="luckyKit" class="lucky-kit"></div>
+              <div id="luckyKit" class="lucky-kit">
+                <div class="kit-card">
+                  <strong>오늘의 개운 키트 준비 중</strong>
+                  <p>입력한 생년월일과 출생시각 기준으로 색상, 의상, 음식, 소품을 바로 정리합니다.</p>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -400,7 +428,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script src="data/lotto-results.js?v=feedback-v50"></script>
-    <script src="app.js?v=feedback-v50"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v51"></script>
+    <script defer src="app.js?v=feedback-v51"></script>
   </body>
 </html>

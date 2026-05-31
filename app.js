@@ -4000,6 +4000,18 @@
     renderLatestDrawResult();
   }
 
+  function renderFastPersonalPanels(saju) {
+    renderFortunePanel(saju);
+    renderPurchaseReading(saju);
+    renderLuckyKit(saju);
+  }
+
+  function renderFirstPaintPanels() {
+    if (!draws.length) return;
+    updateTimeCorrectionPreview();
+    renderFastPersonalPanels(buildSajuProfile());
+  }
+
   function refresh(options = {}) {
     if (!draws.length) {
       document.querySelector("#scoreSummary").textContent =
@@ -4013,6 +4025,7 @@
     const selectedWindow = currentWindowInfo(draws.length);
     const stats = buildStats(selectedWindow.size);
     const saju = buildSajuProfile();
+    renderFastPersonalPanels(saju);
     const learningProfile = getCachedLearningProfile(saju);
     const scores = buildNumberScores(stats, saju);
     const resultKey = recommendationCacheKey();
@@ -4037,7 +4050,6 @@
     document.querySelector("#scoreSummary").textContent =
       `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
 
-    renderFortunePanel(saju);
     lastRecommendationResult = result;
     renderRecommendations(result);
     renderRecommendationAudit(learningProfile);
@@ -4057,8 +4069,6 @@
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);
-    renderPurchaseReading(saju);
-    renderLuckyKit(saju);
     renderHotCold(stats, scores);
   }
 
@@ -4222,18 +4232,28 @@
     }, delay);
   }
 
-  function scheduleStartupAutoSettings() {
+  function afterNextPaint(callback) {
+    const run = () => window.setTimeout(callback, 0);
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(run);
+      return;
+    }
+    run();
+  }
+
+  function scheduleStartupAutoSettings(delay = 1100) {
     window.clearTimeout(startupAutoTimer);
     startupAutoTimer = window.setTimeout(() => {
       startupAutoTimer = null;
       const setting = applyAutoSajuSettings();
       if (setting) {
         saveProfile();
-        refresh({ forceNew: true });
+        refresh({ forceNew: true, skipPortfolio: true });
+        scheduleDeferredPersonalReplay(900);
       } else {
         scheduleDeferredPersonalReplay(120);
       }
-    }, 420);
+    }, delay);
   }
 
   async function applyCurrentLocation(position) {
@@ -4256,8 +4276,12 @@
     clampBirthDateInput();
     updateBirthCalendarPreview();
     renderStaticSummary();
-    refresh({ skipPortfolio: true });
-    scheduleStartupAutoSettings();
+    renderFirstPaintPanels();
+    afterNextPaint(() => {
+      refresh({ skipPortfolio: true });
+      scheduleDeferredPersonalReplay(900);
+      scheduleStartupAutoSettings();
+    });
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
