@@ -1016,9 +1016,10 @@
   function savePensionProfile() {
     if (typeof localStorage === "undefined") return;
     const profile = {
+      version: 2,
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
-      personalWeight: pensionPersonalWeight?.value ?? "25",
+      personalWeight: pensionPersonalWeight?.value ?? "auto",
       savedAt: new Date().toISOString(),
     };
 
@@ -1038,7 +1039,10 @@
     if (pensionSetCount && profile.setCount != null) {
       pensionSetCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
     }
-    selectValueIfAvailable(pensionPersonalWeight, profile.personalWeight);
+    selectValueIfAvailable(
+      pensionPersonalWeight,
+      profile.version >= 2 ? profile.personalWeight : "auto",
+    );
     return true;
   }
 
@@ -3145,6 +3149,70 @@
     return [...picks].slice(0, 5);
   }
 
+  function pensionPrizeWeight(draw) {
+    const prizes = draw?.prizes ?? {};
+    const firstPrize = Number(prizes["1"]?.prize ?? 0);
+    const secondPrize = Number(prizes["2"]?.prize ?? 0);
+    const bonusPrize = Number(prizes.bonus?.prize ?? 0);
+    const firstWinners = Number(prizes["1"]?.winners ?? 0);
+    const amount = firstPrize + secondPrize * 0.5 + bonusPrize * 0.25;
+    const amountWeight = amount > 0 ? Math.log10(amount + 10) : 1;
+    const scarcityWeight = firstWinners > 0 ? 1 + 1 / Math.sqrt(firstWinners) : 1;
+    return Math.max(1, amountWeight) * scarcityWeight;
+  }
+
+  function resolvePensionPersonalWeight(luckyDigits, stats) {
+    const setting = pensionPersonalWeight?.value ?? "auto";
+    if (setting !== "auto") {
+      return {
+        setting,
+        weight: Number(setting) || 0,
+        label: `${Number(setting) || 0}%`,
+        confidence: 0,
+      };
+    }
+
+    if (!stats?.count || !luckyDigits?.length) {
+      return {
+        setting: "auto",
+        weight: 25,
+        label: "자동 25%",
+        confidence: 0,
+      };
+    }
+
+    const expected = luckyDigits.length / 10;
+    let weightedSimilarity = 0;
+    let totalWeight = 0;
+
+    for (const draw of pensionDraws) {
+      if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
+      const digitFit = draw.digits.filter((digit) => luckyDigits.includes(digit)).length / 6;
+      const bonusFit =
+        Array.isArray(draw.bonusDigits) && draw.bonusDigits.length === 6
+          ? draw.bonusDigits.filter((digit) => luckyDigits.includes(digit)).length / 6
+          : expected;
+      const groupFit = luckyDigits.includes(Number(draw.group) + 4) ? 1 : expected;
+      const prizeWeight = pensionPrizeWeight(draw);
+      weightedSimilarity += (digitFit * 0.72 + bonusFit * 0.18 + groupFit * 0.1) * prizeWeight;
+      totalWeight += prizeWeight;
+    }
+
+    const average = totalWeight ? weightedSimilarity / totalWeight : expected;
+    const gap = average - expected;
+    const weight = gap >= 0.14 ? 75 : gap >= 0.06 ? 50 : gap >= -0.04 ? 25 : 0;
+    const confidence = Math.round(clamp(Math.abs(gap) * 250, 0, 100));
+
+    return {
+      setting: "auto",
+      weight,
+      label: `자동 ${weight}%`,
+      confidence,
+      average: Math.round(average * 1000) / 10,
+      expected: Math.round(expected * 1000) / 10,
+    };
+  }
+
   function makePensionCandidate(rng) {
     const group = Math.floor(rng() * 5) + 1;
     const digits = Array.from({ length: 6 }, () => Math.floor(rng() * 10));
@@ -3226,14 +3294,16 @@
     pensionState.generation += 1;
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
     const luckyDigits = derivePensionLuckyDigits(pensionBirthDate?.value ?? "");
-    const personalWeight = Number(pensionPersonalWeight?.value) || 0;
     const stats = buildPensionHistoricalStats();
+    const personalWeightState = resolvePensionPersonalWeight(luckyDigits, stats);
+    const personalWeight = personalWeightState.weight;
     const seed = hashString(
       [
         "pension",
         pensionBirthDate?.value ?? "",
         pensionSetCount?.value ?? "5",
-        pensionPersonalWeight?.value ?? "25",
+        personalWeightState.setting,
+        personalWeight,
         dateToIso(new Date()),
         pensionState.generation,
         Date.now(),
@@ -3278,6 +3348,7 @@
       candidateCount: ranked.length,
       luckyDigits,
       personalWeight,
+      personalWeightState,
       stats,
       selectedCount: selected.length,
     };
@@ -3288,6 +3359,7 @@
     const dataLabel = result.stats?.count
       ? `${formatNumber(result.stats.count)}회차`
       : "준비 중";
+    const personalWeightLabel = result.personalWeightState?.label ?? `${result.personalWeight}%`;
     pensionStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>연금복권 후보</span>
@@ -3300,7 +3372,7 @@
       </div>
       <div class="candidate-stat-card">
         <span>개인 반영</span>
-        <strong>${result.personalWeight}%</strong>
+        <strong>${personalWeightLabel}</strong>
       </div>
       <div class="candidate-stat-card">
         <span>추천 방식</span>
