@@ -1,12 +1,13 @@
-const CACHE_NAME = "saju-lotto-v62";
+const CACHE_NAME = "saju-lotto-v64";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v57",
-  "./app.js?v=feedback-v57",
+  "./styles.css?v=feedback-v59",
+  "./app.js?v=feedback-v59",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v57"
+  "./data/lotto-results.js?v=feedback-v59",
+  "./data/pension-results.js?v=feedback-v59"
 ];
 
 self.addEventListener("install", (event) => {
@@ -51,7 +52,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   const isDataRequest =
     url.pathname.endsWith("/data/lotto-results.js") ||
-    url.pathname.endsWith("/data/lotto-results.json");
+    url.pathname.endsWith("/data/lotto-results.json") ||
+    url.pathname.endsWith("/data/pension-results.js") ||
+    url.pathname.endsWith("/data/pension-results.json");
 
   if (isDataRequest) {
     event.respondWith(

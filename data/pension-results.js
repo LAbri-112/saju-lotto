@@ -1,0 +1,1 @@
+window.PENSION_RESULTS = {"schemaVersion":1,"generatedAt":null,"source":"pending-github-actions","sourceUrl":"https://www.dhlottery.co.kr/gameResult.do?method=win720&Round={round}","latestSourceUrl":"https://www.dhlottery.co.kr/pt720/result","latestRound":0,"latestDate":"","count":0,"draws":[]};

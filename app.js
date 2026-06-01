@@ -1,7 +1,10 @@
 (function () {
   const dataset = window.LOTTO_RESULTS;
+  const pensionDataset = window.PENSION_RESULTS ?? { draws: [], count: 0, latestRound: 0 };
   const draws = dataset?.draws ?? [];
+  const pensionDraws = pensionDataset?.draws ?? [];
   const latest = draws.at(-1);
+  const latestPension = pensionDraws.at(-1);
 
   const elements = {
     wood: { label: "목", color: "#4f8f45" },
@@ -3064,6 +3067,63 @@
     };
   }
 
+  function buildPensionHistoricalStats() {
+    const groups = Array(6).fill(0);
+    const positions = Array.from({ length: 6 }, () => Array(10).fill(0));
+    const tailDigits = Array(10).fill(0);
+    const sumValues = [];
+    const uniqueValues = [];
+    const maxRepeatValues = [];
+
+    for (const draw of pensionDraws) {
+      if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
+      if (draw.group >= 1 && draw.group <= 5) groups[draw.group] += 1;
+      draw.digits.forEach((digit, index) => {
+        if (digit >= 0 && digit <= 9) positions[index][digit] += 1;
+      });
+      const sum = draw.digits.reduce((total, digit) => total + digit, 0);
+      const counts = Object.values(
+        draw.digits.reduce((bucket, digit) => {
+          bucket[digit] = (bucket[digit] ?? 0) + 1;
+          return bucket;
+        }, {}),
+      );
+      const unique = new Set(draw.digits).size;
+      sumValues.push(sum);
+      uniqueValues.push(unique);
+      maxRepeatValues.push(Math.max(...counts));
+      tailDigits[draw.digits.at(-1)] += 1;
+    }
+
+    const sortedSums = [...sumValues].sort((a, b) => a - b);
+    const quantile = (values, rate, fallback) => {
+      if (!values.length) return fallback;
+      return values[Math.floor((values.length - 1) * rate)];
+    };
+
+    return {
+      count: pensionDraws.length,
+      latestRound: pensionDataset.latestRound ?? latestPension?.round ?? 0,
+      latestDate: pensionDataset.latestDate ?? latestPension?.date ?? "",
+      groups,
+      positions,
+      tailDigits,
+      maxGroupCount: Math.max(...groups, 1),
+      maxPositionCounts: positions.map((items) => Math.max(...items, 1)),
+      maxTailCount: Math.max(...tailDigits, 1),
+      sumQ25: quantile(sortedSums, 0.25, 18),
+      sumQ75: quantile(sortedSums, 0.75, 36),
+      commonUnique:
+        uniqueValues.length
+          ? Math.round(uniqueValues.reduce((sum, value) => sum + value, 0) / uniqueValues.length)
+          : 5,
+      commonMaxRepeat:
+        maxRepeatValues.length
+          ? Math.round(maxRepeatValues.reduce((sum, value) => sum + value, 0) / maxRepeatValues.length)
+          : 2,
+    };
+  }
+
   function derivePensionLuckyDigits(birthText) {
     const normalized = normalizeBirthDateText(birthText);
     const parsed = parseIsoDateParts(normalized);
@@ -3095,7 +3155,7 @@
     return `${candidate.group}-${candidate.digits.join("")}`;
   }
 
-  function scorePensionCandidate(candidate, luckyDigits, personalWeight) {
+  function scorePensionCandidate(candidate, luckyDigits, personalWeight, stats) {
     const digits = candidate.digits;
     const sum = digits.reduce((total, digit) => total + digit, 0);
     const odd = digits.filter((digit) => digit % 2 === 1).length;
@@ -3124,15 +3184,28 @@
     const tailFit = tailUnique >= 2 ? 1 : 0.45;
     const personalFit = clamp(luckyHits / 3);
     const groupFit = luckyDigits.includes(candidate.group + 4) ? 0.9 : 0.78;
+    const groupHistoryFit = stats?.count
+      ? clamp(((stats.groups[candidate.group] ?? 0) + 1) / ((stats.maxGroupCount ?? 1) + 1), 0.2, 1)
+      : 0.72;
+    const positionHistoryFit = stats?.count
+      ? digits.reduce((total, digit, index) => {
+          return total + clamp(((stats.positions[index][digit] ?? 0) + 1) / ((stats.maxPositionCounts[index] ?? 1) + 1), 0.2, 1);
+        }, 0) / 6
+      : 0.72;
+    const tailHistoryFit = stats?.count
+      ? clamp(((stats.tailDigits[digits.at(-1)] ?? 0) + 1) / ((stats.maxTailCount ?? 1) + 1), 0.2, 1)
+      : 0.72;
+    const historicalFit = positionHistoryFit * 0.7 + groupHistoryFit * 0.18 + tailHistoryFit * 0.12;
     const base =
-      sumFit * 0.2 +
-      oddFit * 0.14 +
-      highFit * 0.14 +
-      uniqueFit * 0.18 +
-      repeatFit * 0.14 +
-      adjacentFit * 0.08 +
-      tailFit * 0.08 +
-      groupFit * 0.04;
+      historicalFit * 0.34 +
+      sumFit * 0.14 +
+      oddFit * 0.1 +
+      highFit * 0.1 +
+      uniqueFit * 0.14 +
+      repeatFit * 0.08 +
+      adjacentFit * 0.04 +
+      tailFit * 0.04 +
+      groupFit * 0.02;
     const weight = clamp(Number(personalWeight) / 100, 0, 0.75);
     const score = base * (1 - weight * 0.32) + personalFit * weight * 0.32;
 
@@ -3145,6 +3218,7 @@
       maxRepeat,
       luckyHits,
       tail: tail.join(""),
+      historicalFit: Math.round(historicalFit * 1000) / 10,
     };
   }
 
@@ -3153,6 +3227,7 @@
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
     const luckyDigits = derivePensionLuckyDigits(pensionBirthDate?.value ?? "");
     const personalWeight = Number(pensionPersonalWeight?.value) || 0;
+    const stats = buildPensionHistoricalStats();
     const seed = hashString(
       [
         "pension",
@@ -3174,7 +3249,7 @@
       if (candidateMap.has(key)) continue;
       candidateMap.set(key, {
         ...candidate,
-        meta: scorePensionCandidate(candidate, luckyDigits, personalWeight),
+        meta: scorePensionCandidate(candidate, luckyDigits, personalWeight, stats),
       });
     }
 
@@ -3203,12 +3278,16 @@
       candidateCount: ranked.length,
       luckyDigits,
       personalWeight,
+      stats,
       selectedCount: selected.length,
     };
   }
 
   function renderPensionStats(result, shownCount = result?.selectedCount ?? 0) {
     if (!pensionStats || !result) return;
+    const dataLabel = result.stats?.count
+      ? `${formatNumber(result.stats.count)}회차`
+      : "준비 중";
     pensionStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>연금복권 후보</span>
