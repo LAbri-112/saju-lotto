@@ -2634,7 +2634,9 @@
             .sort((a, b) => a - b);
           const candidateMeta = scoreCombination(candidateNumbers, scores, stats, saju, learningProfile);
 
-          if (candidateMeta.score > bestMeta.score + 0.05) {
+          const practicalGain = candidateMeta.practicalScore - bestMeta.practicalScore;
+          const scoreGain = candidateMeta.score - bestMeta.score;
+          if (practicalGain > 0.05 || (Math.abs(practicalGain) <= 0.05 && scoreGain > 0.05)) {
             bestNumbers = candidateNumbers;
             bestMeta = candidateMeta;
             improved = true;
@@ -2701,7 +2703,7 @@
 
   function buildLearningProfile(saju) {
     const selectedWindow = currentWindowInfo(draws.length);
-    const startIndex = Math.max(30, draws.length - 200);
+    const startIndex = Math.min(30, Math.max(0, draws.length - 1));
     const records = [];
 
     for (let index = startIndex; index < draws.length; index += 1) {
@@ -2747,10 +2749,18 @@
         topBucketLabel: "80~89.9점",
         bucketPreference: {},
         bucketSummary: [],
-        records: [],
-        thresholdStats: { atLeast80: 0, atLeast85: 0, atLeast90: 0 },
-      };
-    }
+      records: [],
+      coverageFloor: 72,
+      historicalCoverage: {
+        floor: 72,
+        minScore: 72,
+        total: 0,
+        included: 0,
+        rate: 0,
+      },
+      thresholdStats: { atLeast80: 0, atLeast85: 0, atLeast90: 0 },
+    };
+  }
 
     const bucketMap = new Map();
     records.forEach((record, index) => {
@@ -2792,6 +2802,10 @@
     const targetScore = neighborWeightTotal
       ? clamp(neighborScoreTotal / neighborWeightTotal, 80, 88)
       : 84.5;
+    const scoreValues = records.map((record) => record.score).sort((a, b) => a - b);
+    const minHistoricalScore = scoreValues[0] ?? 72;
+    const coverageFloor = Math.floor(minHistoricalScore * 10) / 10;
+    const includedAtCoverageFloor = records.filter((record) => record.score >= coverageFloor).length;
     const bucketPreference = {};
     const topWeight = Math.max(1, topBucket.weighted);
 
@@ -2808,6 +2822,14 @@
       targetSpread: 14,
       topBucketStart: topBucket.start,
       topBucketLabel: topBucket.label,
+      coverageFloor,
+      historicalCoverage: {
+        floor: coverageFloor,
+        minScore: Math.round(minHistoricalScore * 10) / 10,
+        total: records.length,
+        included: includedAtCoverageFloor,
+        rate: records.length ? Math.round((includedAtCoverageFloor / records.length) * 1000) / 10 : 0,
+      },
       bucketPreference,
       bucketSummary: buckets.slice(0, 5).map((bucket) => ({
         label: bucket.label,
@@ -2824,6 +2846,13 @@
   }
 
   function autoScoreFloorFromLearning(learningProfile) {
+    const coverageFloor = Number(
+      learningProfile?.coverageFloor ?? learningProfile?.historicalCoverage?.floor,
+    );
+    if (Number.isFinite(coverageFloor)) {
+      return clamp(Math.floor(coverageFloor * 2) / 2, 45, 86);
+    }
+
     const target = Number(learningProfile?.targetScore);
     const tolerance = Number(learningProfile?.targetTolerance);
     const base = Number.isFinite(target) ? target - (Number.isFinite(tolerance) ? tolerance + 1.5 : 4) : 78;
@@ -2833,11 +2862,26 @@
   function autoFilterCandidates(practicalRanked, target, learningProfile) {
     let scoreFloor = autoScoreFloorFromLearning(learningProfile);
     const minimumPool = Math.max(target * 90, 420);
+    const coverageFloor = Number(
+      learningProfile?.coverageFloor ?? learningProfile?.historicalCoverage?.floor,
+    );
+    const floorLimit = Number.isFinite(coverageFloor)
+      ? clamp(Math.floor(coverageFloor * 2) / 2, 45, 86)
+      : 60;
     let filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
 
-    while (filtered.length < minimumPool && scoreFloor > 70) {
+    while (filtered.length < minimumPool && scoreFloor > floorLimit) {
       scoreFloor = Math.round((scoreFloor - 1) * 10) / 10;
       filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
+    }
+
+    if (!filtered.length) {
+      scoreFloor = floorLimit;
+      filtered = practicalRanked.filter((candidate) => candidate.meta.score >= scoreFloor);
+    }
+
+    if (!filtered.length) {
+      filtered = practicalRanked.slice(0, minimumPool);
     }
 
     return {
@@ -2882,7 +2926,9 @@
       });
     }
 
-    const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const preliminary = [...candidateMap.values()].sort((a, b) => {
+      return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+    });
     const improveCount = 260;
     for (const candidate of preliminary.slice(0, improveCount)) {
       const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
@@ -3194,7 +3240,9 @@
           });
         }
 
-        const preliminary = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+        const preliminary = [...candidateMap.values()].sort((a, b) => {
+          return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+        });
         for (const candidate of preliminary.slice(0, 260)) {
           const improved = improveCandidate(candidate.numbers, scores, statsBeforeDraw, modeSaju, null);
           candidateMap.set(improved.numbers.join("-"), improved);
