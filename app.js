@@ -12,6 +12,7 @@
   };
 
   const elementKeys = ["wood", "fire", "earth", "metal", "water"];
+  const lottoCombinationCount = 8145060;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -3245,6 +3246,7 @@
               meta,
               fit,
               eligible,
+              scoreFloor,
             };
 
             if (eligible) exactByWeight.push(item);
@@ -3298,6 +3300,7 @@
       modeCounts,
       windowCounts,
       scoreFloor,
+      scanCount: records.length ? windowOptions.length * modes.length * scanWeights.length : 0,
       selectedWindow,
       windowOptions,
       autoSetting,
@@ -3326,7 +3329,7 @@
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)}`;
     const foundSettingLine = bestEligible
       ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · ${settingWindowLabel(bestEligible)}`
-      : "없음";
+      : "자동 후보 기준 통과 설정 없음";
     const replaySetting = bestEligible ?? best;
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
     const replayBest = replay?.result?.bestMatch;
@@ -3337,15 +3340,20 @@
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
     const foundExactSetting = qualifyingSettings.length > 0;
-    const statusText = foundExactSetting ? "추천 후보 안에 있었음" : "후보 진입 설정 없음";
-    const statusClass = foundExactSetting ? "is-hit" : "is-miss";
-    const hitLocationTitle = foundExactSetting ? foundSettingLine : "추천 후보 안에 들어온 설정 없음";
+    const statusText = foundExactSetting ? "자동 후보 기준 통과" : "전체 설정 위치 확인";
+    const statusClass = foundExactSetting ? "is-hit" : "is-info";
+    const hitLocationTitle = foundExactSetting ? foundSettingLine : settingLine;
+    const directLocationText = `${latestDraw.draw}회 당첨번호 6개 조합을 생성 후보 기록이 아니라 전체 조합 ${formatNumber(
+      lottoCombinationCount,
+    )}개 중 하나로 직접 넣어 평가했습니다. 확인한 설정은 해석모드 3종 × 사주 0~100% × 최근 20·50·100·200·500·700·1000회·전체 회차, 총 ${formatNumber(
+      portfolio.scanCount,
+    )}가지입니다. 그중 가장 높게 잡힌 위치는 ${settingLine}이고, 점수는 ${best.meta.score}점(${best.meta.bucketLabel}, ${best.meta.band})입니다.`;
     const candidateLine = foundExactSetting
-      ? `${latestDraw.draw}회 당첨번호 6개 조합이 추천 후보 안에 들어온 설정은 ${foundSettingLine}입니다. 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
-      : `모든 해석 모드, 사주 0~100%, 최근 20·50·100·200·500·700·1000회와 전체 회차 기준을 다시 넣어봤지만 ${latestDraw.draw}회 당첨번호 6개 전체가 추천 후보 안에 들어온 설정은 없었습니다. 가장 가까운 설정은 ${settingLine}이고, 이 설정으로 되돌려 만든 추천 후보는 ${replayCandidateCount}개였습니다.`;
+      ? `${directLocationText} 이 설정은 자동 후보 기준도 통과했습니다. 되돌려 만든 자동 추천 후보는 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
+      : `${directLocationText} 다만 현재 자동 추천 후보 컷은 ${best.scoreFloor}점 근처라서, 당첨번호 조합은 자동 후보 목록에는 들어오지 못했습니다. 즉 조합 자체가 없다는 뜻이 아니라, 자동 선별 기준이 이 회차 당첨번호보다 더 좁게 잡혔다는 뜻입니다.`;
     const positionMeaning = foundExactSetting
-      ? `이 설정이면 당첨번호 조합 자체가 후보로 인정됩니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
-      : `이 설정이 가장 가까웠지만, 자동 기준 안으로 들어오지는 못했습니다. 아래에는 그 설정으로 다시 만든 후보 중 가장 많이 맞은 조합을 보여줍니다.`;
+      ? `이 설정이면 당첨번호 조합 자체가 자동 후보 기준 안쪽으로 들어옵니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
+      : `이 설정이 전체 평가에서 가장 가까웠습니다. 자동 후보 안에 없다고 끝내지 않고, 아래에는 이 설정으로 다시 만든 후보 중 가장 많이 맞은 조합도 함께 보여줍니다.`;
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -3373,7 +3381,7 @@
           <div>
             <span>${index + 1}</span>
             <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
-            <em>이 설정에서는 당첨번호 6개 조합이 추천 후보 안에 있었습니다.${index === 0 ? ` 대표 후보 수 ${replayCandidateCount}개.` : ""}</em>
+            <em>이 설정에서는 당첨번호 6개 조합이 자동 후보 기준을 통과했습니다.${index === 0 ? ` 대표 후보 수 ${replayCandidateCount}개.` : ""}</em>
           </div>
         `,
       )
@@ -3383,7 +3391,7 @@
         <div class="portfolio-head">
           <div>
             <span>개인별 당첨번호 위치</span>
-            <strong>${latestDraw.draw}회 당첨번호가 추천 후보 안에 있었는지 확인</strong>
+            <strong>${latestDraw.draw}회 당첨번호를 전체 설정에 직접 넣어 확인</strong>
           </div>
           <b class="${statusClass}">${statusText}</b>
         </div>
@@ -3394,14 +3402,14 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호 위치</span>
+          <span>당첨번호의 실제 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${foundExactSetting ? `${foundSettingLine} 설정에서 당첨번호 6개 조합이 추천 후보 안에 있었습니다. 추천 후보는 ${replayCandidateCount}개였습니다.` : `추천 후보 안에 정확히 들어온 설정은 없었습니다. 대신 가장 가까운 설정은 ${settingLine}이고, 해당 설정의 추천 후보는 ${replayCandidateCount}개였습니다.`}</p>
+          <p>${foundExactSetting ? `${foundSettingLine} 설정에서 당첨번호 6개 조합이 자동 후보 기준도 통과했습니다. 추천 후보는 ${replayCandidateCount}개였습니다.` : `자동 후보 기준에는 없었지만, 전체 설정을 직접 평가했을 때 가장 가까운 위치는 ${settingLine}입니다. 점수는 ${best.meta.score}점(${best.meta.bucketLabel})입니다.`}</p>
         </div>
         ${
           qualifyingSettingRows
             ? `<div class="portfolio-setting-list">
-                <strong>당첨번호가 추천 후보 안에 있었던 설정</strong>
+                <strong>당첨번호가 자동 후보 기준을 통과했던 설정</strong>
                 ${qualifyingSettingRows}
               </div>`
             : ""
@@ -3414,7 +3422,7 @@
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
-          <span>당첨번호 위치</span>
+          <span>당첨번호의 실제 위치</span>
           <strong>${hitLocationTitle}</strong>
             <p>${candidateLine}</p>
           </div>
@@ -3425,13 +3433,13 @@
           </div>
         </div>
         <div class="store-tags">
-          <span>당첨번호가 추천 후보 안에 있었던 설정: ${hitLocationTitle}</span>
-          <span>통과 설정 ${qualifyingSettings.length}개</span>
-          <span>저장 기록이 아니라 현재 입력값으로 다시 계산</span>
+          <span>전체 조합 ${formatNumber(lottoCombinationCount)}개 중 당첨번호 조합 직접 평가</span>
+          <span>검사 설정 ${formatNumber(portfolio.scanCount)}가지</span>
+          <span>자동 후보 기준 통과 설정 ${qualifyingSettings.length}개</span>
         </div>
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
-          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 자동 추천 후보 안에 들어온 회차는 ${portfolio.eligibleCount}회입니다.</p>
+          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 당첨번호 조합이 자동 후보 기준까지 통과한 회차는 ${portfolio.eligibleCount}회입니다. 기준 밖인 회차도 당첨번호 자체는 위처럼 전체 설정에 직접 넣어 위치를 봅니다.</p>
           ${summarySentence ? `<p class="portfolio-note">${summarySentence}</p>` : ""}
           <div class="portfolio-bars">
             ${portfolio.ranges
@@ -3457,8 +3465,8 @@
               .map((record) => {
                 const item = record.best;
                 const hitLabel = record.eligible
-                  ? '<mark class="candidate-hit-label">당첨번호가 추천 후보 안에 있었음</mark>'
-                  : '<mark class="candidate-miss-label">당첨번호는 추천 후보 밖</mark>';
+                  ? '<mark class="candidate-hit-label">자동 후보 기준 통과</mark>'
+                  : '<mark class="candidate-miss-label">자동 후보 기준 밖</mark>';
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
@@ -4662,7 +4670,7 @@
     if (autoSajuStatus) {
       const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
       const reasonText = setting.exact
-        ? `${basisText}당첨번호가 추천 후보 안에 있었던 설정을 적용했습니다.`
+        ? `${basisText}당첨번호가 자동 후보 기준을 통과했던 설정을 적용했습니다.`
         : `${basisText}당첨번호와 가장 가까웠던 설정을 적용했습니다.`;
       autoSajuStatus.textContent =
         `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;

@@ -1162,6 +1162,11 @@ button:focus-visible {
   color: var(--teal-dark);
 }
 
+.portfolio-head b.is-info {
+  background: rgba(75, 136, 235, 0.12);
+  color: #2f68b1;
+}
+
 .portfolio-latest {
   border: 1px solid rgba(75, 136, 235, 0.16);
   border-radius: 8px;
@@ -1210,6 +1215,11 @@ button:focus-visible {
 .portfolio-hit-location.is-miss {
   border-color: rgba(240, 111, 136, 0.26);
   background: linear-gradient(135deg, rgba(255, 247, 249, 0.94), rgba(255, 255, 255, 0.86));
+}
+
+.portfolio-hit-location.is-info {
+  border-color: rgba(75, 136, 235, 0.24);
+  background: linear-gradient(135deg, rgba(240, 247, 255, 0.94), rgba(255, 255, 255, 0.86));
 }
 
 .portfolio-hit-location span {
@@ -1320,6 +1330,11 @@ button:focus-visible {
 .portfolio-position-card.is-hit {
   border-color: rgba(24, 169, 153, 0.24);
   background: rgba(232, 250, 247, 0.88);
+}
+
+.portfolio-position-card.is-info {
+  border-color: rgba(75, 136, 235, 0.22);
+  background: rgba(240, 247, 255, 0.86);
 }
 
 .portfolio-position-card span {
