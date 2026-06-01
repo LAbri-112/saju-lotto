@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v55" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v57" />
   </head>
   <body>
     <main class="app-shell">
@@ -43,7 +43,12 @@
         </ol>
       </section>
 
-      <section class="workspace">
+      <section class="game-tabs" aria-label="복권 종류 선택">
+        <button class="game-tab is-active" type="button" data-game="lotto">로또 6/45</button>
+        <button class="game-tab" type="button" data-game="pension">연금복권720+</button>
+      </section>
+
+      <section id="lottoWorkspace" class="workspace game-panel">
         <aside class="control-panel" aria-label="추천 조건">
           <form id="settingsForm">
             <div class="form-intro">
@@ -437,11 +442,115 @@
 
         </section>
       </section>
+      <section id="pensionWorkspace" class="workspace game-panel pension-workspace" hidden>
+        <aside class="control-panel pension-control" aria-label="연금복권 추천 조건">
+          <form id="pensionForm">
+            <div class="form-intro pension-intro">
+              <span>연금복권720+</span>
+              <strong>조 + 6자리 추천</strong>
+              <p>로또 설정과 완전히 분리해서 계산합니다. 연금복권은 끝자리 연속 일치가 중요하므로 자리별 균형을 따로 봅니다.</p>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="pensionBirthDate">생년월일</label>
+                <button class="help-button" type="button" data-help="연금복권 탭 안에서만 쓰는 별도 입력값입니다. 로또 6/45 사주 설정이나 추천 기록에는 영향을 주지 않습니다. 비워두면 오늘 날짜 흐름만 기준으로 추천합니다.">?</button>
+              </div>
+              <input id="pensionBirthDate" name="pensionBirthDate" type="text" inputmode="numeric" maxlength="12" placeholder="1998-08-27" autocomplete="off" />
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="pensionSetCount">추천 세트</label>
+                  <button class="help-button" type="button" data-help="연금복권 번호를 몇 장 볼지 정합니다. 기본은 5장입니다.">?</button>
+                </div>
+                <input id="pensionSetCount" name="pensionSetCount" type="number" min="1" max="10" value="5" />
+              </div>
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="pensionPersonalWeight">개인 반영</label>
+                  <button class="help-button" type="button" data-help="생년월일에서 나온 개인 숫자를 얼마나 섞을지 정합니다. 연금복권은 모든 번호의 확률이 같으므로 재미 보정으로만 사용합니다.">?</button>
+                </div>
+                <select id="pensionPersonalWeight" name="pensionPersonalWeight">
+                  <option value="0">0%</option>
+                  <option value="25" selected>25%</option>
+                  <option value="50">50%</option>
+                  <option value="75">75%</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="primary-action pension-action" type="submit">
+              <span aria-hidden="true">↻</span>
+              연금번호 생성
+            </button>
+          </form>
+        </aside>
+
+        <section class="main-panel pension-main">
+          <div class="summary-grid pension-summary-grid">
+            <div class="metric">
+              <span>게임 구조</span>
+              <strong>1~5조 + 6자리</strong>
+            </div>
+            <div class="metric">
+              <span>추첨</span>
+              <strong>매주 목요일 19:05</strong>
+            </div>
+            <div class="metric">
+              <span>1등 기준</span>
+              <strong>조 + 6자리 일치</strong>
+            </div>
+          </div>
+
+          <section class="recommendation-area pension-area" aria-labelledby="pension-title">
+            <div class="section-heading">
+              <div class="heading-with-help">
+                <h2 id="pension-title">연금복권 추천 번호</h2>
+                <button class="help-button" type="button" data-help="연금복권은 로또처럼 6개 숫자를 고르는 방식이 아니라, 1~5조와 000000~999999 사이의 6자리 번호를 고릅니다. 등수는 오른쪽 끝자리부터 얼마나 연속으로 맞는지가 중요합니다.">?</button>
+              </div>
+              <p>로또 후보와 섞지 않고 별도의 자리별 균형으로 추천합니다.</p>
+            </div>
+            <div class="candidate-toolbar">
+              <div id="pensionStats" class="candidate-stats pension-stats"></div>
+              <button id="pensionShuffle" class="shuffle-action" type="button">후보 랜덤 배치</button>
+            </div>
+            <div id="pensionRecommendations" class="pension-recommendations"></div>
+          </section>
+
+          <section class="analysis-grid pension-info-grid" aria-label="연금복권 안내">
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>당첨 구조</h2>
+                <p>끝자리 연속 일치 중심</p>
+              </div>
+              <div class="pension-rule-list">
+                <div><strong>1등</strong><span>조와 6자리 번호가 모두 일치</span></div>
+                <div><strong>2등</strong><span>6자리 번호가 일치하고 조가 다름</span></div>
+                <div><strong>3~7등</strong><span>오른쪽 끝자리부터 5자리, 4자리, 3자리, 2자리, 1자리 일치</span></div>
+                <div><strong>보너스</strong><span>별도 보너스 번호 추첨 기준</span></div>
+              </div>
+            </div>
+
+            <div class="analysis-panel">
+              <div class="section-heading compact">
+                <h2>구매 시간</h2>
+                <p>동행복권 공식 판매 흐름 기준</p>
+              </div>
+              <div class="pension-note-card">
+                <strong>목요일은 17:00 전에 구매하는 쪽으로 잡으세요.</strong>
+                <p>연금복권720+는 매주 목요일 추첨이며, 추첨일 판매 마감 이후에는 다음 회차 판매로 넘어갑니다. 이 앱의 추천은 번호 선택 보조용이며 당첨을 보장하지 않습니다.</p>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
     </main>
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v55"></script>
-    <script defer src="app.js?v=feedback-v55"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v57"></script>
+    <script defer src="app.js?v=feedback-v57"></script>
   </body>
 </html>

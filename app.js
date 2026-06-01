@@ -626,20 +626,39 @@
   const candidateStats = document.querySelector("#candidateStats");
   const shuffleCandidates = document.querySelector("#shuffleCandidates");
   const autoSajuStatus = document.querySelector("#autoSajuStatus");
+  const gameTabs = document.querySelectorAll(".game-tab");
+  const lottoWorkspace = document.querySelector("#lottoWorkspace");
+  const pensionWorkspace = document.querySelector("#pensionWorkspace");
+  const pensionForm = document.querySelector("#pensionForm");
+  const pensionBirthDate = document.querySelector("#pensionBirthDate");
+  const pensionSetCount = document.querySelector("#pensionSetCount");
+  const pensionPersonalWeight = document.querySelector("#pensionPersonalWeight");
+  const pensionStats = document.querySelector("#pensionStats");
+  const pensionRecommendations = document.querySelector("#pensionRecommendations");
+  const pensionShuffle = document.querySelector("#pensionShuffle");
 
-  let generation = 0;
   let userPosition = null;
   let userRegionLabel = "";
   let activeFortunePeriod = "today";
-  let lastRecommendationResult = null;
-  let refreshTimer = null;
-  let deferredPortfolioTimer = null;
-  let startupAutoTimer = null;
-  const learningProfileCache = new Map();
-  const personalPortfolioCache = new Map();
-  const recommendationResultCache = new Map();
-  const replayCandidateCache = new Map();
+  const lottoState = {
+    generation: 0,
+    lastResult: null,
+    refreshTimer: null,
+    deferredPortfolioTimer: null,
+    startupAutoTimer: null,
+    learningProfileCache: new Map(),
+    personalPortfolioCache: new Map(),
+    recommendationResultCache: new Map(),
+    replayCandidateCache: new Map(),
+  };
+  const pensionState = {
+    generation: 0,
+    lastResult: null,
+    refreshTimer: null,
+    cache: new Map(),
+  };
   const profileStorageKey = "saju-lotto-profile-v1";
+  const pensionProfileStorageKey = "saju-lotto-pension-profile-v1";
   const lunarFormatter = (() => {
     try {
       return new Intl.DateTimeFormat("ko-KR-u-ca-chinese", {
@@ -982,6 +1001,44 @@
     return true;
   }
 
+  function readPensionProfile() {
+    if (typeof localStorage === "undefined") return null;
+    try {
+      return JSON.parse(localStorage.getItem(pensionProfileStorageKey) ?? "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function savePensionProfile() {
+    if (typeof localStorage === "undefined") return;
+    const profile = {
+      birthDate: pensionBirthDate?.value ?? "",
+      setCount: pensionSetCount?.value ?? "5",
+      personalWeight: pensionPersonalWeight?.value ?? "25",
+      savedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(pensionProfileStorageKey, JSON.stringify(profile));
+    } catch {
+      // Pension profile memory is optional.
+    }
+  }
+
+  function restorePensionProfile() {
+    const profile = readPensionProfile();
+    if (!profile) return false;
+    if (pensionBirthDate && typeof profile.birthDate === "string") {
+      pensionBirthDate.value = normalizeBirthDateText(profile.birthDate);
+    }
+    if (pensionSetCount && profile.setCount != null) {
+      pensionSetCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
+    }
+    selectValueIfAvailable(pensionPersonalWeight, profile.personalWeight);
+    return true;
+  }
+
   function boundedCacheGet(cache, key, compute, limit = 12) {
     if (cache.has(key)) return cache.get(key);
 
@@ -1027,12 +1084,12 @@
 
   function getCachedLearningProfile(saju) {
     const key = ["learning", birthStateKey(interpretationMode.value), recentWindow.value].join("|");
-    return boundedCacheGet(learningProfileCache, key, () => buildLearningProfile(saju), 10);
+    return boundedCacheGet(lottoState.learningProfileCache, key, () => buildLearningProfile(saju), 10);
   }
 
   function getCachedPersonalPortfolio() {
     const key = ["portfolio", birthStateKey("all")].join("|");
-    return boundedCacheGet(personalPortfolioCache, key, buildPersonalPortfolio, 8);
+    return boundedCacheGet(lottoState.personalPortfolioCache, key, buildPersonalPortfolio, 8);
   }
 
   function normalizeBirthDateText(value) {
@@ -2892,7 +2949,7 @@
   }
 
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
-    generation += 1;
+    lottoState.generation += 1;
     const seed = hashString(
       [
         birthDate.value,
@@ -2908,7 +2965,7 @@
         userRegionLabel,
         walkRange.value,
         userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
-        generation,
+        lottoState.generation,
         Date.now(),
       ].join("|"),
     );
@@ -3007,6 +3064,221 @@
     };
   }
 
+  function derivePensionLuckyDigits(birthText) {
+    const normalized = normalizeBirthDateText(birthText);
+    const parsed = parseIsoDateParts(normalized);
+    const source = parsed
+      ? `${parsed.year}${String(parsed.month).padStart(2, "0")}${String(parsed.day).padStart(2, "0")}`
+      : dateToIso(new Date()).replace(/\D/g, "");
+    const digits = source.split("").map(Number).filter(Number.isFinite);
+    const picks = new Set();
+    const sum = digits.reduce((total, digit) => total + digit, 0);
+    picks.add(sum % 10);
+    picks.add((sum + digits[0] + 3) % 10);
+    picks.add((sum + digits.at(-1) + 7) % 10);
+
+    for (const digit of digits) {
+      if (picks.size >= 5) break;
+      picks.add((digit + sum) % 10);
+    }
+
+    return [...picks].slice(0, 5);
+  }
+
+  function makePensionCandidate(rng) {
+    const group = Math.floor(rng() * 5) + 1;
+    const digits = Array.from({ length: 6 }, () => Math.floor(rng() * 10));
+    return { group, digits };
+  }
+
+  function pensionCandidateKey(candidate) {
+    return `${candidate.group}-${candidate.digits.join("")}`;
+  }
+
+  function scorePensionCandidate(candidate, luckyDigits, personalWeight) {
+    const digits = candidate.digits;
+    const sum = digits.reduce((total, digit) => total + digit, 0);
+    const odd = digits.filter((digit) => digit % 2 === 1).length;
+    const high = digits.filter((digit) => digit >= 5).length;
+    const unique = new Set(digits).size;
+    const counts = Object.values(
+      digits.reduce((bucket, digit) => {
+        bucket[digit] = (bucket[digit] ?? 0) + 1;
+        return bucket;
+      }, {}),
+    );
+    const maxRepeat = Math.max(...counts);
+    const adjacent = digits
+      .slice(1)
+      .filter((digit, index) => Math.abs(digit - digits[index]) === 1).length;
+    const tail = digits.slice(-3);
+    const tailUnique = new Set(tail).size;
+    const luckyHits = digits.filter((digit) => luckyDigits.includes(digit)).length;
+
+    const sumFit = clamp(1 - Math.abs(sum - 27) / 22);
+    const oddFit = odd === 3 ? 1 : odd === 2 || odd === 4 ? 0.86 : 0.58;
+    const highFit = high === 3 ? 1 : high === 2 || high === 4 ? 0.86 : 0.58;
+    const uniqueFit = unique >= 4 && unique <= 5 ? 1 : unique === 3 || unique === 6 ? 0.78 : 0.46;
+    const repeatFit = maxRepeat <= 2 ? 1 : maxRepeat === 3 ? 0.7 : 0.38;
+    const adjacentFit = adjacent <= 2 ? 1 : adjacent === 3 ? 0.72 : 0.45;
+    const tailFit = tailUnique >= 2 ? 1 : 0.45;
+    const personalFit = clamp(luckyHits / 3);
+    const groupFit = luckyDigits.includes(candidate.group + 4) ? 0.9 : 0.78;
+    const base =
+      sumFit * 0.2 +
+      oddFit * 0.14 +
+      highFit * 0.14 +
+      uniqueFit * 0.18 +
+      repeatFit * 0.14 +
+      adjacentFit * 0.08 +
+      tailFit * 0.08 +
+      groupFit * 0.04;
+    const weight = clamp(Number(personalWeight) / 100, 0, 0.75);
+    const score = base * (1 - weight * 0.32) + personalFit * weight * 0.32;
+
+    return {
+      score: Math.round(score * 1000) / 10,
+      sum,
+      odd,
+      high,
+      unique,
+      maxRepeat,
+      luckyHits,
+      tail: tail.join(""),
+    };
+  }
+
+  function generatePensionRecommendations() {
+    pensionState.generation += 1;
+    const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
+    const luckyDigits = derivePensionLuckyDigits(pensionBirthDate?.value ?? "");
+    const personalWeight = Number(pensionPersonalWeight?.value) || 0;
+    const seed = hashString(
+      [
+        "pension",
+        pensionBirthDate?.value ?? "",
+        pensionSetCount?.value ?? "5",
+        pensionPersonalWeight?.value ?? "25",
+        dateToIso(new Date()),
+        pensionState.generation,
+        Date.now(),
+      ].join("|"),
+    );
+    const rng = mulberry32(seed);
+    const candidateMap = new Map();
+    const candidateBudget = 2400;
+
+    for (let index = 0; index < candidateBudget; index += 1) {
+      const candidate = makePensionCandidate(rng);
+      const key = pensionCandidateKey(candidate);
+      if (candidateMap.has(key)) continue;
+      candidateMap.set(key, {
+        ...candidate,
+        meta: scorePensionCandidate(candidate, luckyDigits, personalWeight),
+      });
+    }
+
+    const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const selected = [];
+    const groupCount = new Map();
+
+    for (const candidate of ranked) {
+      const count = groupCount.get(candidate.group) ?? 0;
+      if (count >= Math.ceil(target / 3)) continue;
+      selected.push(candidate);
+      groupCount.set(candidate.group, count + 1);
+      if (selected.length >= target) break;
+    }
+
+    for (const candidate of ranked) {
+      if (selected.length >= target) break;
+      if (!selected.some((item) => pensionCandidateKey(item) === pensionCandidateKey(candidate))) {
+        selected.push(candidate);
+      }
+    }
+
+    return {
+      items: selected,
+      pool: ranked.slice(0, Math.max(target * 80, 300)),
+      candidateCount: ranked.length,
+      luckyDigits,
+      personalWeight,
+      selectedCount: selected.length,
+    };
+  }
+
+  function renderPensionStats(result, shownCount = result?.selectedCount ?? 0) {
+    if (!pensionStats || !result) return;
+    pensionStats.innerHTML = `
+      <div class="candidate-hero-stat">
+        <span>연금복권 후보</span>
+        <strong>${formatNumber(result.candidateCount)}개</strong>
+        <em>지금 화면에는 ${formatNumber(shownCount)}장만 보여줍니다</em>
+      </div>
+      <div class="candidate-stat-card">
+        <span>개인 숫자</span>
+        <strong>${result.luckyDigits.join(", ")}</strong>
+      </div>
+      <div class="candidate-stat-card">
+        <span>개인 반영</span>
+        <strong>${result.personalWeight}%</strong>
+      </div>
+      <div class="candidate-stat-card">
+        <span>추천 방식</span>
+        <strong>자리 균형</strong>
+      </div>
+    `;
+  }
+
+  function renderPensionRecommendations(result, options = {}) {
+    if (!pensionRecommendations || !result) return;
+    const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
+    const items = options.randomize
+      ? pickRandomCandidates(result.pool, target, pensionState.generation)
+      : result.items;
+    renderPensionStats(result, items.length);
+
+    if (pensionShuffle) {
+      pensionShuffle.disabled = !result.pool?.length;
+      pensionShuffle.textContent = options.randomize ? "다른 후보 랜덤 배치" : "후보 랜덤 배치";
+    }
+
+    pensionRecommendations.innerHTML = items
+      .map((item, index) => {
+        const digits = item.digits.map((digit) => `<span class="pension-digit">${digit}</span>`).join("");
+        return `
+          <article class="pension-card">
+            <div class="pension-card-head">
+              <div>
+                <span class="pension-group-badge">${item.group}조</span>
+                <strong>${index + 1}번 추천</strong>
+              </div>
+              <span class="pension-score-pill"><small>분산점수</small><b>${item.meta.score}</b></span>
+            </div>
+            <div class="pension-number-line">${digits}</div>
+            <p>끝 3자리는 ${item.meta.tail}, 숫자 합은 ${item.meta.sum}입니다. 반복은 최대 ${item.meta.maxRepeat}회라 한쪽으로 너무 몰리지 않은 조합입니다.</p>
+            <div class="pension-chip-line">
+              <span>홀 ${item.meta.odd} / 짝 ${6 - item.meta.odd}</span>
+              <span>높은숫자 ${item.meta.high}</span>
+              <span>개인숫자 ${item.meta.luckyHits}개</span>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  function refreshPension(options = {}) {
+    if (!pensionForm) return;
+    if (pensionBirthDate?.value) {
+      pensionBirthDate.value = normalizeBirthDateText(pensionBirthDate.value);
+    }
+    const result = generatePensionRecommendations();
+    pensionState.lastResult = result;
+    renderPensionRecommendations(result, options);
+    savePensionProfile();
+  }
+
   function renderBall(number) {
     return `<span class="ball ${rangeClass(number)}">${number}</span>`;
   }
@@ -3015,9 +3287,9 @@
     return `<b class="audit-ball ${rangeClass(number)}">${number}</b>`;
   }
 
-  function pickRandomCandidates(pool, target) {
+  function pickRandomCandidates(pool, target, seedSalt = lottoState.generation) {
     const candidates = [...pool];
-    const rng = mulberry32(hashString(`${Date.now()}-${generation}-${Math.random()}`));
+    const rng = mulberry32(hashString(`${Date.now()}-${seedSalt}-${Math.random()}`));
     const picked = [];
 
     while (candidates.length && picked.length < target) {
@@ -3207,7 +3479,7 @@
     ].join("|");
 
     return boundedCacheGet(
-      replayCandidateCache,
+      lottoState.replayCandidateCache,
       key,
       () => {
         const drawIndex = drawIndexOf(draw);
@@ -4789,15 +5061,15 @@
     const result = options.forceNew
       ? generateRecommendations(stats, scores, saju, learningProfile)
       : boundedCacheGet(
-          recommendationResultCache,
+          lottoState.recommendationResultCache,
           resultKey,
           () => generateRecommendations(stats, scores, saju, learningProfile),
           8,
         );
     if (options.forceNew) {
-      recommendationResultCache.set(resultKey, result);
-      while (recommendationResultCache.size > 8) {
-        recommendationResultCache.delete(recommendationResultCache.keys().next().value);
+      lottoState.recommendationResultCache.set(resultKey, result);
+      while (lottoState.recommendationResultCache.size > 8) {
+        lottoState.recommendationResultCache.delete(lottoState.recommendationResultCache.keys().next().value);
       }
     }
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
@@ -4807,7 +5079,7 @@
     document.querySelector("#scoreSummary").textContent =
       `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
 
-    lastRecommendationResult = result;
+    lottoState.lastResult = result;
     renderRecommendations(result);
     renderRecommendationAudit(learningProfile);
     if (options.skipPortfolio) {
@@ -4972,9 +5244,9 @@
   }
 
   function scheduleRefresh(options = {}, delay = 180) {
-    window.clearTimeout(refreshTimer);
-    refreshTimer = window.setTimeout(() => {
-      refreshTimer = null;
+    window.clearTimeout(lottoState.refreshTimer);
+    lottoState.refreshTimer = window.setTimeout(() => {
+      lottoState.refreshTimer = null;
       const refreshOptions = { skipPortfolio: true, ...options };
       refresh(refreshOptions);
       if (refreshOptions.skipPortfolio) scheduleDeferredPersonalReplay();
@@ -4982,9 +5254,9 @@
   }
 
   function scheduleDeferredPersonalReplay(delay = 720) {
-    window.clearTimeout(deferredPortfolioTimer);
-    deferredPortfolioTimer = window.setTimeout(() => {
-      deferredPortfolioTimer = null;
+    window.clearTimeout(lottoState.deferredPortfolioTimer);
+    lottoState.deferredPortfolioTimer = window.setTimeout(() => {
+      lottoState.deferredPortfolioTimer = null;
       renderCandidateAuditSummary(null, null);
     }, delay);
   }
@@ -4999,9 +5271,9 @@
   }
 
   function scheduleStartupAutoSettings(delay = 1100) {
-    window.clearTimeout(startupAutoTimer);
-    startupAutoTimer = window.setTimeout(() => {
-      startupAutoTimer = null;
+    window.clearTimeout(lottoState.startupAutoTimer);
+    lottoState.startupAutoTimer = window.setTimeout(() => {
+      lottoState.startupAutoTimer = null;
       const setting = applyAutoSajuSettings();
       if (setting) {
         saveProfile();
@@ -5011,6 +5283,20 @@
         scheduleDeferredPersonalReplay(120);
       }
     }, delay);
+  }
+
+  function switchGame(game) {
+    const pensionActive = game === "pension";
+    gameTabs.forEach((tab) => {
+      tab.classList.toggle("is-active", tab.dataset.game === game);
+    });
+    if (lottoWorkspace) lottoWorkspace.hidden = pensionActive;
+    if (pensionWorkspace) pensionWorkspace.hidden = !pensionActive;
+    hideHelp();
+
+    if (pensionActive && !pensionState.lastResult) {
+      refreshPension();
+    }
   }
 
   async function applyCurrentLocation(position) {
@@ -5030,6 +5316,7 @@
     setupHelpButtons();
     registerServiceWorker();
     restoreProfile();
+    restorePensionProfile();
     clampBirthDateInput();
     updateBirthCalendarPreview();
     renderStaticSummary();
@@ -5042,7 +5329,7 @@
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      window.clearTimeout(refreshTimer);
+      window.clearTimeout(lottoState.refreshTimer);
       if (!clampBirthDateInput()) {
         birthDate.setCustomValidity("생년월일을 1998-08-27처럼 입력해주세요.");
         birthDate.reportValidity();
@@ -5051,6 +5338,50 @@
       applyAutoSajuSettings();
       saveProfile();
       refresh({ forceNew: true });
+    });
+
+    gameTabs.forEach((button) => {
+      button.addEventListener("click", () => switchGame(button.dataset.game || "lotto"));
+    });
+
+    pensionForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      refreshPension();
+    });
+
+    for (const control of [pensionSetCount, pensionPersonalWeight]) {
+      control?.addEventListener("input", () => {
+        savePensionProfile();
+        refreshPension();
+      });
+      control?.addEventListener("change", () => {
+        savePensionProfile();
+        refreshPension();
+      });
+    }
+
+    pensionBirthDate?.addEventListener("focus", () => {
+      pensionBirthDate.dataset.previousValue = pensionBirthDate.value || "";
+      pensionBirthDate.value = "";
+    });
+
+    pensionBirthDate?.addEventListener("input", () => {
+      pensionBirthDate.value = normalizeBirthDateText(pensionBirthDate.value);
+    });
+
+    pensionBirthDate?.addEventListener("blur", () => {
+      if (!pensionBirthDate.value.trim()) {
+        pensionBirthDate.value = pensionBirthDate.dataset.previousValue || "";
+      } else {
+        pensionBirthDate.value = normalizeBirthDateText(pensionBirthDate.value);
+      }
+      savePensionProfile();
+      refreshPension();
+    });
+
+    pensionShuffle?.addEventListener("click", () => {
+      if (!pensionState.lastResult?.pool?.length) return;
+      renderPensionRecommendations(pensionState.lastResult, { randomize: true });
     });
 
     for (const control of [
@@ -5079,7 +5410,7 @@
     }
 
     birthDate.addEventListener("input", () => {
-      window.clearTimeout(refreshTimer);
+      window.clearTimeout(lottoState.refreshTimer);
       birthDate.setCustomValidity("");
     });
 
@@ -5093,7 +5424,7 @@
     });
 
     birthDate.addEventListener("focus", () => {
-      window.clearTimeout(refreshTimer);
+      window.clearTimeout(lottoState.refreshTimer);
       birthDate.dataset.previousValue = birthDate.value || birthDate.dataset.previousValue || "1990-01-01";
       birthDate.value = "";
       birthDate.setCustomValidity("");
@@ -5139,8 +5470,8 @@
     });
 
     shuffleCandidates?.addEventListener("click", () => {
-      if (!lastRecommendationResult?.pool?.length) return;
-      renderRecommendations(lastRecommendationResult, { randomize: true });
+      if (!lottoState.lastResult?.pool?.length) return;
+      renderRecommendations(lottoState.lastResult, { randomize: true });
     });
 
     useLocation.addEventListener("click", () => {

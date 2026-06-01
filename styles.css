@@ -221,6 +221,33 @@ label {
   font-size: 0.72rem;
 }
 
+.game-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(24, 169, 153, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 6px;
+  box-shadow: 0 10px 26px rgba(40, 91, 103, 0.08);
+}
+
+.game-tab {
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.game-tab.is-active {
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(24, 169, 153, 0.18);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
@@ -2484,6 +2511,168 @@ button:focus-visible {
   margin-top: 6px;
 }
 
+.pension-workspace {
+  align-items: start;
+}
+
+.pension-intro {
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.92), rgba(239, 246, 255, 0.88));
+}
+
+.pension-action {
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+}
+
+.pension-recommendations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pension-card {
+  border: 1px solid rgba(91, 141, 239, 0.2);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 250, 247, 0.72));
+  padding: 15px;
+  box-shadow: 0 12px 24px rgba(40, 91, 103, 0.08);
+}
+
+.pension-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pension-card-head strong {
+  font-size: 1rem;
+}
+
+.pension-group-badge,
+.pension-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.pension-group-badge {
+  min-width: 54px;
+  min-height: 34px;
+  background: rgba(232, 250, 247, 0.95);
+  color: var(--teal-dark);
+}
+
+.pension-score-pill {
+  min-width: 62px;
+  min-height: 34px;
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(239, 246, 255, 0.95);
+  color: #3465c9;
+  line-height: 1.05;
+  padding: 5px 9px;
+}
+
+.pension-score-pill small {
+  color: #66708a;
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.pension-score-pill b {
+  font-size: 1rem;
+}
+
+.pension-number-line {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(34px, 1fr));
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.pension-digit {
+  display: grid;
+  aspect-ratio: 1;
+  min-width: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), #7ba7ff);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pension-card p {
+  margin: 0 0 10px;
+  color: #565d72;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.pension-chip-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pension-chip-line span {
+  border-radius: 999px;
+  background: rgba(232, 250, 247, 0.9);
+  color: var(--teal-dark);
+  padding: 6px 9px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.pension-rule-list {
+  display: grid;
+  gap: 9px;
+}
+
+.pension-rule-list div {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 9px;
+}
+
+.pension-rule-list div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pension-rule-list strong {
+  color: var(--teal-dark);
+  font-weight: 950;
+}
+
+.pension-rule-list span,
+.pension-note-card p {
+  color: #565d72;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.pension-note-card {
+  border: 1px solid rgba(24, 169, 153, 0.18);
+  border-radius: 8px;
+  background: rgba(232, 250, 247, 0.64);
+  padding: 13px;
+}
+
+.pension-note-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     padding: 20px;
@@ -2493,7 +2682,8 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .workspace {
+  .workspace,
+  .pension-recommendations {
     grid-template-columns: 1fr;
   }
 
@@ -2543,6 +2733,16 @@ button:focus-visible {
   .quick-guide {
     margin-bottom: 10px;
     padding: 12px;
+  }
+
+  .game-tabs {
+    margin-bottom: 10px;
+    padding: 5px;
+  }
+
+  .game-tab {
+    min-height: 46px;
+    font-size: 0.9rem;
   }
 
   .quick-guide ol {
