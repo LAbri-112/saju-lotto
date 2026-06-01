@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v51" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v52" />
   </head>
   <body>
     <main class="app-shell">
@@ -56,7 +56,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="birthDate">생년월일</label>
-                  <button class="help-button" type="button" data-help="태어난 날짜로 기본 성향과 오늘 운세 흐름을 가볍게 읽습니다. 양력/음력을 선택할 수 있고, 입력값은 이 기기에만 저장됩니다. 추천 번호는 통계 분포가 중심이고 사주는 개인화 보정으로 쓰입니다.">?</button>
+                  <button class="help-button" type="button" data-help="태어난 날짜로 기본 성향과 오늘 운세 흐름을 읽습니다. 월주는 단순 음력월이 아니라 24절기 절입 기준으로 계산합니다. 양력/음력을 선택할 수 있고, 입력값은 이 기기에만 저장됩니다. 추천 번호는 통계 분포가 중심이고 사주는 개인화 보정으로 쓰입니다.">?</button>
                 </div>
                 <input id="birthDate" name="birthDate" type="text" value="1990-01-01" inputmode="numeric" autocomplete="bday" enterkeyhint="done" maxlength="12" placeholder="1998-08-27" />
               </div>
@@ -102,7 +102,7 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="birthPlace">출생지역</label>
-                <button class="help-button" type="button" data-help="한국 표준시는 동경 135도 기준입니다. 실제 출생지는 이보다 서쪽인 경우가 많아서, 지역 경도 차이만큼 태양시가 몇 분 늦어집니다. 예를 들어 서울은 약 -32분, 원주는 약 -28분 보정됩니다. 1987~1988년처럼 서머타임이 있던 기간은 법정시에서 1시간을 되돌려 계산합니다.">?</button>
+                <button class="help-button" type="button" data-help="한국 표준시는 동경 135도 기준입니다. 실제 출생지는 이보다 서쪽인 경우가 많아서, 지역 경도 차이만큼 태양시가 몇 분 늦어집니다. 예를 들어 서울은 약 -32분, 원주는 약 -28분 보정됩니다. 1987~1988년처럼 서머타임이 있던 기간은 법정시에서 1시간을 되돌려 계산합니다. 출생지역을 모르면 '출생지역 모름'을 쓰면 됩니다.">?</button>
               </div>
               <select id="birthPlace" name="birthPlace">
                 <option value="unknown">출생지역 모름</option>
@@ -428,7 +428,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v51"></script>
-    <script defer src="app.js?v=feedback-v51"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v52"></script>
+    <script defer src="app.js?v=feedback-v52"></script>
   </body>
 </html>

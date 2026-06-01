@@ -1689,6 +1689,10 @@ button:focus-visible {
   align-self: start;
 }
 
+.reading-row .tag-line {
+  grid-column: 2 / -1;
+}
+
 .metric {
   min-height: 86px;
   padding: 14px;
@@ -2796,6 +2800,10 @@ button:focus-visible {
   }
 
   .reading-row .mini-audit-balls {
+    grid-column: 1 / -1;
+  }
+
+  .reading-row .tag-line {
     grid-column: 1 / -1;
   }
 

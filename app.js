@@ -167,6 +167,114 @@
     { start: [1988, 5, 8, 2, 0], end: [1988, 10, 9, 3, 0] },
   ];
 
+  const solarMonthTerms = [
+    { key: "lichun", label: "입춘", longitude: 315, approxMonth: 2, approxDay: 4, monthNo: 1, branchIndex: 2, season: "spring" },
+    { key: "jingzhe", label: "경칩", longitude: 345, approxMonth: 3, approxDay: 6, monthNo: 2, branchIndex: 3, season: "spring" },
+    { key: "qingming", label: "청명", longitude: 15, approxMonth: 4, approxDay: 5, monthNo: 3, branchIndex: 4, season: "spring" },
+    { key: "lixia", label: "입하", longitude: 45, approxMonth: 5, approxDay: 6, monthNo: 4, branchIndex: 5, season: "summer" },
+    { key: "mangzhong", label: "망종", longitude: 75, approxMonth: 6, approxDay: 6, monthNo: 5, branchIndex: 6, season: "summer" },
+    { key: "xiaoshu", label: "소서", longitude: 105, approxMonth: 7, approxDay: 7, monthNo: 6, branchIndex: 7, season: "summer" },
+    { key: "liqiu", label: "입추", longitude: 135, approxMonth: 8, approxDay: 8, monthNo: 7, branchIndex: 8, season: "autumn" },
+    { key: "bailu", label: "백로", longitude: 165, approxMonth: 9, approxDay: 8, monthNo: 8, branchIndex: 9, season: "autumn" },
+    { key: "hanlu", label: "한로", longitude: 195, approxMonth: 10, approxDay: 8, monthNo: 9, branchIndex: 10, season: "autumn" },
+    { key: "lidong", label: "입동", longitude: 225, approxMonth: 11, approxDay: 7, monthNo: 10, branchIndex: 11, season: "winter" },
+    { key: "daxue", label: "대설", longitude: 255, approxMonth: 12, approxDay: 7, monthNo: 11, branchIndex: 0, season: "winter" },
+    { key: "xiaohan", label: "소한", longitude: 285, approxMonth: 1, approxDay: 5, monthNo: 12, branchIndex: 1, season: "winter" },
+  ];
+
+  const stemCombinationRules = [
+    { pair: [0, 5], element: "earth", label: "갑기합 토" },
+    { pair: [1, 6], element: "metal", label: "을경합 금" },
+    { pair: [2, 7], element: "water", label: "병신합 수" },
+    { pair: [3, 8], element: "wood", label: "정임합 목" },
+    { pair: [4, 9], element: "fire", label: "무계합 화" },
+  ];
+
+  const stemClashRules = [
+    { pair: [0, 6], label: "갑경충" },
+    { pair: [1, 7], label: "을신충" },
+    { pair: [2, 8], label: "병임충" },
+    { pair: [3, 9], label: "정계충" },
+  ];
+
+  const branchCombinationRules = [
+    { pair: [0, 1], element: "earth", label: "자축합 토" },
+    { pair: [2, 11], element: "wood", label: "인해합 목" },
+    { pair: [3, 10], element: "fire", label: "묘술합 화" },
+    { pair: [4, 9], element: "metal", label: "진유합 금" },
+    { pair: [5, 8], element: "water", label: "사신합 수" },
+    { pair: [6, 7], element: "earth", label: "오미합 토" },
+  ];
+
+  const branchClashRules = [
+    { pair: [0, 6], label: "자오충" },
+    { pair: [1, 7], label: "축미충" },
+    { pair: [2, 8], label: "인신충" },
+    { pair: [3, 9], label: "묘유충" },
+    { pair: [4, 10], label: "진술충" },
+    { pair: [5, 11], label: "사해충" },
+  ];
+
+  const branchHarmRules = [
+    { pair: [0, 7], label: "자미해" },
+    { pair: [1, 6], label: "축오해" },
+    { pair: [2, 5], label: "인사해" },
+    { pair: [3, 4], label: "묘진해" },
+    { pair: [8, 11], label: "신해해" },
+    { pair: [9, 10], label: "유술해" },
+  ];
+
+  const threeHarmonyRules = [
+    { branches: [8, 0, 4], element: "water", label: "신자진 수국" },
+    { branches: [11, 3, 7], element: "wood", label: "해묘미 목국" },
+    { branches: [2, 6, 10], element: "fire", label: "인오술 화국" },
+    { branches: [5, 9, 1], element: "metal", label: "사유축 금국" },
+  ];
+
+  const seasonalHarmonyRules = [
+    { branches: [2, 3, 4], element: "wood", label: "인묘진 방합" },
+    { branches: [5, 6, 7], element: "fire", label: "사오미 방합" },
+    { branches: [8, 9, 10], element: "metal", label: "신유술 방합" },
+    { branches: [11, 0, 1], element: "water", label: "해자축 방합" },
+  ];
+
+  const voidBranchGroups = [
+    [10, 11],
+    [8, 9],
+    [6, 7],
+    [4, 5],
+    [2, 3],
+    [0, 1],
+  ];
+
+  const nobleBranchesByStem = {
+    0: [1, 7],
+    1: [0, 8],
+    2: [11, 9],
+    3: [11, 9],
+    4: [1, 7],
+    5: [0, 8],
+    6: [1, 7],
+    7: [2, 6],
+    8: [3, 5],
+    9: [3, 5],
+  };
+
+  const wenchangBranchByStem = {
+    0: 5,
+    1: 6,
+    2: 8,
+    3: 9,
+    4: 8,
+    5: 9,
+    6: 11,
+    7: 0,
+    8: 2,
+    9: 3,
+  };
+
+  const solarTermCache = new Map();
+
   const luckyCatalog = {
     wood: {
       colors: ["세이지 그린", "청록", "밝은 데님"],
@@ -586,6 +694,96 @@
       month: "numeric",
       day: "numeric",
     }).format(date);
+  }
+
+  function degToRad(value) {
+    return (value * Math.PI) / 180;
+  }
+
+  function normalizeDegrees(value) {
+    return mod(value, 360);
+  }
+
+  function signedAngleDistance(longitude, target) {
+    return mod(longitude - target + 540, 360) - 180;
+  }
+
+  function sunApparentLongitude(date) {
+    const jd = date.getTime() / 86400000 + 2440587.5;
+    const t = (jd - 2451545) / 36525;
+    const meanLongitude = normalizeDegrees(280.46646 + 36000.76983 * t + 0.0003032 * t * t);
+    const meanAnomaly = normalizeDegrees(357.52911 + 35999.05029 * t - 0.0001537 * t * t);
+    const equationOfCenter =
+      (1.914602 - 0.004817 * t - 0.000014 * t * t) * Math.sin(degToRad(meanAnomaly)) +
+      (0.019993 - 0.000101 * t) * Math.sin(degToRad(2 * meanAnomaly)) +
+      0.000289 * Math.sin(degToRad(3 * meanAnomaly));
+    const trueLongitude = meanLongitude + equationOfCenter;
+    const omega = 125.04 - 1934.136 * t;
+    return normalizeDegrees(trueLongitude - 0.00569 - 0.00478 * Math.sin(degToRad(omega)));
+  }
+
+  function kstPartsFromUtc(date) {
+    const kst = new Date(date.getTime() + 9 * 60 * 60000);
+    return {
+      year: kst.getUTCFullYear(),
+      month: kst.getUTCMonth() + 1,
+      day: kst.getUTCDate(),
+      hour: kst.getUTCHours(),
+      minute: kst.getUTCMinutes(),
+    };
+  }
+
+  function localTimestamp(year, month, day, hour = 0, minute = 0) {
+    return Date.UTC(year, month - 1, day, hour, minute);
+  }
+
+  function solarTermBoundary(term, year) {
+    const key = `${year}:${term.key}`;
+    if (solarTermCache.has(key)) return solarTermCache.get(key);
+
+    let low = Date.UTC(year, term.approxMonth - 1, term.approxDay - 4, 0, 0);
+    let high = Date.UTC(year, term.approxMonth - 1, term.approxDay + 4, 23, 59);
+    let lowValue = signedAngleDistance(sunApparentLongitude(new Date(low)), term.longitude);
+    let highValue = signedAngleDistance(sunApparentLongitude(new Date(high)), term.longitude);
+
+    for (let tries = 0; tries < 4 && !(lowValue <= 0 && highValue >= 0); tries += 1) {
+      low -= 2 * 86400000;
+      high += 2 * 86400000;
+      lowValue = signedAngleDistance(sunApparentLongitude(new Date(low)), term.longitude);
+      highValue = signedAngleDistance(sunApparentLongitude(new Date(high)), term.longitude);
+    }
+
+    for (let i = 0; i < 46; i += 1) {
+      const mid = Math.floor((low + high) / 2);
+      const value = signedAngleDistance(sunApparentLongitude(new Date(mid)), term.longitude);
+      if (value < 0) low = mid;
+      else high = mid;
+    }
+
+    const utcDate = new Date(Math.floor((low + high) / 2));
+    const parts = kstPartsFromUtc(utcDate);
+    const boundary = {
+      ...term,
+      utcDate,
+      localParts: parts,
+      localTs: localTimestamp(parts.year, parts.month, parts.day, parts.hour, parts.minute),
+    };
+    solarTermCache.set(key, boundary);
+    return boundary;
+  }
+
+  function solarTermBoundariesAround(year) {
+    return [year - 1, year, year + 1]
+      .flatMap((targetYear) => solarMonthTerms.map((term) => solarTermBoundary(term, targetYear)))
+      .sort((a, b) => a.localTs - b.localTs);
+  }
+
+  function formatSolarTerm(boundary) {
+    const parts = boundary.localParts;
+    return `${boundary.label} ${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(
+      2,
+      "0",
+    )} ${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
   }
 
   function dateToIso(date) {
@@ -1660,20 +1858,190 @@
     };
   }
 
+  function pillarKindLabel(kind) {
+    return (
+      {
+        year: "년주",
+        month: "월주",
+        day: "일주",
+        hour: "시주",
+      }[kind] ?? kind
+    );
+  }
+
+  function samePair(pair, a, b) {
+    return pair.includes(a) && pair.includes(b);
+  }
+
+  function matchingPairRule(rules, a, b) {
+    return rules.find((rule) => samePair(rule.pair, a, b));
+  }
+
+  function branchGroupFrom(baseBranch) {
+    if ([2, 6, 10].includes(baseBranch)) return "fire";
+    if ([8, 0, 4].includes(baseBranch)) return "water";
+    if ([11, 3, 7].includes(baseBranch)) return "wood";
+    return "metal";
+  }
+
+  function peachBlossomBranch(baseBranch) {
+    return { fire: 3, water: 9, wood: 0, metal: 6 }[branchGroupFrom(baseBranch)];
+  }
+
+  function travelHorseBranch(baseBranch) {
+    return { fire: 8, water: 2, wood: 5, metal: 11 }[branchGroupFrom(baseBranch)];
+  }
+
+  function buildSajuInteractions(pillars, dayIndex, dayStem, dayBranch) {
+    const items = [];
+    const stars = [];
+    const branchSet = new Set(pillars.map((pillar) => pillar.branchIndex));
+    const voidBranches = voidBranchGroups[Math.floor(dayIndex / 10)] ?? [];
+    const labelPair = (left, right) => `${pillarKindLabel(left.kind)}·${pillarKindLabel(right.kind)}`;
+
+    for (let i = 0; i < pillars.length; i += 1) {
+      for (let j = i + 1; j < pillars.length; j += 1) {
+        const left = pillars[i];
+        const right = pillars[j];
+        const stemCombo = matchingPairRule(stemCombinationRules, left.stemIndex, right.stemIndex);
+        const stemClash = matchingPairRule(stemClashRules, left.stemIndex, right.stemIndex);
+        const branchCombo = matchingPairRule(branchCombinationRules, left.branchIndex, right.branchIndex);
+        const branchClash = matchingPairRule(branchClashRules, left.branchIndex, right.branchIndex);
+        const branchHarm = matchingPairRule(branchHarmRules, left.branchIndex, right.branchIndex);
+
+        if (stemCombo) {
+          items.push({
+            type: "천간합",
+            label: `${labelPair(left, right)} ${stemCombo.label}`,
+            element: stemCombo.element,
+            tone: "support",
+            weight: 0.22,
+          });
+        }
+        if (stemClash) {
+          items.push({
+            type: "천간충",
+            label: `${labelPair(left, right)} ${stemClash.label}`,
+            tone: "tension",
+          });
+        }
+        if (branchCombo) {
+          items.push({
+            type: "지지합",
+            label: `${labelPair(left, right)} ${branchCombo.label}`,
+            element: branchCombo.element,
+            tone: "support",
+            weight: 0.26,
+          });
+        }
+        if (branchClash) {
+          items.push({
+            type: "지지충",
+            label: `${labelPair(left, right)} ${branchClash.label}`,
+            tone: "tension",
+          });
+        }
+        if (branchHarm) {
+          items.push({
+            type: "지지해",
+            label: `${labelPair(left, right)} ${branchHarm.label}`,
+            tone: "tension",
+          });
+        }
+      }
+    }
+
+    for (const rule of threeHarmonyRules) {
+      if (rule.branches.every((branch) => branchSet.has(branch))) {
+        items.push({
+          type: "삼합",
+          label: rule.label,
+          element: rule.element,
+          tone: "support",
+          weight: 0.38,
+        });
+      }
+    }
+
+    for (const rule of seasonalHarmonyRules) {
+      if (rule.branches.every((branch) => branchSet.has(branch))) {
+        items.push({
+          type: "방합",
+          label: rule.label,
+          element: rule.element,
+          tone: "support",
+          weight: 0.32,
+        });
+      }
+    }
+
+    for (const pillar of pillars) {
+      if (voidBranches.includes(pillar.branchIndex)) {
+        items.push({
+          type: "공망",
+          label: `${pillarKindLabel(pillar.kind)} ${pillar.branchName} 공망`,
+          tone: "caution",
+        });
+      }
+    }
+
+    const nobleBranches = nobleBranchesByStem[dayStem] ?? [];
+    const nobleHits = pillars.filter((pillar) => nobleBranches.includes(pillar.branchIndex));
+    if (nobleHits.length) {
+      stars.push({
+        type: "천을귀인",
+        label: `천을귀인 ${nobleHits.map((pillar) => pillar.branchName).join(", ")}`,
+        tone: "support",
+      });
+    }
+
+    const wenchang = wenchangBranchByStem[dayStem];
+    const wenchangHits = pillars.filter((pillar) => pillar.branchIndex === wenchang);
+    if (wenchangHits.length) {
+      stars.push({
+        type: "문창귀인",
+        label: `문창귀인 ${branches[wenchang][0]}`,
+        tone: "support",
+      });
+    }
+
+    const peach = peachBlossomBranch(dayBranch);
+    const horse = travelHorseBranch(dayBranch);
+    if (pillars.some((pillar) => pillar.branchIndex === peach)) {
+      stars.push({ type: "도화", label: `도화 ${branches[peach][0]}`, tone: "notice" });
+    }
+    if (pillars.some((pillar) => pillar.branchIndex === horse)) {
+      stars.push({ type: "역마", label: `역마 ${branches[horse][0]}`, tone: "notice" });
+    }
+
+    return {
+      items,
+      stars,
+      voidBranches,
+      supportItems: items.filter((item) => item.tone === "support"),
+      tensionItems: items.filter((item) => item.tone === "tension"),
+    };
+  }
+
   function getSolarMonth(birth) {
-    const code = birth.month * 100 + birth.day;
-    if (code >= 1207 || code < 106) return { monthNo: 11, branchIndex: 0, season: "winter" };
-    if (code >= 106 && code < 204) return { monthNo: 12, branchIndex: 1, season: "winter" };
-    if (code >= 204 && code < 306) return { monthNo: 1, branchIndex: 2, season: "spring" };
-    if (code >= 306 && code < 405) return { monthNo: 2, branchIndex: 3, season: "spring" };
-    if (code >= 405 && code < 506) return { monthNo: 3, branchIndex: 4, season: "spring" };
-    if (code >= 506 && code < 606) return { monthNo: 4, branchIndex: 5, season: "summer" };
-    if (code >= 606 && code < 707) return { monthNo: 5, branchIndex: 6, season: "summer" };
-    if (code >= 707 && code < 808) return { monthNo: 6, branchIndex: 7, season: "summer" };
-    if (code >= 808 && code < 908) return { monthNo: 7, branchIndex: 8, season: "autumn" };
-    if (code >= 908 && code < 1008) return { monthNo: 8, branchIndex: 9, season: "autumn" };
-    if (code >= 1008 && code < 1107) return { monthNo: 9, branchIndex: 10, season: "autumn" };
-    return { monthNo: 10, branchIndex: 11, season: "winter" };
+    const birthTs = localTimestamp(birth.year, birth.month, birth.day, birth.hour, birth.minute);
+    const boundaries = solarTermBoundariesAround(birth.year);
+    const entered = boundaries.filter((boundary) => boundary.localTs <= birthTs).at(-1);
+    const next = boundaries.find((boundary) => boundary.localTs > birthTs);
+    const fallback = solarMonthTerms[0];
+
+    return {
+      ...(entered ?? fallback),
+      enteredAt: entered,
+      nextTerm: next,
+      precision: "태양 황경 근사 절입",
+    };
+  }
+
+  function getSajuSolarYear(birth) {
+    const birthTs = localTimestamp(birth.year, birth.month, birth.day, birth.hour, birth.minute);
+    const lichun = solarTermBoundary(solarMonthTerms[0], birth.year);
+    return birthTs >= lichun.localTs ? birth.year : birth.year - 1;
   }
 
   function tenGod(dayStemIndex, targetStemIndex) {
@@ -1700,8 +2068,7 @@
   function buildSajuProfile(modeOverride = interpretationMode.value) {
     const birth = parseBirth();
     const solarMonth = getSolarMonth(birth);
-    const code = birth.month * 100 + birth.day;
-    const solarYear = code < 204 ? birth.year - 1 : birth.year;
+    const solarYear = getSajuSolarYear(birth);
     const yearIndex = mod(solarYear - 4, 60);
     const yearStem = mod(yearIndex, 10);
     const yearBranch = mod(yearIndex, 12);
@@ -1726,6 +2093,7 @@
       pillars.push(makePillar("hour", hourStem, hourBranch));
     }
 
+    const interactions = buildSajuInteractions(pillars, dayIndex, dayStem, dayBranch);
     const counts = {
       wood: 0,
       fire: 0,
@@ -1748,6 +2116,10 @@
         counts[element] += hiddenWeight;
         tenGodCounts[tenGod(dayStem, hidden.stem)] += hiddenWeight;
       }
+    }
+
+    for (const item of interactions.supportItems) {
+      if (item.element) counts[item.element] += item.weight ?? 0.2;
     }
 
     const dayElement = stems[dayStem][1];
@@ -1791,6 +2163,15 @@
     if (["인", "묘", "진"].includes(monthBranch)) climateElement = "metal";
     if (climateElement) usefulScores[climateElement] += 0.45;
 
+    for (const item of interactions.supportItems) {
+      if (item.element) usefulScores[item.element] += 0.12;
+    }
+    if (interactions.stars.some((star) => star.type === "천을귀인")) usefulScores[resourceElement] += 0.16;
+    if (interactions.stars.some((star) => star.type === "문창귀인")) usefulScores[outputElement] += 0.12;
+    if (interactions.tensionItems.length) {
+      usefulScores[resourceElement] += Math.min(0.18, interactions.tensionItems.length * 0.04);
+    }
+
     if (modeOverride === "wealth") {
       usefulScores[wealthElement] += 0.72;
       usefulScores[outputElement] += 0.28;
@@ -1813,6 +2194,28 @@
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([key, value]) => ({ key, label: tenGodLabels[key], value }));
+    const now = new Date();
+    const flowBirth = {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      hour: 12,
+      minute: 0,
+    };
+    const flowSolarYear = getSajuSolarYear(flowBirth);
+    const flowYearIndex = mod(flowSolarYear - 4, 60);
+    const flowYearStem = mod(flowYearIndex, 10);
+    const flowYearBranch = mod(flowYearIndex, 12);
+    const flowMonth = getSolarMonth(flowBirth);
+    const flowFirstMonthStem = mod((flowYearStem % 5) * 2 + 2, 10);
+    const flowMonthStem = mod(flowFirstMonthStem + flowMonth.monthNo - 1, 10);
+    const annualFlow = {
+      year: makePillar("year", flowYearStem, flowYearBranch),
+      month: makePillar("month", flowMonthStem, flowMonth.branchIndex),
+      yearTenGod: tenGodLabels[tenGod(dayStem, flowYearStem)],
+      monthTenGod: tenGodLabels[tenGod(dayStem, flowMonthStem)],
+      monthTerm: flowMonth.enteredAt ? formatSolarTerm(flowMonth.enteredAt) : flowMonth.label,
+    };
 
     return {
       counts,
@@ -1832,10 +2235,16 @@
       strengthRatio,
       usefulScores,
       topTenGods,
+      interactions,
+      annualFlow,
       monthCommand: {
         branch: branches[solarMonth.branchIndex][0],
         element: branches[solarMonth.branchIndex][1],
         season: solarMonth.season,
+        term: solarMonth.enteredAt?.label ?? solarMonth.label,
+        enteredAtLabel: solarMonth.enteredAt ? formatSolarTerm(solarMonth.enteredAt) : "",
+        nextTermLabel: solarMonth.nextTerm ? formatSolarTerm(solarMonth.nextTerm) : "",
+        precision: solarMonth.precision,
       },
       resourceElement,
       outputElement,
@@ -3429,6 +3838,46 @@
     );
   }
 
+  function renderInteractionTags(saju) {
+    const tags = [
+      ...saju.interactions.supportItems.slice(0, 4).map((item) => item.label),
+      ...saju.interactions.tensionItems.slice(0, 3).map((item) => item.label),
+      ...saju.interactions.stars.slice(0, 4).map((star) => star.label),
+    ];
+    if (!tags.length) return `<p>눈에 띄는 합충이나 대표 신살이 강하게 잡히지는 않습니다.</p>`;
+    return renderTags(tags.slice(0, 8));
+  }
+
+  function interactionPlainText(saju) {
+    const supportCount = saju.interactions.supportItems.length;
+    const tensionCount = saju.interactions.tensionItems.length;
+    const starLabels = saju.interactions.stars.map((star) => star.type);
+    const supportText = supportCount
+      ? `합이나 삼합처럼 기운이 모이는 흐름이 ${supportCount}개 보입니다.`
+      : "기운이 크게 한쪽으로 모이는 합은 약한 편입니다.";
+    const tensionText = tensionCount
+      ? `충·해처럼 서로 부딪히는 흐름도 ${tensionCount}개 있어서, 번호는 한쪽 오행으로 몰기보다 균형을 섞어 봅니다.`
+      : "부딪히는 흐름은 크지 않아 보완 오행을 비교적 편하게 씁니다.";
+    const starText = starLabels.length
+      ? `대표 신살은 ${starLabels.join(", ")}이 잡힙니다.`
+      : "대표 신살은 강하게 드러난 항목만 따로 표시합니다.";
+    return `${supportText} ${tensionText} ${starText}`;
+  }
+
+  function annualFlowText(saju) {
+    const flow = saju.annualFlow;
+    const yearHelpful = saju.favored.includes(flow.year.stemElement) || saju.favored.includes(flow.year.branchElement);
+    const monthHelpful =
+      saju.favored.includes(flow.month.stemElement) || saju.favored.includes(flow.month.branchElement);
+    const fitText =
+      yearHelpful || monthHelpful
+        ? "올해나 이번 달 흐름 안에 보완 오행이 일부 들어와 있어, 사주 반영 번호는 그 기운을 살짝 더 반영합니다."
+        : "올해 흐름은 보완 오행과 완전히 같지는 않아, 사주 반영 번호는 과거 당첨분포를 더 우선합니다.";
+    return `${flow.year.name}년(${friendlyTenGod(flow.yearTenGod)}), ${flow.month.name}월(${friendlyTenGod(
+      flow.monthTenGod,
+    )}) 흐름입니다. ${fitText}`;
+  }
+
   function sajuNumberHints(saju, limit = 12) {
     return Array.from({ length: 45 }, (_, index) => index + 1)
       .map((number) => {
@@ -3519,12 +3968,19 @@
     const calendarText = original?.calendar === "lunar"
       ? `음력 ${isoFromParts(original.input.year, original.input.month, original.input.day)}로 입력했고, 양력 ${isoFromParts(original.year, original.month, original.day)}로 변환해 명식을 계산했습니다.`
       : `양력 ${isoFromParts(original.year, original.month, original.day)} 기준으로 명식을 계산했습니다.`;
+    const termText = `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} 이후 태어난 것으로 보아 ${saju.monthCommand.branch}월령으로 계산했습니다. 다음 절기는 ${saju.monthCommand.nextTermLabel || "계산 중"}입니다.`;
+    const interactionText = interactionPlainText(saju);
+    const flowText = annualFlowText(saju);
 
     document.querySelector("#sajuReading").innerHTML = `
       ${renderPillarChart(saju)}
       <div class="reading-row">
         <span>달력 기준</span>
         <p>${calendarText}</p>
+      </div>
+      <div class="reading-row">
+        <span>절기 기준</span>
+        <p>${termText}</p>
       </div>
       <div class="reading-row">
         <span>시간 보정</span>
@@ -3541,6 +3997,15 @@
       <div class="reading-row">
         <span>보완할 점</span>
         <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 반영에서는 더 편안한 조합으로 읽습니다.</p>
+      </div>
+      <div class="reading-row">
+        <span>합충·신살</span>
+        <p>${interactionText}</p>
+        ${renderInteractionTags(saju)}
+      </div>
+      <div class="reading-row">
+        <span>올해 흐름</span>
+        <p>${flowText}</p>
       </div>
       <div class="reading-row">
         <span>맞는 번호</span>
