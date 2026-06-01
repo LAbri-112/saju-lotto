@@ -1708,6 +1708,62 @@ button:focus-visible {
   grid-column: 2 / -1;
 }
 
+.luck-cycle-row,
+.yongsin-list {
+  grid-column: 2 / -1;
+}
+
+.luck-cycle-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.luck-cycle {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(75, 136, 235, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.luck-cycle.is-active {
+  border-color: rgba(24, 169, 153, 0.34);
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.95), rgba(255, 255, 255, 0.86));
+}
+
+.luck-cycle b {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.luck-cycle em {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.yongsin-list {
+  display: grid;
+  gap: 7px;
+}
+
+.yongsin-list div {
+  border: 1px solid rgba(24, 169, 153, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 9px;
+}
+
+.yongsin-list strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--teal-dark);
+}
+
 .metric {
   min-height: 86px;
   padding: 14px;
@@ -2820,6 +2876,15 @@ button:focus-visible {
 
   .reading-row .tag-line {
     grid-column: 1 / -1;
+  }
+
+  .luck-cycle-row,
+  .yongsin-list {
+    grid-column: 1 / -1;
+  }
+
+  .luck-cycle-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .learning-row {

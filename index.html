@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v53" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v54" />
   </head>
   <body>
     <main class="app-shell">
@@ -67,6 +67,19 @@
                 <select id="birthCalendar" name="birthCalendar">
                   <option value="solar" selected>양력</option>
                   <option value="lunar">음력</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <div class="label-row">
+                  <label for="birthGender">성별</label>
+                  <button class="help-button" type="button" data-help="대운은 태어난 해의 음양과 성별에 따라 순행 또는 역행이 달라집니다. 성별을 모르면 원국과 오행은 계산하지만, 대운 방향은 임시 기준으로 표시합니다.">?</button>
+                </div>
+                <select id="birthGender" name="birthGender">
+                  <option value="unknown" selected>선택 안함</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
                 </select>
               </div>
             </div>
@@ -428,7 +441,7 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v53"></script>
-    <script defer src="app.js?v=feedback-v53"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v54"></script>
+    <script defer src="app.js?v=feedback-v54"></script>
   </body>
 </html>

@@ -598,6 +598,7 @@
   const form = document.querySelector("#settingsForm");
   const birthDate = document.querySelector("#birthDate");
   const birthCalendar = document.querySelector("#birthCalendar");
+  const birthGender = document.querySelector("#birthGender");
   const birthCalendarStatus = document.querySelector("#birthCalendarStatus");
   const birthBranch = document.querySelector("#birthBranch");
   const birthPlace = document.querySelector("#birthPlace");
@@ -673,6 +674,16 @@
 
   function polarityLabel(polarity) {
     return polarity === "yang" ? "양" : "음";
+  }
+
+  function genderLabel(value) {
+    return (
+      {
+        male: "남성",
+        female: "여성",
+        unknown: "성별 미선택",
+      }[value] ?? "성별 미선택"
+    );
   }
 
   function elementLabel(element) {
@@ -927,6 +938,7 @@
 
     const profile = {
       birthCalendar: birthCalendar?.value ?? "solar",
+      birthGender: birthGender?.value ?? "unknown",
       birthDate: birthDate.value,
       birthBranch: birthBranch?.value ?? "6",
       unknownTime: Boolean(unknownTime?.checked),
@@ -952,6 +964,7 @@
     if (!profile) return false;
 
     selectValueIfAvailable(birthCalendar, profile.birthCalendar);
+    selectValueIfAvailable(birthGender, profile.birthGender);
     if (typeof profile.birthDate === "string") birthDate.value = profile.birthDate;
     selectValueIfAvailable(birthBranch, profile.birthBranch);
     if (unknownTime) unknownTime.checked = Boolean(profile.unknownTime);
@@ -986,6 +999,7 @@
     return [
       dataset.latestDraw,
       birthCalendar?.value,
+      birthGender?.value,
       birthDate?.value,
       birthBranch?.value,
       unknownTime?.checked,
@@ -2045,6 +2059,161 @@
     return birthTs >= lichun.localTs ? birth.year : birth.year - 1;
   }
 
+  function ageFromBirth(birth, date = new Date()) {
+    const birthTs = localTimestamp(birth.year, birth.month, birth.day, birth.hour, birth.minute);
+    const nowTs = localTimestamp(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+    );
+    return Math.max(0, (nowTs - birthTs) / (365.2422 * 86400000));
+  }
+
+  function luckAgeText(months) {
+    const years = Math.floor(months / 12);
+    const restMonths = months % 12;
+    if (years <= 0) return `${restMonths}개월`;
+    return restMonths ? `${years}년 ${restMonths}개월` : `${years}년`;
+  }
+
+  function luckDirectionFor(gender, yearStem) {
+    const yearYang = stemPolarity(yearStem) === "yang";
+    if (gender === "male") return yearYang ? 1 : -1;
+    if (gender === "female") return yearYang ? -1 : 1;
+    return 1;
+  }
+
+  function buildMajorLuckProfile(birth, monthStem, monthBranch, yearStem) {
+    const gender = birthGender?.value ?? "unknown";
+    const direction = luckDirectionFor(gender, yearStem);
+    const birthTs = localTimestamp(birth.year, birth.month, birth.day, birth.hour, birth.minute);
+    const boundaries = solarTermBoundariesAround(birth.year);
+    const targetTerm =
+      direction > 0
+        ? boundaries.find((boundary) => boundary.localTs > birthTs)
+        : boundaries.filter((boundary) => boundary.localTs <= birthTs).at(-1);
+    const diffDays = targetTerm ? Math.abs(targetTerm.localTs - birthTs) / 86400000 : 0;
+    const startAgeMonths = Math.max(1, Math.round(diffDays * 4));
+    const currentAge = ageFromBirth(birth);
+    const cycles = Array.from({ length: 8 }, (_, index) => {
+      const stemIndex = mod(monthStem + direction * (index + 1), 10);
+      const branchIndex = mod(monthBranch + direction * (index + 1), 12);
+      const startAge = startAgeMonths / 12 + index * 10;
+      const endAge = startAge + 10;
+      return {
+        index,
+        startAge,
+        endAge,
+        startAgeText: luckAgeText(startAgeMonths + index * 120),
+        endAgeText: luckAgeText(startAgeMonths + (index + 1) * 120),
+        pillar: makePillar("luck", stemIndex, branchIndex),
+      };
+    });
+    const current = cycles.find((cycle) => currentAge >= cycle.startAge && currentAge < cycle.endAge) ?? cycles[0];
+
+    return {
+      gender,
+      direction,
+      directionLabel: direction > 0 ? "순행" : "역행",
+      provisional: gender === "unknown",
+      startAgeMonths,
+      startAgeText: luckAgeText(startAgeMonths),
+      targetTerm,
+      targetTermLabel: targetTerm ? formatSolarTerm(targetTerm) : "",
+      currentAge,
+      current,
+      cycles,
+    };
+  }
+
+  function buildFlowPillar(kind, date = new Date()) {
+    const flowBirth = {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hour: 12,
+      minute: 0,
+    };
+    const flowSolarYear = getSajuSolarYear(flowBirth);
+    const flowYearIndex = mod(flowSolarYear - 4, 60);
+    const flowYearStem = mod(flowYearIndex, 10);
+    const flowYearBranch = mod(flowYearIndex, 12);
+
+    if (kind === "year") {
+      return makePillar("year", flowYearStem, flowYearBranch);
+    }
+
+    if (kind === "month") {
+      const flowMonth = getSolarMonth(flowBirth);
+      const flowFirstMonthStem = mod((flowYearStem % 5) * 2 + 2, 10);
+      return makePillar("month", mod(flowFirstMonthStem + flowMonth.monthNo - 1, 10), flowMonth.branchIndex);
+    }
+
+    const baseDate = Date.UTC(1984, 1, 2);
+    const targetDateUtc = Date.UTC(flowBirth.year, flowBirth.month - 1, flowBirth.day);
+    const dayIndex = mod(Math.round((targetDateUtc - baseDate) / 86400000), 60);
+    return makePillar("day", mod(dayIndex, 10), mod(dayIndex, 12));
+  }
+
+  function buildYongsinProfile({ favored, strength, resourceElement, outputElement, wealthElement, officerElement, climateElement, interactions }) {
+    const reasonByElement = (element) => {
+      if (element === climateElement) return "태어난 계절의 차갑고 뜨거운 느낌을 맞추는 조후 보완입니다.";
+      if (strength === "weak" && (element === resourceElement || favored[0] === element)) {
+        return "내 기운이 약한 편이라 도와주고 회복시키는 기운을 우선합니다.";
+      }
+      if (strength === "strong" && [outputElement, wealthElement, officerElement].includes(element)) {
+        return "내 기운이 강한 편이라 밖으로 쓰고 흐르게 만드는 기운을 우선합니다.";
+      }
+      if (interactions.supportItems.some((item) => item.element === element)) {
+        return "명식 안의 합이 이 오행을 모아주므로 보조 후보로 봅니다.";
+      }
+      return "전체 오행 균형에서 부족하거나 쓰기 편한 쪽으로 잡힌 보완 기운입니다.";
+    };
+
+    return favored.map((element, index) => ({
+      element,
+      title: index === 0 ? "1순위 용신 후보" : index === 1 ? "2순위 희신 후보" : "보조 기운",
+      reason: reasonByElement(element),
+    }));
+  }
+
+  function buildGyeokProfile(dayStem, solarMonth) {
+    const mainHidden = hiddenStems[solarMonth.branchIndex]?.[0]?.stem ?? solarMonth.branchIndex;
+    const tenGodKey = tenGod(dayStem, mainHidden);
+    const tenGodName = tenGodLabels[tenGodKey];
+    const frameName = `${tenGodName}격`;
+    const plain = friendlyTenGod(tenGodName);
+    const frameText = {
+      비견: "자기 주도성과 독립성이 격의 중심입니다.",
+      겁재: "경쟁과 승부 감각이 격의 중심입니다.",
+      식신: "표현, 생산성, 꾸준함이 격의 중심입니다.",
+      상관: "변칙적 아이디어와 돌파력이 격의 중심입니다.",
+      편재: "기회 포착과 큰 흐름을 보는 감각이 격의 중심입니다.",
+      정재: "현실 감각과 안정적인 관리가 격의 중심입니다.",
+      편관: "압박 속 추진력과 결단이 격의 중심입니다.",
+      정관: "규칙, 책임, 안정감이 격의 중심입니다.",
+      편인: "직감, 연구, 독특한 판단이 격의 중심입니다.",
+      정인: "도움, 학습, 회복력이 격의 중심입니다.",
+    }[tenGodName] ?? "월령의 중심 기운을 기준으로 격을 봅니다.";
+
+    return {
+      key: tenGodKey,
+      name: frameName,
+      tenGodName,
+      plain,
+      element: stems[mainHidden][1],
+      text: `${branches[solarMonth.branchIndex][0]}월령의 주된 장간이 ${tenGodName}으로 잡혀 ${frameName}으로 봅니다. ${frameText}`,
+    };
+  }
+
+  function flowBoost(usefulScores, pillar, amount) {
+    if (!pillar) return;
+    usefulScores[pillar.stemElement] += amount;
+    usefulScores[pillar.branchElement] += amount * 0.72;
+  }
+
   function tenGod(dayStemIndex, targetStemIndex) {
     const dayElement = stems[dayStemIndex][1];
     const targetElement = stems[targetStemIndex][1];
@@ -2186,36 +2355,52 @@
       usefulScores[key] += 0.22;
     }
 
-    const favored = elementKeys
-      .slice()
-      .sort((a, b) => usefulScores[b] - usefulScores[a])
-      .slice(0, 3);
-    const pillarText = pillars.map((pillar) => pillar.name).join(" ");
-    const topTenGods = Object.entries(tenGodCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([key, value]) => ({ key, label: tenGodLabels[key], value }));
     const now = new Date();
-    const flowBirth = {
+    const currentFlowBirth = {
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       day: now.getDate(),
       hour: 12,
       minute: 0,
     };
-    const flowSolarYear = getSajuSolarYear(flowBirth);
-    const flowYearIndex = mod(flowSolarYear - 4, 60);
-    const flowYearStem = mod(flowYearIndex, 10);
-    const flowYearBranch = mod(flowYearIndex, 12);
-    const flowMonth = getSolarMonth(flowBirth);
-    const flowFirstMonthStem = mod((flowYearStem % 5) * 2 + 2, 10);
-    const flowMonthStem = mod(flowFirstMonthStem + flowMonth.monthNo - 1, 10);
+    const currentSolarMonth = getSolarMonth(currentFlowBirth);
+    const majorLuck = buildMajorLuckProfile(birth, monthStem, solarMonth.branchIndex, yearStem);
+    const flowYear = buildFlowPillar("year", now);
+    const flowMonthPillar = buildFlowPillar("month", now);
+    const flowDay = buildFlowPillar("day", now);
+    flowBoost(usefulScores, majorLuck.current?.pillar, 0.08);
+    flowBoost(usefulScores, flowYear, 0.05);
+    flowBoost(usefulScores, flowMonthPillar, 0.04);
+    flowBoost(usefulScores, flowDay, 0.03);
+
+    const favored = elementKeys
+      .slice()
+      .sort((a, b) => usefulScores[b] - usefulScores[a])
+      .slice(0, 3);
+    const yongsin = buildYongsinProfile({
+      favored,
+      strength,
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+      climateElement,
+      interactions,
+    });
+    const gyeok = buildGyeokProfile(dayStem, solarMonth);
+    const pillarText = pillars.map((pillar) => pillar.name).join(" ");
+    const topTenGods = Object.entries(tenGodCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([key, value]) => ({ key, label: tenGodLabels[key], value }));
     const annualFlow = {
-      year: makePillar("year", flowYearStem, flowYearBranch),
-      month: makePillar("month", flowMonthStem, flowMonth.branchIndex),
-      yearTenGod: tenGodLabels[tenGod(dayStem, flowYearStem)],
-      monthTenGod: tenGodLabels[tenGod(dayStem, flowMonthStem)],
-      monthTerm: flowMonth.enteredAt ? formatSolarTerm(flowMonth.enteredAt) : flowMonth.label,
+      year: flowYear,
+      month: flowMonthPillar,
+      day: flowDay,
+      yearTenGod: tenGodLabels[tenGod(dayStem, flowYear.stemIndex)],
+      monthTenGod: tenGodLabels[tenGod(dayStem, flowMonthPillar.stemIndex)],
+      dayTenGod: tenGodLabels[tenGod(dayStem, flowDay.stemIndex)],
+      monthTerm: currentSolarMonth.enteredAt ? formatSolarTerm(currentSolarMonth.enteredAt) : "",
     };
 
     return {
@@ -2238,6 +2423,9 @@
       topTenGods,
       interactions,
       annualFlow,
+      majorLuck,
+      gyeok,
+      yongsin,
       monthCommand: {
         branch: branches[solarMonth.branchIndex][0],
         element: branches[solarMonth.branchIndex][1],
@@ -3877,13 +4065,50 @@
     const yearHelpful = saju.favored.includes(flow.year.stemElement) || saju.favored.includes(flow.year.branchElement);
     const monthHelpful =
       saju.favored.includes(flow.month.stemElement) || saju.favored.includes(flow.month.branchElement);
+    const dayHelpful = saju.favored.includes(flow.day.stemElement) || saju.favored.includes(flow.day.branchElement);
     const fitText =
-      yearHelpful || monthHelpful
-        ? "올해나 이번 달 흐름 안에 보완 오행이 일부 들어와 있어, 사주 반영 번호는 그 기운을 살짝 더 반영합니다."
+      yearHelpful || monthHelpful || dayHelpful
+        ? "대운·세운·월운·일진 안에 보완 오행이 일부 들어와 있어, 사주 반영 번호는 그 기운을 약하게 더 반영합니다."
         : "올해 흐름은 보완 오행과 완전히 같지는 않아, 사주 반영 번호는 과거 당첨분포를 더 우선합니다.";
     return `${flow.year.name}년(${friendlyTenGod(flow.yearTenGod)}), ${flow.month.name}월(${friendlyTenGod(
       flow.monthTenGod,
-    )}) 흐름입니다. ${fitText}`;
+    )}), 오늘 ${flow.day.name}일(${friendlyTenGod(flow.dayTenGod)}) 흐름입니다. ${fitText}`;
+  }
+
+  function majorLuckText(saju) {
+    const luck = saju.majorLuck;
+    const current = luck.current;
+    const directionNote = luck.provisional
+      ? "성별을 선택하지 않아 순행 기준으로 임시 표시합니다. 성별을 선택하면 대운 방향이 확정됩니다."
+      : `${genderLabel(luck.gender)} · ${stems[mod(saju.solarYear - 4, 10)]?.[0] ?? ""}년 기준 ${luck.directionLabel}으로 봅니다.`;
+    const currentText = current
+      ? `현재 대운은 ${current.pillar.name}운(${current.startAgeText}~${current.endAgeText})으로 봅니다.`
+      : "현재 대운은 계산 대기 상태입니다.";
+    return `${directionNote} 출생 시점에서 ${luck.targetTermLabel}까지의 거리를 3일 1년 기준으로 환산해 ${luck.startAgeText} 전후부터 대운이 시작됩니다. ${currentText}`;
+  }
+
+  function renderMajorLuckTags(saju) {
+    const currentIndex = saju.majorLuck.current?.index;
+    return `<div class="luck-cycle-row">${saju.majorLuck.cycles
+      .slice(0, 5)
+      .map((cycle) => {
+        const active = cycle.index === currentIndex ? " is-active" : "";
+        return `<span class="luck-cycle${active}"><b>${cycle.pillar.name}</b><em>${cycle.startAgeText}</em></span>`;
+      })
+      .join("")}</div>`;
+  }
+
+  function renderYongsinTags(saju) {
+    return `<div class="yongsin-list">${saju.yongsin
+      .map(
+        (item) => `
+          <div>
+            <strong>${item.title} · ${elementLabel(item.element)}</strong>
+            <p>${item.reason}</p>
+          </div>
+        `,
+      )
+      .join("")}</div>`;
   }
 
   function sajuNumberHints(saju, limit = 12) {
@@ -3979,6 +4204,7 @@
     const termText = `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} 이후 태어난 것으로 보아 ${saju.monthCommand.branch}월령으로 계산했습니다. 다음 절기는 ${saju.monthCommand.nextTermLabel || "계산 중"}입니다.`;
     const interactionText = interactionPlainText(saju);
     const flowText = annualFlowText(saju);
+    const majorLuckReading = majorLuckText(saju);
 
     document.querySelector("#sajuReading").innerHTML = `
       ${renderPillarChart(saju)}
@@ -3999,12 +4225,17 @@
         <p>당신은 ${elementLabel(saju.dayMaster.element)} 기운을 중심으로 보고, 전체 힘은 ${strengthLabel}에 가깝습니다. ${modeIntro}</p>
       </div>
       <div class="reading-row">
+        <span>격국</span>
+        <p>${saju.gyeok.name}입니다. ${saju.gyeok.text}</p>
+      </div>
+      <div class="reading-row">
         <span>강한 점</span>
         <p>${topTenGods.join(", ")} 쪽이 눈에 띕니다. 번호를 고를 때는 이 장점을 살리되 한쪽으로 몰리지 않게 보는 편이 좋습니다.</p>
       </div>
       <div class="reading-row">
-        <span>보완할 점</span>
+        <span>용신 후보</span>
         <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 반영에서는 더 편안한 조합으로 읽습니다.</p>
+        ${renderYongsinTags(saju)}
       </div>
       <div class="reading-row">
         <span>합충·신살</span>
@@ -4012,7 +4243,12 @@
         ${renderInteractionTags(saju)}
       </div>
       <div class="reading-row">
-        <span>올해 흐름</span>
+        <span>대운</span>
+        <p>${majorLuckReading}</p>
+        ${renderMajorLuckTags(saju)}
+      </div>
+      <div class="reading-row">
+        <span>세운·일진</span>
         <p>${flowText}</p>
       </div>
       <div class="reading-row">
@@ -4772,6 +5008,7 @@
     for (const control of [
       recentWindow,
       birthCalendar,
+      birthGender,
       birthBranch,
       birthPlace,
       timeCorrection,
