@@ -2592,20 +2592,6 @@
     return scores;
   }
 
-  function pickWeighted(pool, scores, rng) {
-    const total = pool.reduce((sum, number) => {
-      return sum + Math.max(0.01, scores[number].score) ** 2;
-    }, 0);
-    let roll = rng() * total;
-
-    for (const number of pool) {
-      roll -= Math.max(0.01, scores[number].score) ** 2;
-      if (roll <= 0) return number;
-    }
-
-    return pool.at(-1);
-  }
-
   function scoreCombination(numbers, scores, stats, saju, learningProfile = null) {
     const snapshot = patternSnapshot(numbers, stats.latestNumbers);
     const { sum, odd, low, maxGroup, consecutive, sectorCoverage, tailDiversity } = snapshot;
@@ -2687,19 +2673,6 @@
     meta.band = scoreBand(meta.score);
     meta.practicalScore = practicalRankScore(meta, learningProfile);
     return meta;
-  }
-
-  function makeCandidate(scores, rng) {
-    const pool = Array.from({ length: 45 }, (_, index) => index + 1);
-    const selected = [];
-
-    while (selected.length < 6) {
-      const picked = pickWeighted(pool, scores, rng);
-      selected.push(picked);
-      pool.splice(pool.indexOf(picked), 1);
-    }
-
-    return selected.sort((a, b) => a - b);
   }
 
   function improveCandidate(numbers, scores, stats, saju, learningProfile = null) {
@@ -3003,6 +2976,105 @@
     };
   }
 
+  function combinationCount(size, pick = 6) {
+    if (size < pick) return 0;
+    let result = 1;
+    for (let index = 1; index <= pick; index += 1) {
+      result = (result * (size - pick + index)) / index;
+    }
+    return Math.round(result);
+  }
+
+  function deterministicFrontierLimit(budget) {
+    if (budget <= 10000) return 22;
+    if (budget <= 50000) return 24;
+    if (budget <= 100000) return 25;
+    return 26;
+  }
+
+  function appendUniqueNumber(target, number, limit) {
+    if (!number || target.includes(number) || target.length >= limit) return;
+    target.push(number);
+  }
+
+  function rankedNumbersBy(scores, ranker) {
+    return scores
+      .slice(1)
+      .filter(Boolean)
+      .sort((a, b) => ranker(b) - ranker(a) || b.score - a.score || a.number - b.number)
+      .map((item) => item.number);
+  }
+
+  function buildDeterministicNumberFrontier(scores, stats, budget) {
+    const limit = deterministicFrontierLimit(budget);
+    const byScore = rankedNumbersBy(scores, (item) => item.score);
+    const byLong = rankedNumbersBy(scores, (item) => stats.frequency[item.number] ?? 0);
+    const byRecent = rankedNumbersBy(scores, (item) => stats.recentFrequency[item.number] ?? 0);
+    const byCold = rankedNumbersBy(scores, (item) => {
+      const lastSeen = stats.lastSeen[item.number] ?? 0;
+      return lastSeen ? stats.latestDraw - lastSeen : 999;
+    });
+    const frontier = [];
+    const lanes = [byScore, byLong, byRecent, byCold];
+
+    for (let index = 0; frontier.length < limit && index < 45; index += 1) {
+      for (const lane of lanes) {
+        appendUniqueNumber(frontier, lane[index], limit);
+      }
+    }
+
+    return frontier.sort((a, b) => a - b);
+  }
+
+  function enumerateSixNumberCombinations(numbers, visit) {
+    for (let a = 0; a <= numbers.length - 6; a += 1) {
+      for (let b = a + 1; b <= numbers.length - 5; b += 1) {
+        for (let c = b + 1; c <= numbers.length - 4; c += 1) {
+          for (let d = c + 1; d <= numbers.length - 3; d += 1) {
+            for (let e = d + 1; e <= numbers.length - 2; e += 1) {
+              for (let f = e + 1; f <= numbers.length - 1; f += 1) {
+                visit([numbers[a], numbers[b], numbers[c], numbers[d], numbers[e], numbers[f]]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function buildDeterministicCandidatePool(stats, scores, saju, learningProfile, poolBudget) {
+    const frontier = buildDeterministicNumberFrontier(scores, stats, poolBudget.budget);
+    const candidateMap = new Map();
+    const scannedCandidateCount = combinationCount(frontier.length, 6);
+
+    enumerateSixNumberCombinations(frontier, (numbers) => {
+      candidateMap.set(numbers.join("-"), {
+        numbers,
+        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
+      });
+    });
+
+    const preliminary = [...candidateMap.values()].sort((a, b) => {
+      return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+    });
+    for (const candidate of preliminary.slice(0, 260)) {
+      const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
+      candidateMap.set(improved.numbers.join("-"), improved);
+    }
+
+    const ranked = [...candidateMap.values()]
+      .map((candidate) => enrichLottoCandidate(candidate, stats))
+      .sort((a, b) => b.meta.score - a.meta.score)
+      .slice(0, Math.min(poolBudget.budget, candidateMap.size));
+
+    return {
+      ranked,
+      scannedCandidateCount,
+      frontierNumberCount: frontier.length,
+      frontierCombinationCount: scannedCandidateCount,
+    };
+  }
+
   function tagCandidateBuckets(numbers, meta, stats) {
     const buckets = new Set();
     const longTermAverage =
@@ -3116,7 +3188,6 @@
 
   function selectFinalRecommendations(corePool, options = {}) {
     const target = clamp(Number(options.target) || 5, 1, 10);
-    const rng = options.rng ?? mulberry32(hashString(`final-${Date.now()}`));
     const candidates = corePool.slice(0, Math.max(600, target * 160));
     const selected = [];
 
@@ -3132,7 +3203,6 @@
         const sajuFit = (candidate.sourceBuckets ?? []).includes("sajuWeighted") ? 1 : 0.45;
         const recentFit = (candidate.sourceBuckets ?? []).includes("recentFlow") ? 1 : 0.55;
         const longFit = (candidate.sourceBuckets ?? []).includes("longTermFrequency") ? 1 : 0.55;
-        const jitter = rng() * 4;
         const finalPickScore =
           candidate.meta.score * 0.55 +
           overlapFit * 25 +
@@ -3140,8 +3210,7 @@
           bandFit * 5 +
           sajuFit * 2.5 +
           recentFit * 1.5 +
-          longFit * 1.5 +
-          jitter;
+          longFit * 1.5;
 
         if (finalPickScore > bestScore) {
           bestScore = finalPickScore;
@@ -3158,53 +3227,15 @@
 
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
     lottoState.generation += 1;
-    const seed = hashString(
-      [
-        birthDate.value,
-        birthBranch.value,
-        birthPlace?.value,
-        timeCorrection?.checked,
-        midnightRule?.value,
-        unknownTime.checked,
-        recentWindow.value,
-        candidatePoolSize?.value ?? "auto",
-        sajuWeight.value,
-        interpretationMode.value,
-        topOnly.checked,
-        userRegionLabel,
-        walkRange.value,
-        userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
-        lottoState.generation,
-        Date.now(),
-      ].join("|"),
-    );
-    const rng = mulberry32(seed);
-    const candidateMap = new Map();
     const poolBudget = resolveCandidatePoolBudget();
-    const candidateBudget = poolBudget.budget;
-
-    for (let index = 0; index < candidateBudget; index += 1) {
-      const numbers = makeCandidate(scores, rng);
-      const key = numbers.join("-");
-      if (candidateMap.has(key)) continue;
-      candidateMap.set(key, {
-        numbers,
-        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
-      });
-    }
-
-    const preliminary = [...candidateMap.values()].sort((a, b) => {
-      return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
-    });
-    const improveCount = 260;
-    for (const candidate of preliminary.slice(0, improveCount)) {
-      const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
-      candidateMap.set(improved.numbers.join("-"), improved);
-    }
-
-    const ranked = [...candidateMap.values()]
-      .map((candidate) => enrichLottoCandidate(candidate, stats))
-      .sort((a, b) => b.meta.score - a.meta.score);
+    const poolBuild = buildDeterministicCandidatePool(
+      stats,
+      scores,
+      saju,
+      learningProfile,
+      poolBudget,
+    );
+    const ranked = poolBuild.ranked;
     const practicalRanked = [...ranked].sort((a, b) => {
       return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
     });
@@ -3230,9 +3261,13 @@
       requestedRecallCandidateCount: poolBudget.requested,
       generatedCandidateTarget: poolBudget.budget,
       generatedCandidateCount: ranked.length,
+      scannedCandidateCount: poolBuild.scannedCandidateCount,
+      frontierNumberCount: poolBuild.frontierNumberCount,
+      frontierCombinationCount: poolBuild.frontierCombinationCount,
       recallCandidateCount: ranked.length,
       coreCandidateCount: filtered.length,
       finalRecommendationCount: finalRecommendations.length,
+      rankingMode: "deterministic-frontier-top-k",
       selectedPoolMode: poolBudget.mode,
       selectedPoolLabel: poolBudget.label,
       cappedForBrowser: poolBudget.capped,
@@ -3248,7 +3283,7 @@
     });
 
     if (topOnly.checked) {
-      const finalRecommendations = selectFinalRecommendations(filtered, { target, rng });
+      const finalRecommendations = selectFinalRecommendations(filtered, { target });
       const candidatePoolMeta = buildCandidatePoolMeta(finalRecommendations);
       return {
         type: "lotto",
@@ -3272,7 +3307,7 @@
       };
     }
 
-    selected.push(...selectFinalRecommendations(filtered, { target, rng }));
+    selected.push(...selectFinalRecommendations(filtered, { target }));
     const candidatePoolMeta = buildCandidatePoolMeta(selected);
 
     return {
@@ -4199,37 +4234,14 @@
         const statsBeforeDraw = buildStats(windowInfo.size, priorDraws);
         const modeSaju = buildSajuProfile(setting.mode);
         const scores = buildNumberScores(statsBeforeDraw, modeSaju, setting.weight / 100);
-        const seed = hashString(
-          [
-            "replay",
-            birthStateKey(setting.mode),
-            draw.draw,
-            setting.mode,
-            setting.weight,
-            setting.windowValue ?? setting.windowSize,
-          ].join("|"),
+        const poolBuild = buildDeterministicCandidatePool(
+          statsBeforeDraw,
+          scores,
+          modeSaju,
+          null,
+          { budget: 7600 },
         );
-        const rng = mulberry32(seed);
-        const candidateMap = new Map();
-        const candidateBudget = 7600;
-
-        for (let index = 0; index < candidateBudget; index += 1) {
-          const numbers = makeCandidate(scores, rng);
-          candidateMap.set(numbers.join("-"), {
-            numbers,
-            meta: scoreCombination(numbers, scores, statsBeforeDraw, modeSaju, null),
-          });
-        }
-
-        const preliminary = [...candidateMap.values()].sort((a, b) => {
-          return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
-        });
-        for (const candidate of preliminary.slice(0, 260)) {
-          const improved = improveCandidate(candidate.numbers, scores, statsBeforeDraw, modeSaju, null);
-          candidateMap.set(improved.numbers.join("-"), improved);
-        }
-
-        const ranked = [...candidateMap.values()].sort((a, b) => {
+        const ranked = [...poolBuild.ranked].sort((a, b) => {
           return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
         });
         const filtered = ranked.filter((candidate) => candidate.meta.score >= 80);
