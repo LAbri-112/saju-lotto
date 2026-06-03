@@ -636,6 +636,7 @@
   const pensionBirthDate = document.querySelector("#pensionBirthDate");
   const pensionSetCount = document.querySelector("#pensionSetCount");
   const pensionPersonalWeight = document.querySelector("#pensionPersonalWeight");
+  const pensionMode = document.querySelector("#pensionMode");
   const pensionStats = document.querySelector("#pensionStats");
   const pensionRecommendations = document.querySelector("#pensionRecommendations");
   const pensionShuffle = document.querySelector("#pensionShuffle");
@@ -643,9 +644,11 @@
   let userPosition = null;
   let userRegionLabel = "";
   let activeFortunePeriod = "today";
+  let activeGame = "lotto";
   const lottoState = {
     generation: 0,
     lastResult: null,
+    active: true,
     refreshTimer: null,
     deferredPortfolioTimer: null,
     startupAutoTimer: null,
@@ -657,6 +660,7 @@
   const pensionState = {
     generation: 0,
     lastResult: null,
+    active: false,
     refreshTimer: null,
     cache: new Map(),
   };
@@ -1016,10 +1020,11 @@
   function savePensionProfile() {
     if (typeof localStorage === "undefined") return;
     const profile = {
-      version: 2,
+      version: 3,
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
       personalWeight: pensionPersonalWeight?.value ?? "auto",
+      mode: pensionMode?.value ?? "diversified",
       savedAt: new Date().toISOString(),
     };
 
@@ -1042,6 +1047,10 @@
     selectValueIfAvailable(
       pensionPersonalWeight,
       profile.version >= 2 ? profile.personalWeight : "auto",
+    );
+    selectValueIfAvailable(
+      pensionMode,
+      profile.version >= 2 ? profile.mode : "diversified",
     );
     return true;
   }
@@ -3087,9 +3096,10 @@
     let weightedSum = 0;
     let totalPrizeWeight = 0;
 
-    for (const draw of pensionDraws) {
+    for (const rawDraw of pensionDraws) {
+      const draw = normalizePensionDraw(rawDraw);
       if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
-      const prizeWeight = pensionPrizeWeight(draw);
+      const prizeWeight = pensionPrizeWeight(rawDraw);
       if (draw.group >= 1 && draw.group <= 5) {
         groups[draw.group] += 1;
         weightedGroups[draw.group] += prizeWeight;
@@ -3197,6 +3207,48 @@
     return Math.max(1, amountWeight) * scarcityWeight;
   }
 
+  const pensionModeLabels = {
+    diversified: "자리 분산형",
+    random: "완전 랜덤",
+    set: "세트형",
+    mixed: "혼합형",
+  };
+
+  function normalizePensionDigits(value) {
+    if (Array.isArray(value)) {
+      const digits = value.map(Number);
+      return digits.length === 6 && digits.every((digit) => digit >= 0 && digit <= 9)
+        ? digits
+        : [];
+    }
+
+    const text = String(value ?? "").replace(/\D/g, "").padStart(6, "0").slice(-6);
+    const digits = text.split("").map(Number);
+    return digits.length === 6 && digits.every((digit) => digit >= 0 && digit <= 9)
+      ? digits
+      : [];
+  }
+
+  function normalizePensionDraw(draw) {
+    const digits = normalizePensionDigits(draw?.digits?.length ? draw.digits : draw?.number ?? draw?.first?.number);
+    const bonusDigits = normalizePensionDigits(
+      draw?.bonusDigits?.length ? draw.bonusDigits : draw?.bonusNumber ?? draw?.bonus?.number,
+    );
+    const group = Number(draw?.group ?? draw?.first?.group ?? 0);
+
+    return {
+      ...draw,
+      group,
+      digits,
+      bonusDigits,
+    };
+  }
+
+  function resolvePensionMode() {
+    const value = pensionMode?.value ?? "diversified";
+    return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "diversified";
+  }
+
   function resolvePensionPersonalWeight(luckyDigits, stats) {
     const setting = pensionPersonalWeight?.value ?? "auto";
     if (setting !== "auto") {
@@ -3221,7 +3273,8 @@
     let weightedSimilarity = 0;
     let totalWeight = 0;
 
-    for (const draw of pensionDraws) {
+    for (const rawDraw of pensionDraws) {
+      const draw = normalizePensionDraw(rawDraw);
       if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
       const digitFit = draw.digits.filter((digit) => luckyDigits.includes(digit)).length / 6;
       const bonusFit =
@@ -3229,7 +3282,7 @@
           ? draw.bonusDigits.filter((digit) => luckyDigits.includes(digit)).length / 6
           : expected;
       const groupFit = luckyDigits.includes(Number(draw.group) + 4) ? 1 : expected;
-      const prizeWeight = pensionPrizeWeight(draw);
+      const prizeWeight = pensionPrizeWeight(rawDraw);
       weightedSimilarity += (digitFit * 0.72 + bonusFit * 0.18 + groupFit * 0.1) * prizeWeight;
       totalWeight += prizeWeight;
     }
@@ -3328,8 +3381,29 @@
     return { group, digits: rebalancePensionDigits(digits, stats, luckyDigits, personalWeight, rng) };
   }
 
+  function makeUniformPensionCandidate(rng) {
+    return {
+      group: Math.floor(rng() * 5) + 1,
+      digits: Array.from({ length: 6 }, () => Math.floor(rng() * 10)),
+    };
+  }
+
+  function makePensionCandidateByMode(rng, stats, luckyDigits, personalWeight, mode) {
+    if (mode === "random") return makeUniformPensionCandidate(rng);
+    if (mode === "mixed" && rng() < 0.24) return makeUniformPensionCandidate(rng);
+    return makePensionCandidate(rng, stats, luckyDigits, personalWeight);
+  }
+
   function pensionCandidateKey(candidate) {
     return `${candidate.group}-${candidate.digits.join("")}`;
+  }
+
+  function pensionDigitKey(candidate) {
+    return candidate.digits.join("");
+  }
+
+  function pensionSuffix(candidate, length) {
+    return candidate.digits.slice(-length).join("");
   }
 
   function scorePensionCandidate(candidate, luckyDigits, personalWeight, stats) {
@@ -3403,16 +3477,116 @@
     };
   }
 
+  function createScoredPensionCandidate(group, digits, luckyDigits, personalWeight, stats) {
+    const candidate = { group, digits: [...digits] };
+    return {
+      ...candidate,
+      meta: scorePensionCandidate(candidate, luckyDigits, personalWeight, stats),
+    };
+  }
+
+  function pensionDiversityPenalty(candidate, selected) {
+    return selected.reduce((penalty, item) => {
+      let nextPenalty = penalty;
+      if (item.group === candidate.group) nextPenalty += 6.5;
+      if (pensionDigitKey(item) === pensionDigitKey(candidate)) nextPenalty += 5.5;
+      if (pensionSuffix(item, 3) === pensionSuffix(candidate, 3)) nextPenalty += 6;
+      else if (pensionSuffix(item, 2) === pensionSuffix(candidate, 2)) nextPenalty += 3.2;
+      else if (pensionSuffix(item, 1) === pensionSuffix(candidate, 1)) nextPenalty += 1.4;
+      return nextPenalty;
+    }, 0);
+  }
+
+  function selectDiversifiedPensionCandidates(ranked, target) {
+    const selected = [];
+    const source = ranked.slice(0, Math.max(360, target * 140));
+
+    while (selected.length < target && source.length) {
+      let bestIndex = 0;
+      let bestValue = -Infinity;
+
+      for (let index = 0; index < source.length; index += 1) {
+        const candidate = source[index];
+        const value = candidate.meta.score - pensionDiversityPenalty(candidate, selected);
+        if (value > bestValue) {
+          bestValue = value;
+          bestIndex = index;
+        }
+      }
+
+      selected.push(source.splice(bestIndex, 1)[0]);
+    }
+
+    return selected;
+  }
+
+  function selectSetPensionCandidates(ranked, target, luckyDigits, personalWeight, stats) {
+    const selected = [];
+    const used = new Set();
+    const groupWeights = buildPensionGroupWeights(stats, luckyDigits, personalWeight);
+    const groupOrder = [1, 2, 3, 4, 5].sort((a, b) => (groupWeights[b - 1] ?? 0) - (groupWeights[a - 1] ?? 0));
+    const baseNumbers = [];
+    const seenDigits = new Set();
+
+    for (const candidate of ranked) {
+      const key = pensionDigitKey(candidate);
+      if (seenDigits.has(key)) continue;
+      seenDigits.add(key);
+      baseNumbers.push(candidate);
+      if (baseNumbers.length >= Math.max(4, Math.ceil(target / 5) + 2)) break;
+    }
+
+    for (const base of baseNumbers) {
+      const groups = [base.group, ...groupOrder.filter((group) => group !== base.group)];
+      for (const group of groups) {
+        const candidate = createScoredPensionCandidate(group, base.digits, luckyDigits, personalWeight, stats);
+        const key = pensionCandidateKey(candidate);
+        if (used.has(key)) continue;
+        used.add(key);
+        selected.push(candidate);
+        if (selected.length >= target) return selected;
+      }
+    }
+
+    return selected.length ? selected : ranked.slice(0, target);
+  }
+
+  function selectRandomPensionCandidates(ranked, target, rng) {
+    const source = ranked.slice(0, Math.max(500, target * 120));
+    const selected = [];
+
+    while (source.length && selected.length < target) {
+      const index = Math.floor(rng() * source.length);
+      selected.push(source.splice(index, 1)[0]);
+    }
+
+    return selected;
+  }
+
+  function selectMixedPensionCandidates(ranked, target, luckyDigits, personalWeight, stats) {
+    const setTarget = Math.max(1, Math.floor(target / 2));
+    const setItems = selectSetPensionCandidates(ranked, setTarget, luckyDigits, personalWeight, stats);
+    const used = new Set(setItems.map(pensionCandidateKey));
+    const diversified = selectDiversifiedPensionCandidates(
+      ranked.filter((candidate) => !used.has(pensionCandidateKey(candidate))),
+      target - setItems.length,
+    );
+
+    return [...setItems, ...diversified].slice(0, target);
+  }
+
   function generatePensionRecommendations() {
     pensionState.generation += 1;
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
     const luckyDigits = derivePensionLuckyDigits(pensionBirthDate?.value ?? "");
     const stats = buildPensionHistoricalStats();
+    const mode = resolvePensionMode();
     const personalWeightState = resolvePensionPersonalWeight(luckyDigits, stats);
     const personalWeight = personalWeightState.weight;
     const seed = hashString(
       [
         "pension",
+        mode,
         pensionBirthDate?.value ?? "",
         pensionSetCount?.value ?? "5",
         personalWeightState.setting,
@@ -3424,10 +3598,10 @@
     );
     const rng = mulberry32(seed);
     const candidateMap = new Map();
-    const candidateBudget = stats.count ? 6400 : 3200;
+    const candidateBudget = stats.count ? 7200 : 3600;
 
     for (let index = 0; index < candidateBudget; index += 1) {
-      const candidate = makePensionCandidate(rng, stats, luckyDigits, personalWeight);
+      const candidate = makePensionCandidateByMode(rng, stats, luckyDigits, personalWeight, mode);
       const key = pensionCandidateKey(candidate);
       if (candidateMap.has(key)) continue;
       candidateMap.set(key, {
@@ -3437,23 +3611,14 @@
     }
 
     const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-    const selected = [];
-    const groupCount = new Map();
-
-    for (const candidate of ranked) {
-      const count = groupCount.get(candidate.group) ?? 0;
-      if (count >= Math.ceil(target / 3)) continue;
-      selected.push(candidate);
-      groupCount.set(candidate.group, count + 1);
-      if (selected.length >= target) break;
-    }
-
-    for (const candidate of ranked) {
-      if (selected.length >= target) break;
-      if (!selected.some((item) => pensionCandidateKey(item) === pensionCandidateKey(candidate))) {
-        selected.push(candidate);
-      }
-    }
+    const selected =
+      mode === "set"
+        ? selectSetPensionCandidates(ranked, target, luckyDigits, personalWeight, stats)
+        : mode === "mixed"
+          ? selectMixedPensionCandidates(ranked, target, luckyDigits, personalWeight, stats)
+          : mode === "random"
+            ? selectRandomPensionCandidates(ranked, target, rng)
+            : selectDiversifiedPensionCandidates(ranked, target);
 
     return {
       items: selected,
@@ -3463,6 +3628,8 @@
       personalWeight,
       personalWeightState,
       stats,
+      mode,
+      modeLabel: pensionModeLabels[mode],
       selectedCount: selected.length,
     };
   }
@@ -3484,14 +3651,32 @@
         <strong>${result.luckyDigits.join(", ")}</strong>
       </div>
       <div class="candidate-stat-card">
+        <span>데이터</span>
+        <strong>${dataLabel}</strong>
+      </div>
+      <div class="candidate-stat-card">
         <span>개인 반영</span>
         <strong>${personalWeightLabel}</strong>
       </div>
       <div class="candidate-stat-card">
         <span>추천 방식</span>
-        <strong>자리 균형</strong>
+        <strong>${result.modeLabel ?? "자리 분산형"}</strong>
       </div>
     `;
+  }
+
+  function pensionRecommendationReason(item, mode) {
+    const base = `끝 3자리는 ${item.meta.tail}, 숫자 합은 ${item.meta.sum}, 반복은 최대 ${item.meta.maxRepeat}회입니다.`;
+    if (mode === "set") {
+      return `${base} 같은 6자리 번호를 조만 바꿔 보는 세트형 배치입니다.`;
+    }
+    if (mode === "mixed") {
+      return `${base} 세트형과 자리 분산형을 함께 섞은 배치입니다.`;
+    }
+    if (mode === "random") {
+      return `${base} 통계 기준 후보군 안에서 무작위로 뽑은 배치입니다.`;
+    }
+    return `${base} 각 자리와 끝자리가 한쪽으로 너무 몰리지 않게 정리한 배치입니다.`;
   }
 
   function renderPensionRecommendations(result, options = {}) {
@@ -3520,7 +3705,7 @@
               <span class="pension-score-pill"><small>분산점수</small><b>${item.meta.score}</b></span>
             </div>
             <div class="pension-number-line">${digits}</div>
-            <p>끝 3자리는 ${item.meta.tail}, 숫자 합은 ${item.meta.sum}입니다. 반복은 최대 ${item.meta.maxRepeat}회라 한쪽으로 너무 몰리지 않은 조합입니다.</p>
+            <p>${pensionRecommendationReason(item, result.mode)}</p>
             <div class="pension-chip-line">
               <span>홀 ${item.meta.odd} / 짝 ${6 - item.meta.odd}</span>
               <span>높은숫자 ${item.meta.high}</span>
@@ -3534,6 +3719,8 @@
 
   function refreshPension(options = {}) {
     if (!pensionForm) return;
+    window.clearTimeout(pensionState.refreshTimer);
+    pensionState.refreshTimer = null;
     if (pensionBirthDate?.value) {
       pensionBirthDate.value = normalizeBirthDateText(pensionBirthDate.value);
     }
@@ -3541,6 +3728,14 @@
     pensionState.lastResult = result;
     renderPensionRecommendations(result, options);
     savePensionProfile();
+  }
+
+  function schedulePensionRefresh(options = {}, delay = 180) {
+    window.clearTimeout(pensionState.refreshTimer);
+    pensionState.refreshTimer = window.setTimeout(() => {
+      pensionState.refreshTimer = null;
+      refreshPension(options);
+    }, delay);
   }
 
   function renderBall(number) {
@@ -5552,6 +5747,9 @@
   function switchGame(game) {
     const nextGame = game === "pension" ? "pension" : "lotto";
     const pensionActive = nextGame === "pension";
+    activeGame = nextGame;
+    lottoState.active = !pensionActive;
+    pensionState.active = pensionActive;
     gameTabs.forEach((tab) => {
       const active = tab.dataset.game === nextGame;
       tab.classList.toggle("is-active", active);
@@ -5613,17 +5811,18 @@
 
     pensionForm?.addEventListener("submit", (event) => {
       event.preventDefault();
+      window.clearTimeout(pensionState.refreshTimer);
       refreshPension();
     });
 
-    for (const control of [pensionSetCount, pensionPersonalWeight]) {
+    for (const control of [pensionSetCount, pensionPersonalWeight, pensionMode]) {
       control?.addEventListener("input", () => {
         savePensionProfile();
-        refreshPension();
+        schedulePensionRefresh();
       });
       control?.addEventListener("change", () => {
         savePensionProfile();
-        refreshPension();
+        schedulePensionRefresh();
       });
     }
 
@@ -5643,7 +5842,7 @@
         pensionBirthDate.value = normalizeBirthDateText(pensionBirthDate.value);
       }
       savePensionProfile();
-      refreshPension();
+      schedulePensionRefresh({}, 80);
     });
 
     pensionShuffle?.addEventListener("click", () => {

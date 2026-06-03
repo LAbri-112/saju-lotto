@@ -19,17 +19,32 @@ const headers = {
   accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
 };
 
-async function fetchText(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...(options.headers ?? {}) },
-  });
+function wait(ms) {
+  return new Promise((resolveWait) => setTimeout(resolveWait, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText} for ${url}`);
+async function fetchText(url, options = {}, attempts = 3) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: { ...headers, ...(options.headers ?? {}) },
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText} for ${url}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await wait(450 * attempt);
+    }
   }
 
-  return response.text();
+  throw lastError;
 }
 
 function stripTags(value) {
@@ -55,7 +70,10 @@ function inferDrawDate(round) {
 
 function parseLatestRound(html) {
   const text = stripTags(html);
-  const roundMatches = [...text.matchAll(/(?:제\s*)?(\d{1,4})\s*회/g)]
+  const roundMatches = [
+    ...html.matchAll(/Round=(\d{1,4})/gi),
+    ...text.matchAll(/(?:제\s*)?(\d{1,4})\s*회/g),
+  ]
     .map((match) => Number(match[1]))
     .filter((round) => round > 0);
   const latest = Math.max(...roundMatches, 0);
@@ -69,6 +87,28 @@ function parseDigitsFromNumberSpans(html) {
   return [...html.matchAll(/<span[^>]*class=["'][^"']*\bnum\b[^"']*["'][^>]*>\s*(\d)\s*<\/span>/gi)]
     .map((match) => Number(match[1]))
     .filter((digit) => digit >= 0 && digit <= 9);
+}
+
+function digitsFromLooseText(value) {
+  return String(value ?? "")
+    .match(/\d/g)
+    ?.slice(0, 6)
+    .map(Number) ?? [];
+}
+
+function parsePensionNumbersFromText(text) {
+  const firstMatch =
+    text.match(/1등\s*(?:1등\s*)?번호기준\s*([1-5])\s*조\s*((?:\d\s*){6})\s*7자리/) ||
+    text.match(/([1-5])\s*조\s*((?:\d\s*){6})\s*7자리\s*일치/);
+  const bonusMatch =
+    text.match(/보너스\s*(?:보너스\s*)?번호기준\s*((?:\d\s*){6})\s*6자리/) ||
+    text.match(/보너스[^0-9]*((?:\d\s*){6})\s*6자리\s*일치/);
+
+  return {
+    group: firstMatch ? Number(firstMatch[1]) : null,
+    digits: firstMatch ? digitsFromLooseText(firstMatch[2]) : [],
+    bonusDigits: bonusMatch ? digitsFromLooseText(bonusMatch[1]) : [],
+  };
 }
 
 function parsePensionPrizeRows(html) {
@@ -105,7 +145,9 @@ function parsePensionPrizeRows(html) {
 function parsePensionRound(html, round) {
   const text = stripTags(html);
   const digitsFromSpans = parseDigitsFromNumberSpans(html);
+  const textNumbers = parsePensionNumbersFromText(text);
   const group =
+    textNumbers.group ||
     Number(text.match(/([1-5])\s*조/)?.[1]) ||
     Number(text.match(/조\s*([1-5])/)?.[1]) ||
     null;
@@ -113,8 +155,9 @@ function parsePensionRound(html, round) {
     text.match(/(\d{4})[.\-년\s]+(\d{1,2})[.\-월\s]+(\d{1,2})/)?.slice(1, 4)
       ?.map((part, index) => (index === 0 ? part : String(Number(part)).padStart(2, "0")))
       ?.join("-") || inferDrawDate(round);
-  const digits = digitsFromSpans.slice(0, 6);
-  const bonusDigits = digitsFromSpans.slice(6, 12);
+  const digits = digitsFromSpans.length >= 6 ? digitsFromSpans.slice(0, 6) : textNumbers.digits;
+  const bonusDigits =
+    digitsFromSpans.length >= 12 ? digitsFromSpans.slice(6, 12) : textNumbers.bonusDigits;
 
   if (!group || digits.length !== 6 || digits.some((digit) => digit < 0 || digit > 9)) {
     throw new Error(`Could not parse pension result for round ${round}.`);
@@ -126,8 +169,15 @@ function parsePensionRound(html, round) {
     group,
     digits,
     number: digits.join(""),
+    first: {
+      group,
+      number: digits.join(""),
+    },
     bonusDigits,
     bonusNumber: bonusDigits.length === 6 ? bonusDigits.join("") : "",
+    bonus: {
+      number: bonusDigits.length === 6 ? bonusDigits.join("") : "",
+    },
     prizes: parsePensionPrizeRows(html),
   };
 }
@@ -165,6 +215,9 @@ async function fetchPensionDataset() {
 
 function buildPayload(dataset) {
   const latest = dataset.draws.at(-1);
+  if (!dataset.draws.length) {
+    throw new Error("Pension dataset is empty. Refusing to write a zero-count data file.");
+  }
 
   return {
     schemaVersion: 1,
