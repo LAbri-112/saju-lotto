@@ -4100,10 +4100,6 @@
     const meta = result.candidatePoolMeta ?? {};
     const generatedRate = formatPercent(meta.exactInclusionRateForGenerated ?? getExactInclusionRate(result.candidateCount));
     const coreRate = formatPercent(meta.exactInclusionRateForCore ?? getExactInclusionRate(result.filteredCount));
-    const coreK = meta.coreK ?? result.filteredCount ?? CORE_CANDIDATE_MIN_K;
-    const capNote = meta.cappedForBrowser
-      ? `<em>선택한 ${meta.selectedPoolLabel}는 성능 보호를 위해 브라우저에서 ${formatNumber(meta.generatedCandidateTarget)}개까지 직접 생성해 요약합니다</em>`
-      : `<em>${meta.selectedPoolLabel}에서 당첨모양 학습 기준으로 핵심 후보망을 자동으로 ${formatNumber(coreK)}개까지 추렸습니다</em>`;
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>핵심 후보망</span>
@@ -4127,10 +4123,6 @@
       <div class="candidate-stat-card">
         <span>표시 방식</span>
         <strong>${mode}</strong>
-      </div>
-      <div class="candidate-stat-note">
-        ${capNote}
-        <span>전 회차 당첨번호를 역으로 다시 넣어 보며 학습한 당첨모양 프로필을 랭킹에 반영합니다. ExactRecall은 자동 축소된 핵심 후보망 ${formatNumber(coreK)}개 기준으로 보고, 다음 회차가 들어오면 이 학습 기준도 다시 갱신됩니다.</span>
       </div>
     `;
   }
