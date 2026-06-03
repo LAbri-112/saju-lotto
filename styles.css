@@ -2305,6 +2305,69 @@ button:focus-visible {
   gap: 9px;
 }
 
+.previous-draw-audit {
+  margin-top: 12px;
+}
+
+.previous-audit-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(24, 169, 153, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(232, 250, 247, 0.78), rgba(255, 255, 255, 0.92));
+  padding: 12px;
+}
+
+.previous-audit-card > div:first-child span {
+  display: block;
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+  font-weight: 950;
+  margin-bottom: 3px;
+}
+
+.previous-audit-card strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.96rem;
+  font-weight: 950;
+}
+
+.previous-audit-card p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.previous-audit-balls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.previous-audit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.previous-audit-meta span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--teal-dark);
+  padding: 6px 9px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.previous-audit-card.is-loading {
+  color: var(--muted);
+}
+
 .pillar-chart {
   display: grid;
   gap: 1px;

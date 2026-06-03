@@ -661,6 +661,7 @@
     deferredPortfolioTimer: null,
     startupAutoTimer: null,
     portfolioComputeTimer: null,
+    previousAuditTimer: null,
     learningProfileCache: new Map(),
     personalPortfolioCache: new Map(),
     recommendationResultCache: new Map(),
@@ -3513,6 +3514,37 @@
       totalPrizeWeight += prizeWeight;
     }
 
+    const buildRecentWindow = (size) => {
+      const recentDraws = pensionDraws.slice(-size);
+      const windowGroups = Array(6).fill(0);
+      const windowPositions = Array.from({ length: 6 }, () => Array(10).fill(0));
+      const windowTailDigits = Array(10).fill(0);
+      let count = 0;
+
+      for (const rawDraw of recentDraws) {
+        const draw = normalizePensionDraw(rawDraw);
+        if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
+        count += 1;
+        if (draw.group >= 1 && draw.group <= 5) {
+          windowGroups[draw.group] += 1;
+        }
+        draw.digits.forEach((digit, index) => {
+          if (digit >= 0 && digit <= 9) windowPositions[index][digit] += 1;
+        });
+        windowTailDigits[draw.digits.at(-1)] += 1;
+      }
+
+      return {
+        count,
+        groups: windowGroups,
+        positions: windowPositions,
+        tailDigits: windowTailDigits,
+        maxGroupCount: Math.max(...windowGroups, 1),
+        maxPositionCounts: windowPositions.map((items) => Math.max(...items, 1)),
+        maxTailCount: Math.max(...windowTailDigits, 1),
+      };
+    };
+
     const sortedSums = [...sumValues].sort((a, b) => a - b);
     const sumMean = sumValues.length
       ? sumValues.reduce((total, value) => total + value, 0) / sumValues.length
@@ -3544,6 +3576,12 @@
       sumMean,
       sumStd,
       weightedSumMean: totalPrizeWeight ? weightedSum / totalPrizeWeight : sumMean,
+      recentWindows: {
+        4: buildRecentWindow(4),
+        8: buildRecentWindow(8),
+        12: buildRecentWindow(12),
+        52: buildRecentWindow(52),
+      },
       sumQ25: quantile(sortedSums, 0.25, 18),
       sumQ75: quantile(sortedSums, 0.75, 36),
       commonUnique:
@@ -3710,9 +3748,16 @@
         : Array(10).fill(1);
     const maxWeight = Math.max(...source, 1);
     const personalBoost = clamp(Number(personalWeight) / 100, 0, 0.75);
+    const recent52 = stats?.recentWindows?.["52"]?.positions?.[index] ?? Array(10).fill(0);
+    const recent12 = stats?.recentWindows?.["12"]?.positions?.[index] ?? Array(10).fill(0);
+    const recent4 = stats?.recentWindows?.["4"]?.positions?.[index] ?? Array(10).fill(0);
 
     return source.map((value, digit) => {
-      const historyWeight = (Number(value) + 1) ** 1.18;
+      const historyWeight =
+        (Number(value) + 1) ** 0.95 +
+        (Number(recent52[digit] ?? 0) + 1) ** 1.14 * 0.82 +
+        (Number(recent12[digit] ?? 0) + 1) ** 1.18 * 0.62 +
+        (Number(recent4[digit] ?? 0) + 1) ** 1.22 * 0.38;
       const luckyWeight = luckyDigits.includes(digit) ? maxWeight * personalBoost * 0.42 : 0;
       return historyWeight + luckyWeight;
     });
@@ -3722,10 +3767,17 @@
     const source = stats?.count ? stats.weightedGroups : Array(6).fill(1);
     const maxWeight = Math.max(...source.slice(1), 1);
     const personalBoost = clamp(Number(personalWeight) / 100, 0, 0.75);
+    const recent52 = stats?.recentWindows?.["52"]?.groups ?? Array(6).fill(0);
+    const recent12 = stats?.recentWindows?.["12"]?.groups ?? Array(6).fill(0);
+    const recent4 = stats?.recentWindows?.["4"]?.groups ?? Array(6).fill(0);
 
     return Array.from({ length: 5 }, (_, index) => {
       const group = index + 1;
-      const historyWeight = (Number(source?.[group] ?? 1) + 1) ** 1.12;
+      const historyWeight =
+        (Number(source?.[group] ?? 1) + 1) ** 0.92 +
+        (Number(recent52[group] ?? 0) + 1) ** 1.12 * 0.85 +
+        (Number(recent12[group] ?? 0) + 1) ** 1.16 * 0.62 +
+        (Number(recent4[group] ?? 0) + 1) ** 1.2 * 0.34;
       const luckyWeight = luckyDigits.includes(group + 4) ? maxWeight * personalBoost * 0.35 : 0;
       return historyWeight + luckyWeight;
     });
@@ -3780,6 +3832,50 @@
     return makePensionCandidate(rng, stats, luckyDigits, personalWeight);
   }
 
+  function topPensionDigitsForPosition(stats, index, luckyDigits, personalWeight, limit = 4) {
+    const weights = buildPensionDigitWeights(stats, index, luckyDigits, personalWeight);
+    return weights
+      .map((weight, digit) => ({ digit, weight }))
+      .sort((a, b) => b.weight - a.weight || a.digit - b.digit)
+      .slice(0, limit)
+      .map((item) => item.digit);
+  }
+
+  function addPensionFrontierCandidates(candidateMap, stats, luckyDigits, personalWeight) {
+    const groupWeights = buildPensionGroupWeights(stats, luckyDigits, personalWeight);
+    const groups = groupWeights
+      .map((weight, index) => ({ group: index + 1, weight }))
+      .sort((a, b) => b.weight - a.weight || a.group - b.group)
+      .slice(0, 5)
+      .map((item) => item.group);
+    const digitsByPosition = Array.from({ length: 6 }, (_, index) =>
+      topPensionDigitsForPosition(stats, index, luckyDigits, personalWeight, 4),
+    );
+
+    for (const group of groups) {
+      for (const a of digitsByPosition[0]) {
+        for (const b of digitsByPosition[1]) {
+          for (const c of digitsByPosition[2]) {
+            for (const d of digitsByPosition[3]) {
+              for (const e of digitsByPosition[4]) {
+                for (const f of digitsByPosition[5]) {
+                  const candidate = { group, digits: [a, b, c, d, e, f] };
+                  const key = pensionCandidateKey(candidate);
+                  if (!candidateMap.has(key)) {
+                    candidateMap.set(key, {
+                      ...candidate,
+                      meta: scorePensionCandidate(candidate, luckyDigits, personalWeight, stats),
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   function pensionCandidateKey(candidate) {
     return `${candidate.group}-${candidate.digits.join("")}`;
   }
@@ -3826,15 +3922,26 @@
     const personalFit = clamp(luckyHits / 3);
     const groupFit = luckyDigits.includes(candidate.group + 4) ? 0.9 : 0.78;
     const groupHistoryFit = stats?.count
-      ? clamp(((stats.weightedGroups?.[candidate.group] ?? stats.groups[candidate.group] ?? 0) + 1) / ((stats.maxWeightedGroupCount ?? stats.maxGroupCount ?? 1) + 1), 0.2, 1)
+      ? (
+          clamp(((stats.weightedGroups?.[candidate.group] ?? stats.groups[candidate.group] ?? 0) + 1) / ((stats.maxWeightedGroupCount ?? stats.maxGroupCount ?? 1) + 1), 0.2, 1) * 0.58 +
+          clamp(((stats.recentWindows?.["52"]?.groups?.[candidate.group] ?? 0) + 1) / ((stats.recentWindows?.["52"]?.maxGroupCount ?? 1) + 1), 0.2, 1) * 0.24 +
+          clamp(((stats.recentWindows?.["12"]?.groups?.[candidate.group] ?? 0) + 1) / ((stats.recentWindows?.["12"]?.maxGroupCount ?? 1) + 1), 0.2, 1) * 0.18
+        )
       : 0.72;
     const positionHistoryFit = stats?.count
       ? digits.reduce((total, digit, index) => {
-          return total + clamp(((stats.weightedPositions?.[index]?.[digit] ?? stats.positions[index][digit] ?? 0) + 1) / ((stats.maxWeightedPositionCounts?.[index] ?? stats.maxPositionCounts[index] ?? 1) + 1), 0.2, 1);
+          const longFit = clamp(((stats.weightedPositions?.[index]?.[digit] ?? stats.positions[index][digit] ?? 0) + 1) / ((stats.maxWeightedPositionCounts?.[index] ?? stats.maxPositionCounts[index] ?? 1) + 1), 0.2, 1);
+          const recent52Fit = clamp(((stats.recentWindows?.["52"]?.positions?.[index]?.[digit] ?? 0) + 1) / ((stats.recentWindows?.["52"]?.maxPositionCounts?.[index] ?? 1) + 1), 0.2, 1);
+          const recent12Fit = clamp(((stats.recentWindows?.["12"]?.positions?.[index]?.[digit] ?? 0) + 1) / ((stats.recentWindows?.["12"]?.maxPositionCounts?.[index] ?? 1) + 1), 0.2, 1);
+          return total + longFit * 0.58 + recent52Fit * 0.24 + recent12Fit * 0.18;
         }, 0) / 6
       : 0.72;
     const tailHistoryFit = stats?.count
-      ? clamp(((stats.weightedTailDigits?.[digits.at(-1)] ?? stats.tailDigits[digits.at(-1)] ?? 0) + 1) / ((stats.maxWeightedTailCount ?? stats.maxTailCount ?? 1) + 1), 0.2, 1)
+      ? (
+          clamp(((stats.weightedTailDigits?.[digits.at(-1)] ?? stats.tailDigits[digits.at(-1)] ?? 0) + 1) / ((stats.maxWeightedTailCount ?? stats.maxTailCount ?? 1) + 1), 0.2, 1) * 0.58 +
+          clamp(((stats.recentWindows?.["52"]?.tailDigits?.[digits.at(-1)] ?? 0) + 1) / ((stats.recentWindows?.["52"]?.maxTailCount ?? 1) + 1), 0.2, 1) * 0.24 +
+          clamp(((stats.recentWindows?.["12"]?.tailDigits?.[digits.at(-1)] ?? 0) + 1) / ((stats.recentWindows?.["12"]?.maxTailCount ?? 1) + 1), 0.2, 1) * 0.18
+        )
       : 0.72;
     const historicalFit = positionHistoryFit * 0.7 + groupHistoryFit * 0.18 + tailHistoryFit * 0.12;
     const base =
@@ -3985,6 +4092,10 @@
     const rng = mulberry32(seed);
     const candidateMap = new Map();
     const candidateBudget = stats.count ? 7200 : 3600;
+
+    if (stats.count && mode !== "random") {
+      addPensionFrontierCandidates(candidateMap, stats, luckyDigits, personalWeight);
+    }
 
     for (let index = 0; index < candidateBudget; index += 1) {
       const candidate = makePensionCandidateByMode(rng, stats, luckyDigits, personalWeight, mode);
@@ -4393,6 +4504,29 @@
 
   function tierLabel(tier) {
     return tier ? `${tier}등` : "낙첨";
+  }
+
+  function lottoTierPrizeText(tier, draw) {
+    if (tier === 1) return draw?.firstPrize ? formatMoney(draw.firstPrize) : "1등 당첨금";
+    if (tier === 2) return "2등 변동 당첨금";
+    if (tier === 3) return "3등 변동 당첨금";
+    if (tier === 4) return "50,000원";
+    if (tier === 5) return "5,000원";
+    return "당첨금 없음";
+  }
+
+  function currentReplaySetting() {
+    const selectedWindow = currentWindowInfo(draws.length);
+    const poolBudget = resolveCandidatePoolBudget();
+
+    return {
+      mode: interpretationMode?.value ?? "balance",
+      weight: Number(sajuWeight?.value) || 0,
+      windowValue: selectedWindow.value,
+      windowSize: selectedWindow.size,
+      windowLabel: selectedWindow.label,
+      frontierLimit: poolBudget.frontierLimit || AUTO_FRONTIER_NUMBER_COUNT,
+    };
   }
 
   function settingLabelFromReplayItem(item) {
@@ -5504,6 +5638,64 @@
     `;
   }
 
+  function renderPreviousDrawAudit() {
+    const container = document.querySelector("#previousDrawAudit");
+    if (!container) return;
+    const draw = latest;
+
+    if (!draw || draws.length < 25) {
+      container.innerHTML = "";
+      return;
+    }
+
+    window.clearTimeout(lottoState.previousAuditTimer);
+    container.innerHTML = `
+      <div class="previous-audit-card is-loading">
+        <strong>직전 회차 핵심 후보망 복기</strong>
+        <p>${draw.draw}회 기준으로 가장 많이 맞춘 후보를 확인하는 중입니다.</p>
+      </div>
+    `;
+
+    const generation = lottoState.generation;
+    lottoState.previousAuditTimer = window.setTimeout(() => {
+      if (generation !== lottoState.generation) return;
+      const replay = replayBestCandidateForDraw(draw, currentReplaySetting());
+      const best = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
+
+      if (!best?.n?.length) {
+        container.innerHTML = `
+          <div class="previous-audit-card">
+            <strong>직전 회차 핵심 후보망 복기</strong>
+            <p>아직 비교할 후보망을 만들지 못했습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const prizeText = lottoTierPrizeText(best.tier, draw);
+      const matchText = `${best.matchCount}개 일치${best.bonusMatch ? " + 보너스 일치" : ""}`;
+      const exactText = replay?.result?.corePoolHasExact
+        ? "당첨번호 6개 조합도 핵심 후보망 안에 있었습니다."
+        : "당첨번호 6개 조합은 핵심 후보망 밖이었습니다.";
+
+      container.innerHTML = `
+        <div class="previous-audit-card">
+          <div>
+            <span>${draw.draw}회 직전 복기</span>
+            <strong>핵심 후보망 중 최다 일치 조합</strong>
+            <p>${exactText}</p>
+          </div>
+          <div class="previous-audit-balls">${best.n.map(renderAuditBall).join("")}</div>
+          <div class="previous-audit-meta">
+            <span>${matchText}</span>
+            <span>${tierLabel(best.tier)} · ${prizeText}</span>
+            <span>후보망 ${formatNumber(replay?.coreCount ?? replay?.candidateCount ?? 0)}개 기준</span>
+          </div>
+        </div>
+      `;
+    }, 80);
+  }
+
   function periodDate(period) {
     const date = new Date();
     const offset = { today: 0, tomorrow: 1, week: 3, month: 11 }[period] ?? 0;
@@ -5985,6 +6177,7 @@
     renderElementBars(saju);
     renderSajuReading(saju);
     renderMappingReading(saju);
+    renderPreviousDrawAudit();
     renderHotCold(stats, scores);
   }
 
