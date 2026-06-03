@@ -1,14 +1,14 @@
-const CACHE_NAME = "saju-lotto-v74";
+const CACHE_NAME = "saju-lotto-v76";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v69",
-  "./app.js?v=feedback-v69",
+  "./styles.css?v=feedback-v71",
+  "./app.js?v=feedback-v71",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v69",
-  "./data/pension-results.js?v=feedback-v69",
-  "./data/lotto-recall-profile.js?v=feedback-v69"
+  "./data/lotto-results.js?v=feedback-v71",
+  "./data/pension-results.js?v=feedback-v71",
+  "./data/lotto-recall-profile.js?v=feedback-v71"
 ];
 
 self.addEventListener("install", (event) => {
@@ -55,7 +55,9 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith("/data/lotto-results.js") ||
     url.pathname.endsWith("/data/lotto-results.json") ||
     url.pathname.endsWith("/data/pension-results.js") ||
-    url.pathname.endsWith("/data/pension-results.json");
+    url.pathname.endsWith("/data/pension-results.json") ||
+    url.pathname.endsWith("/data/lotto-recall-profile.js") ||
+    url.pathname.endsWith("/data/lotto-recall-profile.json");
 
   if (isDataRequest) {
     event.respondWith(

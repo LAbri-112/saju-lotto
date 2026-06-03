@@ -3274,14 +3274,17 @@
         const sajuFit = (candidate.sourceBuckets ?? []).includes("sajuWeighted") ? 1 : 0.45;
         const recentFit = (candidate.sourceBuckets ?? []).includes("recentFlow") ? 1 : 0.55;
         const longFit = (candidate.sourceBuckets ?? []).includes("longTermFrequency") ? 1 : 0.55;
+        const recallFit = candidate.meta.recallProfileScore ?? candidate.meta.score;
         const finalPickScore =
-          candidate.meta.score * 0.55 +
-          overlapFit * 25 +
-          bucketFit * 10 +
-          bandFit * 5 +
-          sajuFit * 2.5 +
-          recentFit * 1.5 +
-          longFit * 1.5;
+          candidate.meta.practicalScore * 0.72 +
+          recallFit * 0.12 +
+          candidate.meta.score * 0.08 +
+          overlapFit * 4 +
+          bucketFit * 1.5 +
+          bandFit * 1.2 +
+          sajuFit * 0.7 +
+          recentFit * 0.3 +
+          longFit * 0.3;
 
         if (finalPickScore > bestScore) {
           bestScore = finalPickScore;
@@ -4277,7 +4280,7 @@
       includedInFinalRecommendations,
       exactRecallAtCoreK: includedInCorePool,
       coreK: snapshot.coreK ?? coreCandidates.length,
-      winningRank: null,
+      winningRank: Number(snapshot.reverseRank) || null,
       winningPercentile: null,
       corePoolBestMatch: corePoolBestMatch
         ? {
@@ -4298,8 +4301,8 @@
       explanation: includedInCorePool
         ? "당첨번호 조합은 실제 핵심 후보망 안에 포함되었습니다."
         : passedScoreGate
-          ? "당첨번호 조합은 직접 점수 평가 기준은 통과했지만 실제 핵심 후보망에는 포함되지 않았습니다."
-          : "당첨번호 조합은 직접 점수 평가와 실제 핵심 후보망 모두에서 벗어났습니다.",
+          ? "당첨번호 조합은 점수상 가까웠지만 실제 핵심 후보망에는 포함되지 않았습니다."
+          : "당첨번호 조합은 실제 핵심 후보망 밖에 있었습니다.",
     };
 
     return {
@@ -4378,28 +4381,26 @@
         });
         const winningNumbers = draw.numbers.slice().sort((a, b) => a - b);
         const directMeta = scoreCombination(winningNumbers, scores, statsBeforeDraw, modeSaju, null);
-        const reverseExactCandidate = {
-          numbers: winningNumbers,
-          meta: {
-            ...directMeta,
-            reverseSearch: true,
-          },
-          sourceBuckets: ["reverseExactWinner"],
-        };
         const reverseExactKey = winningNumbers.join("-");
         const sortByPracticalRank = (a, b) => {
           return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
         };
-        const ensureReverseExactCandidate = (pool) => {
-          if (pool.some((candidate) => candidate.numbers.join("-") === reverseExactKey)) return pool;
-          return [...pool, reverseExactCandidate].sort(sortByPracticalRank);
-        };
-        const rankedForAudit = ensureReverseExactCandidate(ranked);
-        const filtered = ensureReverseExactCandidate(ranked.filter((candidate) => candidate.meta.score >= 80));
-        let corePool = buildCoreCandidatePool(rankedForAudit, filtered, Number(setCount.value) || 5);
-        if (!corePool.some((candidate) => candidate.numbers.join("-") === reverseExactKey)) {
-          corePool = ensureReverseExactCandidate(corePool);
-        }
+        const reverseExactCandidate = enrichLottoCandidate(
+          {
+            numbers: winningNumbers,
+            meta: {
+              ...directMeta,
+              reverseSearch: true,
+            },
+          },
+          statsBeforeDraw,
+        );
+        const rankedWithWinner = ranked.some((candidate) => candidate.numbers.join("-") === reverseExactKey)
+          ? ranked
+          : [...ranked, reverseExactCandidate].sort(sortByPracticalRank);
+        const reverseRank = rankedWithWinner.findIndex((candidate) => candidate.numbers.join("-") === reverseExactKey) + 1;
+        const filtered = ranked.filter((candidate) => candidate.meta.score >= 80);
+        const corePool = buildCoreCandidatePool(ranked, filtered, Number(setCount.value) || 5);
         const displayPool = corePool.slice(0, DISPLAY_SAMPLE_K);
         const toSnapshotItem = (candidate) => ({
           n: candidate.numbers,
@@ -4412,22 +4413,25 @@
         });
         const snapshot = {
           selected: corePool.slice(0, Number(setCount.value) || 5).map(toSnapshotItem),
-          generatedCandidates: rankedForAudit.map(toSnapshotItem),
+          generatedCandidates: ranked.map(toSnapshotItem),
           coreCandidates: corePool.map(toSnapshotItem),
           candidates: displayPool.map(toSnapshotItem),
           coreK: corePool.length,
           directScore: directMeta.score,
           passedScoreGate: directMeta.score >= 80,
-          reverseSearchApplied: true,
+          reverseRank,
+          reverseSearchApplied: false,
         };
         const result = compareSnapshotWithDraw(snapshot, draw);
 
         return {
           setting,
           label: settingLabelFromReplayItem(setting),
-          generatedCount: rankedForAudit.length,
+          generatedCount: ranked.length,
           coreCount: corePool.length,
           displayCount: displayPool.length,
+          reverseRank,
+          reverseCandidateCount: reverseRank || null,
           checkedForExactCount: corePool.length,
           candidateCount: corePool.length,
           checkedCount: corePool.length,
@@ -4521,16 +4525,37 @@
     return Math.round((meta.practicalScore * 0.68 + meta.signalScore * 0.2 + meta.gateScore * 0.12) * 10) / 10;
   }
 
+  function reverseCandidateNeed(meta, fit, target = 5) {
+    const practical = Number(meta?.practicalScore ?? meta?.score ?? fit ?? 0);
+    const recall = Number(meta?.recallProfileScore ?? meta?.score ?? practical);
+    const signal = Number(meta?.signalScore ?? practical);
+    const blended = clamp((practical * 0.58 + recall * 0.22 + fit * 0.16 + signal * 0.04) / 100, 0, 1);
+    const minimum = minimumCoreCandidateCount(target);
+    const estimated = Math.round(minimum + (1 - blended) ** 2.15 * 620000);
+    return clamp(estimated, minimum, LOTTO_UNIVERSE_SIZE);
+  }
+
+  function compareReverseSetting(a, b) {
+    return (
+      (a.candidateNeed ?? LOTTO_UNIVERSE_SIZE) - (b.candidateNeed ?? LOTTO_UNIVERSE_SIZE) ||
+      b.fit - a.fit ||
+      b.meta.practicalScore - a.meta.practicalScore ||
+      b.meta.score - a.meta.score ||
+      a.weight - b.weight
+    );
+  }
+
   function deriveAutoSajuSetting(records) {
     const source = records
       .map((record, index) => {
-        const item = record.exactByWeight?.[0] ?? record.best;
+        const item = record.reverseSettings?.[0] ?? record.best;
         if (!item) return null;
         const recency = records.length ? (index + 1) / records.length : 1;
+        const compactness = clamp(1 - (item.candidateNeed ?? LOTTO_UNIVERSE_SIZE) / 120000, 0, 1);
         return {
           ...item,
-          exact: Boolean(record.exactByWeight?.length),
-          vote: 1 + recency * 0.35 + (record.exactByWeight?.length ? 0.75 : 0),
+          exact: Boolean(record.reverseSettings?.length),
+          vote: 1 + recency * 0.25 + compactness * 1.4,
         };
       })
       .filter(Boolean);
@@ -4547,18 +4572,26 @@
     };
 
     const mode = pickWeighted((item) => item.mode) ?? "balance";
-    const windowSize = Number(pickWeighted((item) => item.windowSize)) || 50;
-    const focused = source.filter((item) => item.mode === mode && item.windowSize === windowSize);
+    const windowValue = pickWeighted((item) => item.windowValue) ?? "50";
+    const windowInfo = windowOptionInfo(windowValue, draws.length);
+    const windowSize = windowInfo.size;
+    const focused = source.filter((item) => item.mode === mode && item.windowValue === String(windowValue));
     const weightItems = focused.length ? focused : source.filter((item) => item.mode === mode);
     const pool = weightItems.length ? weightItems : source;
     const weightedTotal = pool.reduce((sum, item) => sum + item.weight * item.vote, 0);
     const voteTotal = pool.reduce((sum, item) => sum + item.vote, 0) || 1;
     const weight = Math.round(clamp(weightedTotal / voteTotal, 0, 100));
+    const candidateNeed = Math.round(
+      pool.reduce((sum, item) => sum + (item.candidateNeed ?? LOTTO_UNIVERSE_SIZE) * item.vote, 0) / voteTotal,
+    );
 
     return {
       mode,
       weight,
       windowSize,
+      windowValue: windowInfo.value,
+      windowLabel: windowInfo.label,
+      candidateNeed,
       sourceCount: source.length,
       hitCount: source.filter((item) => item.exact).length,
     };
@@ -4568,10 +4601,10 @@
     const latest = records.at(-1);
     if (!latest?.best) return null;
 
-    const exactSettings = (latest.exactByWeight ?? [])
+    const reverseSettings = (latest.reverseSettings ?? latest.exactByWeight ?? [])
       .slice()
-      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score);
-    const picked = exactSettings[0] ?? latest.best;
+      .sort(compareReverseSetting);
+    const picked = reverseSettings[0] ?? latest.best;
 
     return {
       mode: picked.mode,
@@ -4580,21 +4613,21 @@
       windowValue: picked.windowValue,
       windowLabel: picked.windowLabel,
       basisDraw: latest.draw?.draw,
-      exact: exactSettings.length > 0,
-      exactCount: exactSettings.length,
+      exact: reverseSettings.length > 0,
+      exactCount: reverseSettings.length,
+      candidateNeed: picked.candidateNeed,
       sourceCount: 1,
-      hitCount: exactSettings.length > 0 ? 1 : 0,
+      hitCount: reverseSettings.length > 0 ? 1 : 0,
     };
   }
 
   function buildPersonalPortfolio() {
     const selectedWindow = currentWindowInfo(draws.length);
     const windowOptions = availableWindowOptions(selectedWindow.value);
-    const scoreFloor = autoScoreFloorFromLearning(getCachedLearningProfile(buildSajuProfile()));
     const modes = ["balance", "wealth", "climate"];
     const modeProfiles = Object.fromEntries(modes.map((mode) => [mode, buildSajuProfile(mode)]));
     const scanWeights = Array.from({ length: 101 }, (_, index) => index);
-    const maxRecords = Math.min(60, Math.max(0, draws.length - 20));
+    const maxRecords = Math.max(0, draws.length - 20);
     const startIndex = Math.max(20, draws.length - maxRecords);
     const records = [];
 
@@ -4604,7 +4637,7 @@
       if (!draw?.numbers?.length || priorDraws.length < 20) continue;
 
       let best = null;
-      const exactByWeight = [];
+      const reverseSettings = [];
 
       for (const windowValue of windowOptions) {
         const windowInfo = windowOptionInfo(windowValue, priorDraws.length);
@@ -4624,7 +4657,7 @@
               modeSaju,
             );
             const fit = personalFitScore(meta);
-            const eligible = meta.score >= scoreFloor;
+            const candidateNeed = reverseCandidateNeed(meta, fit, Number(setCount.value) || 5);
             const item = {
               mode,
               weight,
@@ -4633,23 +4666,25 @@
               windowLabel: windowInfo.label,
               meta,
               fit,
-              eligible,
-              scoreFloor,
+              candidateNeed,
             };
 
-            if (eligible) exactByWeight.push(item);
-            if (!best || item.fit > best.fit || (item.fit === best.fit && item.meta.score > best.meta.score)) {
+            reverseSettings.push(item);
+            if (!best || compareReverseSetting(item, best) < 0) {
               best = item;
             }
           }
         }
       }
 
+      reverseSettings.sort(compareReverseSetting);
+
       records.push({
         draw,
         best,
-        exactByWeight,
-        eligible: exactByWeight.length > 0,
+        reverseSettings: reverseSettings.slice(0, 10),
+        exactByWeight: reverseSettings.slice(0, 10),
+        eligible: Boolean(best),
       });
     }
 
@@ -4678,7 +4713,7 @@
         count: records.filter((record) => record.best?.windowValue === String(windowValue)).length,
       }))
       .sort((a, b) => b.count - a.count || String(a.windowValue).localeCompare(String(b.windowValue)));
-    const autoSetting = deriveLatestAutoSajuSetting(records);
+    const autoSetting = deriveAutoSajuSetting(records) ?? deriveLatestAutoSajuSetting(records);
 
     return {
       records,
@@ -4687,7 +4722,6 @@
       topRange,
       modeCounts,
       windowCounts,
-      scoreFloor,
       scanCount: records.length ? windowOptions.length * modes.length * scanWeights.length : 0,
       selectedWindow,
       windowOptions,
@@ -4708,46 +4742,37 @@
 
     const latest = portfolio.latest;
     const best = latest.best;
-    const qualifyingSettings = latest.exactByWeight
+    const reverseSettings = (latest.reverseSettings ?? latest.exactByWeight ?? [])
       .slice()
-      .sort((a, b) => b.fit - a.fit || b.meta.score - a.meta.score);
-    const bestEligible = qualifyingSettings[0];
+      .sort(compareReverseSetting);
+    const selectedSetting = reverseSettings[0] ?? best;
     const maxRange = Math.max(...portfolio.ranges.map((range) => range.count), 1);
     const latestDraw = latest.draw;
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)}`;
-    const foundSettingLine = bestEligible
-      ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · ${settingWindowLabel(bestEligible)}`
-      : `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)} 역탐색`;
-    const replaySetting = bestEligible ?? best;
+    const selectedSettingLine = `${modeName(selectedSetting.mode)} · 사주 ${selectedSetting.weight}% · ${settingWindowLabel(selectedSetting)}`;
+    const replaySetting = selectedSetting;
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
     const replayStatus = replay?.winningCandidateStatus ?? replay?.result?.winningCandidateStatus;
     const coreIncluded = Boolean(replayStatus?.includedInCorePool);
-    const scoreGatePassed = Boolean(replayStatus?.passedScoreGate);
-    const replayCoreK = replayStatus?.coreK ?? replay?.coreCount ?? CORE_CANDIDATE_MIN_K;
-    const replayCoreKLabel = formatNumber(replayCoreK);
+    const generatedIncluded = Boolean(replayStatus?.generatedInCandidatePool);
+    const reverseRank = replay?.reverseCandidateCount ?? selectedSetting.candidateNeed;
     const replayBest = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
     const replayNumbers = replayBest?.n ?? [];
-    const replayCandidateCount = replay?.coreCount ? formatNumber(replay.coreCount) : "계산 중";
-    const replayCheckedCount = replay?.checkedForExactCount ? formatNumber(replay.checkedForExactCount) : "계산 중";
+    const replayCoreCount = replay?.coreCount ? formatNumber(replay.coreCount) : "계산 중";
     const replayText = replayBest
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
-    const statusText = coreIncluded ? `ExactRecall@${replayCoreKLabel} 성공` : `ExactRecall@${replayCoreKLabel} 실패`;
+    const statusText = coreIncluded
+      ? "실제 후보망 안"
+      : `역추산 ${formatNumber(reverseRank)}번째`;
     const statusClass = coreIncluded ? "is-hit" : "is-info";
-    const hitLocationTitle = coreIncluded ? replay.label : settingLine;
-    const directLocationText = `${latestDraw.draw}회 당첨번호 6개 조합을 생성 후보 기록이 아니라 전체 조합 ${formatNumber(
-      lottoCombinationCount,
-    )}개 중 하나로 직접 넣어 평가했습니다. 확인한 설정은 해석모드 3종 × 사주 0~100% × 최근 20·50·100·200·500·700·1000회·전체 회차, 총 ${formatNumber(
-      portfolio.scanCount,
-    )}가지입니다. 그중 가장 높게 잡힌 위치는 ${settingLine}이고, 점수는 ${best.meta.score}점(${best.meta.bucketLabel}, ${best.meta.band})입니다.`;
+    const hitLocationTitle = coreIncluded ? "추천 후보 안에 있었음" : "추천 후보 밖";
     const candidateLine = coreIncluded
-      ? `${directLocationText} 이 설정으로 역탐색 후보망을 다시 만들면 정확한 당첨번호 조합이 후보망 ${replayCandidateCount}개 안에 들어옵니다. 이 회차 학습 결과는 ExactRecall@${replayCoreKLabel}: 성공입니다.`
-      : scoreGatePassed
-        ? `${directLocationText} 당첨번호 조합은 점수 기준을 통과했습니다. 역탐색 후보망 안으로 끌어올리는 세부 랭킹 보정이 더 필요합니다.`
-        : `${directLocationText} 당첨번호 조합이 가장 가까웠던 설정을 찾았고, 이 값을 다음 후보망 랭킹 보정에 반영합니다.`;
-    const positionMeaning = coreIncluded
-      ? `과거 당첨번호를 알고 난 뒤 전체 설정을 역으로 탐색해, 어떤 설정이면 후보망 안에 들어왔는지 찾은 결과입니다. 이 패턴은 다음 추천 후보망 학습에 반영됩니다.`
-      : `가장 가까운 설정까지는 찾았습니다. 아래 최다 일치 조합은 핵심 후보망 전체 ${replayCheckedCount}개를 기준으로 계산했습니다.`;
+      ? `${selectedSettingLine} 설정에서는 당첨번호 6개 조합이 실제 후보망 ${replayCoreCount}개 안에 있었습니다.`
+      : `${selectedSettingLine} 설정이 가장 가까웠고, 당첨번호는 역추산 ${formatNumber(reverseRank)}번째 위치였습니다.`;
+    const positionMeaning = generatedIncluded
+      ? "생성 후보에는 있었지만 최종 핵심 후보망까지 올라오지는 못했습니다."
+      : "실제 후보에는 없었습니다. 대신 전체 설정을 되돌려 가장 가까운 위치를 찾고 다음 자동 세팅에 반영합니다.";
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -4766,40 +4791,32 @@
     const topRange = portfolio.topRange;
     const topRangeLabel = topRange ? rangeLabels[topRange.label] ?? topRange.label : "";
     const summarySentence = topMode && topRange && topWindow
-      ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, ${topWindow.label} 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
+      ? `전체 ${portfolio.records.length}개 회차를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, ${topWindow.label} 쪽이 가장 자주 가까웠습니다.`
       : "";
-    const qualifyingSettingSource = qualifyingSettings.length ? qualifyingSettings : [best];
-    const qualifyingSettingTitle = qualifyingSettings.length
-      ? "당첨번호가 직접 점수 기준을 통과했던 설정"
-      : "당첨번호를 후보망으로 끌어올린 역탐색 설정";
-    const qualifyingSettingRows = qualifyingSettingSource
+    const qualifyingSettingRows = (reverseSettings.length ? reverseSettings : [best])
       .slice(0, 5)
       .map(
         (item, index) => {
-          const rowText = qualifyingSettings.length
-            ? `이 설정에서는 당첨번호 조합을 사후에 직접 점수화했을 때 점수 기준을 통과했습니다.${index === 0 ? ` 실제 후보망 포함 여부는 ExactRecall@${replayCoreKLabel}로 따로 봅니다.` : ""}`
-            : `직접 점수 기준은 부족했지만, 전체 조합 역탐색에서 이 설정이 당첨번호를 가장 후보망 쪽으로 끌어올렸습니다. 이 값을 다음 추천 보정에 반영합니다.`;
           return `
             <div>
               <span>${index + 1}</span>
               <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
-              <em>${rowText}</em>
+              <em>당첨번호 위치: 후보 ${formatNumber(item.candidateNeed)}개 안쪽 추정</em>
             </div>
           `;
         },
       )
       .join("");
     return `
-      <div class="personal-portfolio-card">
-        <div class="portfolio-head">
-          <div>
-            <span>개인별 당첨번호 위치</span>
-            <strong>${latestDraw.draw}회 당첨번호를 전체 설정에 직접 넣어 확인</strong>
+        <div class="personal-portfolio-card">
+          <div class="portfolio-head">
+            <div>
+              <span>개인별 당첨번호 위치</span>
+              <strong>${latestDraw.draw}회 당첨번호 역추산</strong>
+            </div>
+            <b class="${statusClass}">${statusText}</b>
           </div>
-          <b class="${statusClass}">${statusText}</b>
-        </div>
-        <p class="portfolio-note">이 결과는 과거 당첨번호를 알고 난 뒤 전체 설정을 역으로 돌려, 어떤 설정이면 후보망 안에 들어왔는지 찾는 학습 지표입니다. 후보망 수는 고정하지 않고, 당첨모양 학습 기준에 맞춰 자동으로 정합니다.</p>
-        <p class="portfolio-note">4개 일치 + 보너스 일치는 등위상 4등입니다. 보너스 번호는 5개 번호와 함께 맞을 때만 2등 조건에 사용됩니다.</p>
+        <p class="portfolio-note">중화·조후·재성, 사주 0~100%, 최근 20~전체 회차를 모두 되돌려 가장 가까운 설정을 찾습니다.</p>
         <div class="portfolio-latest">
           <div>
             <span>${latestDraw.draw}회 당첨번호</span>
@@ -4809,17 +4826,17 @@
         <div class="portfolio-hit-location ${statusClass}">
           <span>당첨번호의 실제 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${coreIncluded ? `${replay.label} 설정으로 역탐색하면 정확한 당첨번호 조합이 후보망 ${replayCandidateCount}개 안에 들어옵니다.` : `가장 가까운 역탐색 설정은 ${settingLine}이고, 이 설정값을 다음 후보망 보정에 반영합니다.`}</p>
+          <p>${candidateLine}</p>
         </div>
         <div class="portfolio-setting-list">
-          <strong>${qualifyingSettingTitle}</strong>
+          <strong>가장 가까웠던 설정</strong>
           ${qualifyingSettingRows}
         </div>
         <div class="portfolio-replay-card">
           <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
           <strong>${replayText}</strong>
-          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 핵심 후보망 ${formatNumber(replay.coreCount)}개 전체 기준 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
+          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label}` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
@@ -4829,19 +4846,18 @@
           </div>
           <div class="portfolio-position-card">
             <span>가장 가까운 설정</span>
-            <strong>${settingLine}</strong>
+            <strong>${selectedSettingLine}</strong>
             <p>${positionMeaning}</p>
           </div>
         </div>
         <div class="store-tags">
-          <span>전체 조합 ${formatNumber(lottoCombinationCount)}개 중 당첨번호 조합 직접 평가</span>
-          <span>검사 설정 ${formatNumber(portfolio.scanCount)}가지</span>
-          <span>직접 점수 기준 통과 설정 ${qualifyingSettings.length}개</span>
+          <span>회차당 설정 ${formatNumber(portfolio.scanCount)}가지</span>
+          <span>검증 회차 ${formatNumber(portfolio.records.length)}개</span>
+          <span>최소 위치 ${formatNumber(selectedSetting.candidateNeed)}개 안쪽</span>
         </div>
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
-          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 당첨번호 조합이 직접 점수 기준을 통과한 회차는 ${portfolio.eligibleCount}회입니다. 실제 핵심 후보망 포함 여부는 ExactRecall@${replayCoreKLabel}로 따로 표시합니다.</p>
-          ${summarySentence ? `<p class="portfolio-note">${summarySentence}</p>` : ""}
+          <p class="portfolio-note">${summarySentence || "아직 요약할 회차가 부족합니다."}</p>
           <div class="portfolio-bars">
             ${portfolio.ranges
               .map(
@@ -4865,13 +4881,13 @@
               .reverse()
               .map((record) => {
                 const item = record.best;
-                const hitLabel = record.eligible
-                  ? '<mark class="candidate-hit-label">직접 점수 기준 통과</mark>'
-                  : '<mark class="candidate-miss-label">직접 점수 기준 밖</mark>';
+                const hitLabel = item?.candidateNeed <= CORE_CANDIDATE_MIN_K
+                  ? '<mark class="candidate-hit-label">핵심권</mark>'
+                  : '<mark class="candidate-miss-label">역추산</mark>';
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)} · ${hitLabel}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)} · 후보 ${formatNumber(item.candidateNeed)}개 안쪽 ${hitLabel}</span>
                   </div>
                 `;
               })
@@ -6118,9 +6134,10 @@
 
     if (autoSajuStatus) {
       const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
-      const reasonText = setting.exact
-        ? `${basisText}당첨번호가 직접 점수 기준을 통과했던 설정을 적용했습니다. 실제 핵심 후보망 포함은 별도로 검증합니다.`
-        : `${basisText}당첨번호와 가장 가까웠던 설정을 적용했습니다.`;
+      const candidateText = setting.candidateNeed
+        ? ` · 역추산 후보 ${formatNumber(setting.candidateNeed)}개 안쪽`
+        : "";
+      const reasonText = `${basisText}전체 회차 역추산에서 가장 자주 가까웠던 설정입니다${candidateText}.`;
       autoSajuStatus.textContent =
         `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
     }
