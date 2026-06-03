@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const WINDOW_VALUES = ["20", "50", "100", "200", "500", "700", "1000", "all"];
+const BACKFIT_MODES = ["balance", "wealth", "climate"];
+const BACKFIT_WEIGHTS = [0, 20, 40, 60, 80, 100];
+const BACKFIT_FRONTIER_LIMITS = [22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 35, 40, 45];
 
 function clamp(value, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value));
@@ -146,7 +149,7 @@ function combinationCount(size, pick = 6) {
 
 function rankedNumbersBy(source, ranker) {
   return Array.from({ length: 45 }, (_, index) => index + 1)
-    .sort((a, b) => ranker(b) - ranker(a) || b - a)
+    .sort((a, b) => ranker(b) - ranker(a) || a - b)
     .filter((number) => source[number] !== null);
 }
 
@@ -155,7 +158,7 @@ function appendUniqueNumber(target, number, limit) {
   target.push(number);
 }
 
-function buildReverseFrontier(priorDraws, value, limit = 25) {
+function buildReverseFrontier(priorDraws, value, limit = 25, setting = {}) {
   const trendDraws = priorDraws.slice(-windowSize(value, priorDraws.length));
   const longFrequency = Array(46).fill(0);
   const trendFrequency = Array(46).fill(0);
@@ -213,7 +216,19 @@ function buildReverseFrontier(priorDraws, value, limit = 25) {
     return seen ? latestDrawNo - seen : 999;
   });
   const frontier = [];
-  const lanes = [bySignal, byLowReentry, byReentry, byLong, byRecent, byCold];
+  const mode = setting.mode ?? "balance";
+  const weight = Number(setting.weight ?? 60);
+  let lanes = [bySignal, byLowReentry, byReentry, byLong, byRecent, byCold];
+
+  if (weight <= 20) {
+    lanes = [bySignal, byLong, byRecent, byCold, byReentry, byLowReentry];
+  } else if (mode === "wealth" && weight >= 50) {
+    lanes = [byLong, byRecent, bySignal, byReentry, byLowReentry, byCold];
+  } else if (mode === "climate" && weight >= 50) {
+    lanes = [byLowReentry, byCold, bySignal, byReentry, byLong, byRecent];
+  } else if (weight >= 80) {
+    lanes = [byLowReentry, byReentry, bySignal, byLong, byRecent, byCold];
+  }
 
   for (let index = 0; frontier.length < limit && index < 45; index += 1) {
     for (const lane of lanes) {
@@ -229,6 +244,108 @@ function round(value, digits = 3) {
   return Math.round(value * scale) / scale;
 }
 
+function settingKey(setting) {
+  return [
+    setting.mode,
+    setting.weight,
+    setting.window,
+    setting.frontierLimit,
+  ].join("|");
+}
+
+function addSettingCount(map, setting) {
+  const key = settingKey(setting);
+  const current = map.get(key) ?? {
+    mode: setting.mode,
+    weight: setting.weight,
+    window: setting.window,
+    frontierLimit: setting.frontierLimit,
+    candidateCount: setting.candidateCount,
+    count: 0,
+    recentScore: 0,
+  };
+  current.count += 1;
+  current.recentScore += setting.recentScore ?? 1;
+  map.set(key, current);
+}
+
+function addFlatCount(map, key) {
+  map.set(String(key), (map.get(String(key)) ?? 0) + 1);
+}
+
+function summarizeFlatCounts(map, total) {
+  return [...map.entries()]
+    .map(([value, count]) => ({
+      value,
+      count,
+      rate: total ? round((count / total) * 100, 1) : 0,
+    }))
+    .sort((a, b) => b.count - a.count || String(a.value).localeCompare(String(b.value)));
+}
+
+function summarizeSettingCounts(map, total) {
+  return [...map.values()]
+    .map((item) => ({
+      ...item,
+      rate: total ? round((item.count / total) * 100, 1) : 0,
+      efficiency: round((item.count / Math.max(1, total)) / Math.max(1, item.candidateCount / 8145060), 3),
+    }))
+    .sort((a, b) => {
+      const practicalA = a.frontierLimit <= 30 ? 1 : 0;
+      const practicalB = b.frontierLimit <= 30 ? 1 : 0;
+      return (
+        practicalB - practicalA ||
+        b.count - a.count ||
+        a.candidateCount - b.candidateCount ||
+        b.recentScore - a.recentScore
+      );
+    });
+}
+
+function compareBackfitSetting(a, b) {
+  return (
+    a.frontierLimit - b.frontierLimit ||
+    a.candidateCount - b.candidateCount ||
+    a.weight - b.weight ||
+    String(a.window).localeCompare(String(b.window)) ||
+    String(a.mode).localeCompare(String(b.mode))
+  );
+}
+
+function findBackfitSetting(draw, priorDraws, recencyWeight = 1) {
+  const exactSettings = [];
+
+  for (const frontierLimit of BACKFIT_FRONTIER_LIMITS) {
+    for (const window of WINDOW_VALUES) {
+      for (const mode of BACKFIT_MODES) {
+        for (const weight of BACKFIT_WEIGHTS) {
+          const frontier = buildReverseFrontier(priorDraws, window, frontierLimit, { mode, weight });
+          const frontierSet = new Set(frontier);
+          const exact = draw.numbers.every((number) => frontierSet.has(number));
+          if (!exact) continue;
+
+          exactSettings.push({
+            mode,
+            weight,
+            window,
+            frontierLimit,
+            candidateCount: combinationCount(frontierLimit, 6),
+            recentScore: recencyWeight,
+          });
+        }
+      }
+    }
+    if (exactSettings.length) break;
+  }
+
+  exactSettings.sort(compareBackfitSetting);
+  return {
+    exact: exactSettings.length > 0,
+    bestSetting: exactSettings[0] ?? null,
+    exactSettings: exactSettings.slice(0, 12),
+  };
+}
+
 async function main() {
   const dataset = JSON.parse(await readFile(resolve(rootDir, "data/lotto-results.json"), "utf8"));
   const draws = dataset.draws ?? [];
@@ -242,11 +359,17 @@ async function main() {
   const shape = emptyShape();
   const windowWins = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
   const frontierHits = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
+  const backfitSettingCounts = new Map();
+  const backfitWindowCounts = new Map();
+  const backfitModeCounts = new Map();
+  const backfitWeightCounts = new Map();
+  const backfitLimitCounts = new Map();
   const records = [];
 
   for (let index = minPrior; index < draws.length; index += 1) {
     const draw = draws[index];
     const priorDraws = draws.slice(0, index);
+    const recencyWeight = 0.65 + 0.35 * ((index - minPrior + 1) / Math.max(1, draws.length - minPrior));
     const previousNumbers = new Set(priorDraws.at(-1)?.numbers ?? []);
     const winningSnapshot = patternSnapshot(draw.numbers, previousNumbers);
 
@@ -284,6 +407,15 @@ async function main() {
         bestFrontier = frontier;
       }
     }
+    const backfit = findBackfitSetting(draw, priorDraws, recencyWeight);
+
+    if (backfit.bestSetting) {
+      addSettingCount(backfitSettingCounts, backfit.bestSetting);
+      addFlatCount(backfitWindowCounts, backfit.bestSetting.window);
+      addFlatCount(backfitModeCounts, backfit.bestSetting.mode);
+      addFlatCount(backfitWeightCounts, backfit.bestSetting.weight);
+      addFlatCount(backfitLimitCounts, backfit.bestSetting.frontierLimit);
+    }
 
     windowWins[bestWindow] += 1;
     records.push({
@@ -294,6 +426,7 @@ async function main() {
       exactInFrontier: bestFrontierHit,
       frontierNumberCount: bestFrontier.length,
       frontierCandidateCount: combinationCount(bestFrontier.length, 6),
+      backfit,
       windowDetails,
       snapshot: {
         sumBand: winningSnapshot.sumBand,
@@ -307,6 +440,21 @@ async function main() {
       },
     });
   }
+
+  const backfitExactRecords = records.filter((record) => record.backfit?.bestSetting);
+  const backfitSettings = summarizeSettingCounts(backfitSettingCounts, records.length);
+  const recommendedBackfitSetting =
+    backfitSettings.find((setting) => setting.frontierLimit <= 30) ??
+    backfitSettings[0] ??
+    {
+      mode: "balance",
+      weight: 60,
+      window: "20",
+      frontierLimit: 25,
+      candidateCount: combinationCount(25, 6),
+      count: 0,
+      rate: 0,
+    };
 
   const profile = {
     schemaVersion: 1,
@@ -324,9 +472,26 @@ async function main() {
       objective: "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks.",
     },
     candidateFrontier: {
-      numberCount: 25,
-      candidateCount: combinationCount(25, 6),
+      numberCount: Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)),
+      candidateCount: combinationCount(Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)), 6),
       objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier.",
+    },
+    backfitSummary: {
+      evaluatedDraws: records.length,
+      exactDraws: backfitExactRecords.length,
+      exactRate: records.length ? round((backfitExactRecords.length / records.length) * 100, 1) : 0,
+      recommendedSetting: recommendedBackfitSetting,
+      settingCounts: backfitSettings.slice(0, 24),
+      windowCounts: summarizeFlatCounts(backfitWindowCounts, records.length),
+      modeCounts: summarizeFlatCounts(backfitModeCounts, records.length),
+      weightCounts: summarizeFlatCounts(backfitWeightCounts, records.length),
+      frontierLimitCounts: summarizeFlatCounts(backfitLimitCounts, records.length),
+      recentRecords: records.slice(-12).reverse().map((record) => ({
+        draw: record.draw,
+        date: record.date,
+        exact: Boolean(record.backfit?.bestSetting),
+        bestSetting: record.backfit?.bestSetting ?? null,
+      })),
     },
     winningShape: summarizeShape(shape),
     bestWindowCounts: Object.entries(windowWins)

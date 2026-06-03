@@ -21,6 +21,7 @@
   const CORE_CANDIDATE_MIN_K = 420;
   const DISPLAY_SAMPLE_K = 420;
   const AUTO_FRONTIER_NUMBER_COUNT = 25;
+  const ACTIVE_FRONTIER_LIMIT_MAX = 26;
   const AUTO_CANDIDATE_POOL_BUDGET = 180000;
   const generates = {
     wood: "fire",
@@ -3032,6 +3033,8 @@
 
   function resolveCandidatePoolBudget() {
     const selected = candidatePoolSize?.value ?? "auto";
+    const autoBackfitSetting = recallProfile?.backfitSummary?.recommendedSetting ?? null;
+    const autoFrontierLimit = Number(autoBackfitSetting?.frontierLimit);
     const requested =
       selected === "auto"
         ? AUTO_CANDIDATE_POOL_BUDGET
@@ -3049,7 +3052,15 @@
       mode: selected,
       requested,
       budget: browserBudget,
-      frontierLimit: selected === "auto" ? AUTO_FRONTIER_NUMBER_COUNT : null,
+      frontierLimit: selected === "auto"
+        ? clamp(
+            Number.isFinite(autoFrontierLimit) ? autoFrontierLimit : AUTO_FRONTIER_NUMBER_COUNT,
+            22,
+            ACTIVE_FRONTIER_LIMIT_MAX,
+          )
+        : null,
+      modeSetting: interpretationMode?.value ?? autoBackfitSetting?.mode ?? "balance",
+      weightSetting: Number(sajuWeight?.value ?? autoBackfitSetting?.weight ?? 0),
       capped: browserBudget < requested,
       label: selected === "auto" ? "자동 감사 범위" : `${formatNumber(requested)}개 감사 범위`,
     };
@@ -3089,6 +3100,8 @@
     const limit = typeof poolBudget === "object" && poolBudget.frontierLimit
       ? poolBudget.frontierLimit
       : deterministicFrontierLimit(budget);
+    const modeSetting = typeof poolBudget === "object" ? poolBudget.modeSetting ?? "balance" : "balance";
+    const weightSetting = typeof poolBudget === "object" ? Number(poolBudget.weightSetting ?? 60) : 60;
     const byScore = rankedNumbersBy(scores, (item) => item.score);
     const byLong = rankedNumbersBy(scores, (item) => stats.frequency[item.number] ?? 0);
     const byRecent = rankedNumbersBy(scores, (item) => stats.recentFrequency[item.number] ?? 0);
@@ -3119,7 +3132,17 @@
     );
     const byReentry = rankedNumbersBy(scores, (item) => reentryScore(item.number));
     const frontier = [];
-    const lanes = [byScore, byLowReentry, byReentry, byLong, byRecent, byCold];
+    let lanes = [byScore, byLowReentry, byReentry, byLong, byRecent, byCold];
+
+    if (weightSetting <= 20) {
+      lanes = [byScore, byLong, byRecent, byCold, byReentry, byLowReentry];
+    } else if (modeSetting === "wealth" && weightSetting >= 50) {
+      lanes = [byLong, byRecent, byScore, byReentry, byLowReentry, byCold];
+    } else if (modeSetting === "climate" && weightSetting >= 50) {
+      lanes = [byLowReentry, byCold, byScore, byReentry, byLong, byRecent];
+    } else if (weightSetting >= 80) {
+      lanes = [byLowReentry, byReentry, byScore, byLong, byRecent, byCold];
+    }
 
     for (let index = 0; frontier.length < limit && index < 45; index += 1) {
       for (const lane of lanes) {
@@ -4390,6 +4413,7 @@
       setting.mode,
       setting.weight,
       setting.windowValue ?? setting.windowSize,
+      setting.frontierLimit ?? AUTO_FRONTIER_NUMBER_COUNT,
     ].join("|");
 
     return boundedCacheGet(
@@ -4411,7 +4435,9 @@
           null,
           {
             budget: AUTO_CANDIDATE_POOL_BUDGET,
-            frontierLimit: AUTO_FRONTIER_NUMBER_COUNT,
+            frontierLimit: Number(setting.frontierLimit) || AUTO_FRONTIER_NUMBER_COUNT,
+            modeSetting: setting.mode,
+            weightSetting: setting.weight,
           },
         );
         const ranked = [...poolBuild.ranked].sort((a, b) => {
@@ -6063,36 +6089,45 @@
 
   function buildFastAutoSajuSetting() {
     const baseSaju = buildSajuProfile(interpretationMode?.value ?? "balance");
+    const backfitSetting = recallProfile?.backfitSummary?.recommendedSetting ?? null;
     const scoreValues = Object.values(baseSaju.usefulScores ?? {});
     const maxScore = Math.max(...scoreValues, 1);
     const minScore = Math.min(...scoreValues, 0);
     const spread = clamp((maxScore - minScore) / Math.max(1, maxScore), 0, 1);
     const topWindow =
+      backfitSetting?.window ??
       recallProfile?.frontierHitWindowCounts?.[0]?.window ??
       recallProfile?.bestWindowCounts?.[0]?.window ??
       recentWindow?.value ??
       "50";
     const windowInfo = windowOptionInfo(topWindow, draws.length);
     const mode =
-      baseSaju.strength === "strong"
+      backfitSetting?.mode ??
+      (baseSaju.strength === "strong"
         ? "wealth"
         : baseSaju.climateElement
           ? "climate"
-          : "balance";
+          : "balance");
+    const learnedWeight = Number(backfitSetting?.weight);
+    const personalWeight = Math.round(clamp(18 + spread * 42, 0, 75));
 
     return {
       mode,
-      weight: Math.round(clamp(18 + spread * 42, 0, 75)),
+      weight: Number.isFinite(learnedWeight) ? clamp(learnedWeight, 0, 100) : personalWeight,
       windowSize: windowInfo.size,
       windowValue: windowInfo.value,
       windowLabel: windowInfo.label,
+      frontierLimit: clamp(
+        Number(backfitSetting?.frontierLimit) || AUTO_FRONTIER_NUMBER_COUNT,
+        22,
+        ACTIVE_FRONTIER_LIMIT_MAX,
+      ),
       fast: true,
     };
   }
 
   function applyAutoSajuSettings() {
-    const portfolio = peekCachedPersonalPortfolio();
-    const setting = portfolio?.autoSetting ?? buildFastAutoSajuSetting();
+    const setting = buildFastAutoSajuSetting();
     if (!setting) {
       if (autoSajuStatus) {
         autoSajuStatus.textContent = "자동 세팅을 계산할 회차 데이터가 아직 부족합니다.";
