@@ -2,9 +2,12 @@ name: Update lotto data
 
 on:
   schedule:
+    # GitHub Actions uses UTC. These run every Saturday at 20:45, 21:10,
+    # and 21:30 KST so the app can update soon after the draw result appears.
     - cron: "45 11 * * 6"
     - cron: "10 12 * * 6"
     - cron: "30 12 * * 6"
+    # Safety retry on Sunday at 09:30 KST in case the first request was delayed.
     - cron: "30 0 * * 0"
   workflow_dispatch:
 
@@ -43,6 +46,12 @@ jobs:
           latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/lotto-results.json','utf8')).latestDraw)")
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
 
+      - name: Validate lottery data
+        run: npm run validate:data -- lotto
+
+      - name: Rebuild recall optimization profile
+        run: npm run optimize:recall
+
       - name: Validate app files
         run: npm run check
 
@@ -51,7 +60,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/lotto-results.json data/lotto-results.js
+          git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
           git commit -m "Update lotto data to draw ${{ steps.after.outputs.latest }}"
           git push origin HEAD:${{ github.ref_name }}
 
