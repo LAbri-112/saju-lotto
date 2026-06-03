@@ -657,6 +657,7 @@
     refreshTimer: null,
     deferredPortfolioTimer: null,
     startupAutoTimer: null,
+    portfolioComputeTimer: null,
     learningProfileCache: new Map(),
     personalPortfolioCache: new Map(),
     recommendationResultCache: new Map(),
@@ -1122,6 +1123,10 @@
   function getCachedPersonalPortfolio() {
     const key = ["portfolio", birthStateKey("all")].join("|");
     return boundedCacheGet(lottoState.personalPortfolioCache, key, buildPersonalPortfolio, 8);
+  }
+
+  function peekCachedPersonalPortfolio() {
+    return lottoState.personalPortfolioCache.get(["portfolio", birthStateKey("all")].join("|")) ?? null;
   }
 
   function normalizeBirthDateText(value) {
@@ -2778,14 +2783,14 @@
       (clamp(meta.sectorCoverage / 4) + clamp(meta.tailDiversity / 5)) / 2;
     const repeatFit = meta.repeatLatest <= 2 ? 1 : 0.62;
     const practical =
-      distributionFit * 0.42 +
-      recallFit * 0.2 +
-      gateFit * 0.13 +
+      distributionFit * 0.32 +
+      recallFit * 0.34 +
+      gateFit * 0.1 +
       learnedBucketFit * 0.1 +
-      scoreFit * 0.07 +
+      scoreFit * 0.05 +
       diversityFit * 0.05 +
-      signalFit * 0.02 +
-      repeatFit * 0.03;
+      repeatFit * 0.03 +
+      signalFit * 0.01;
 
     return Math.round(clamp(practical, 0, 1) * 1000) / 10;
   }
@@ -3276,15 +3281,16 @@
         const longFit = (candidate.sourceBuckets ?? []).includes("longTermFrequency") ? 1 : 0.55;
         const recallFit = candidate.meta.recallProfileScore ?? candidate.meta.score;
         const finalPickScore =
-          candidate.meta.practicalScore * 0.72 +
-          recallFit * 0.12 +
-          candidate.meta.score * 0.08 +
-          overlapFit * 4 +
-          bucketFit * 1.5 +
-          bandFit * 1.2 +
-          sajuFit * 0.7 +
-          recentFit * 0.3 +
-          longFit * 0.3;
+          candidate.meta.practicalScore * 0.66 +
+          recallFit * 0.2 +
+          candidate.meta.distributionScore * 0.08 +
+          candidate.meta.score * 0.04 +
+          overlapFit * 3 +
+          bucketFit * 1.2 +
+          bandFit * 1 +
+          sajuFit * 0.5 +
+          recentFit * 0.25 +
+          longFit * 0.25;
 
         if (finalPickScore > bestScore) {
           bestScore = finalPickScore;
@@ -4766,13 +4772,13 @@
       ? "실제 후보망 안"
       : `역추산 ${formatNumber(reverseRank)}번째`;
     const statusClass = coreIncluded ? "is-hit" : "is-info";
-    const hitLocationTitle = coreIncluded ? "추천 후보 안에 있었음" : "추천 후보 밖";
+    const hitLocationTitle = coreIncluded ? "추천 후보 안에 있었음" : "후보망 보정 중";
     const candidateLine = coreIncluded
       ? `${selectedSettingLine} 설정에서는 당첨번호 6개 조합이 실제 후보망 ${replayCoreCount}개 안에 있었습니다.`
       : `${selectedSettingLine} 설정이 가장 가까웠고, 당첨번호는 역추산 ${formatNumber(reverseRank)}번째 위치였습니다.`;
     const positionMeaning = generatedIncluded
       ? "생성 후보에는 있었지만 최종 핵심 후보망까지 올라오지는 못했습니다."
-      : "실제 후보에는 없었습니다. 대신 전체 설정을 되돌려 가장 가까운 위치를 찾고 다음 자동 세팅에 반영합니다.";
+      : "다음 후보망에 더 강하게 반영할 위치를 찾는 중입니다.";
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -5022,139 +5028,53 @@
     const container = document.querySelector("#candidateAuditSummary");
     if (!container) return;
 
-    const portfolio = getCachedPersonalPortfolio();
-    const portfolioHtml = renderPersonalPortfolio(portfolio);
-    container.innerHTML = portfolioHtml;
-    return;
-    const history = readRecommendationHistory();
-    if (!history.length) {
-      container.innerHTML = `
-        ${portfolioHtml}
-        <div class="candidate-audit-empty">
-          <strong>실제 저장 후보 기록은 아직 없습니다</strong>
-          <p>위 개인 재현 검증은 저장 기록 없이도 다시 계산됩니다. 단, 실제로 추천 버튼을 눌러 저장된 후보 기록은 이 기기에만 남습니다.</p>
-        </div>
-      `;
-      return;
-    }
-
-    const checks = history
-      .flatMap((snapshot) =>
-        draws
-          .filter((draw) => draw.draw > snapshot.basisLatestDraw)
-          .map((draw) => ({ snapshot, draw, result: compareSnapshotWithDraw(snapshot, draw) })),
-      )
-      .sort((a, b) => {
-        return (
-          b.draw.draw - a.draw.draw ||
-          new Date(b.snapshot.createdAt).getTime() - new Date(a.snapshot.createdAt).getTime()
-        );
-      });
-
-    if (!checks.length) {
-      const latestSnapshot = history[0];
-      container.innerHTML = `
-        ${portfolioHtml}
-        <div class="candidate-audit-empty">
-          <strong>${latestSnapshot.expectedDraw}회 당첨번호를 기다리는 중</strong>
-          <p>${latestSnapshot.basisLatestDraw}회 기준 후보 ${formatNumber(
-            latestSnapshot.candidates.length,
-          )}개가 저장되어 있습니다. 새 회차가 반영되면 자동으로 비교됩니다.</p>
-        </div>
-      `;
-      return;
-    }
-
-    const bestSavedChecks = checks
-      .slice()
-      .sort((a, b) => {
-        return (
-          b.result.maxOverlap - a.result.maxOverlap ||
-          Number(b.result.bestMatch?.bonusMatch) - Number(a.result.bestMatch?.bonusMatch) ||
-          b.draw.draw - a.draw.draw ||
-          new Date(b.snapshot.createdAt).getTime() - new Date(a.snapshot.createdAt).getTime()
-        );
-      })
-      .slice(0, 3);
-    const { snapshot, draw, result } = bestSavedChecks[0];
-    const exactFound = Boolean(result.candidate);
-    const best = result.bestMatch;
-    const bestNumbers = best?.n ?? [];
-    const relevantSnapshots = history.filter((item) => {
-      return item.basisLatestDraw === snapshot.basisLatestDraw && draw.draw > item.basisLatestDraw;
-    });
-    const noSajuSnapshots = relevantSnapshots.filter(
-      (item) => Number(item.settings?.sajuWeight ?? 0) === 0,
-    );
-    const sajuSnapshots = relevantSnapshots.filter(
-      (item) => Number(item.settings?.sajuWeight ?? 0) > 0,
-    );
-    const maxSameCount = snapshot.candidates.filter(
-      (item) => overlap(item.n, result.win) === result.maxOverlap,
-    ).length;
-    const tierTags = result.tierCounts
-      .filter((item) => item.count > 0)
-      .map((item) => `<span>${item.tier}등 후보 ${formatNumber(item.count)}개</span>`)
-      .join("");
-    const savedBestRows = bestSavedChecks
-      .map(({ snapshot: itemSnapshot, draw: itemDraw, result: itemResult }, index) => {
-        const itemBest = itemResult.bestMatch;
-        return `
-          <div>
-            <span>${index + 1}</span>
-            <div>
-              <strong>${itemSnapshot.basisLatestDraw}회 추천 → ${itemDraw.draw}회 검증</strong>
-              <div class="mini-audit-balls">${(itemBest?.n ?? []).map(renderAuditBall).join("")}</div>
-              <em>${itemResult.maxOverlap}개 일치${itemBest?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(itemBest?.tier)} · ${snapshotSettingLabel(itemSnapshot)}</em>
-            </div>
-          </div>
-        `;
+    const result = lottoState.lastResult;
+    const latestDrawNo = Number(dataset.latestDraw ?? latest?.draw ?? 0);
+    const nextDrawNo = latestDrawNo ? latestDrawNo + 1 : "-";
+    const basisCount = recallProfile?.evaluatedDraws ?? Math.max(0, draws.length - 20);
+    const topWindows = (recallProfile?.bestWindowCounts ?? [])
+      .slice(0, 3)
+      .map((item) => {
+        const label = item.window === "all" ? "전체 회차" : `최근 ${item.window}회`;
+        return `<span>${label} ${item.rate}%</span>`;
       })
       .join("");
+    const sumBands = recallProfile?.winningShape?.sumBand?.preferred
+      ?.slice(0, 3)
+      .map((item) => `${item.value}대`)
+      .join(" · ");
+    const oddBands = recallProfile?.winningShape?.odd?.preferred
+      ?.slice(0, 2)
+      .map((item) => `홀 ${item.value}`)
+      .join(" · ");
+    const lowBands = recallProfile?.winningShape?.low?.preferred
+      ?.slice(0, 2)
+      .map((item) => `저 ${item.value}`)
+      .join(" · ");
+    const tunedTags = [
+      result?.filteredCount ? `<span>후보망 ${formatNumber(result.filteredCount)}개</span>` : "",
+      result?.selectedCount ? `<span>최종 ${formatNumber(result.selectedCount)}장</span>` : "",
+      topWindows,
+    ].filter(Boolean).join("");
 
     container.innerHTML = `
-      ${portfolioHtml}
-      <details class="saved-history-details">
-        <summary>과거 핵심 후보망 중 최다 일치 기록 보기</summary>
-        <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
-          <div class="audit-result-main">
-            <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
-            <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "역탐색 보정이 필요한 기록입니다"}</strong>
-            <em>당첨번호 ${result.win.join(", ")} + 보너스 ${draw.bonus}</em>
+      <div class="candidate-audit-empty next-draw-tuning">
+        <strong>${nextDrawNo}회 후보망 튜닝</strong>
+        <p>${latestDrawNo}회까지의 당첨번호 복기 기준을 다음 추천에 반영했습니다.</p>
+        <div class="store-tags">${tunedTags}</div>
+        <details class="portfolio-draw-details">
+          <summary>복기 기준 보기</summary>
+          <p class="portfolio-note">목표는 과거 당첨번호가 자주 보였던 모양을 우선 잡고, 그 안에서 후보 수를 줄인 뒤 최종 ${Number(setCount.value) || 5}장을 고르는 것입니다.</p>
+          <div class="store-tags">
+            <span>복기 회차 ${formatNumber(basisCount)}개</span>
+            ${sumBands ? `<span>합 ${sumBands}</span>` : ""}
+            ${oddBands ? `<span>${oddBands}</span>` : ""}
+            ${lowBands ? `<span>${lowBands}</span>` : ""}
           </div>
-          <div class="audit-result-side">
-            <span>최대 일치</span>
-            <strong>${result.maxOverlap}개</strong>
-            <em>${formatNumber(maxSameCount)}개 후보가 이만큼 맞았습니다</em>
-          </div>
-        </div>
-        <div class="candidate-best-line">
-          <span>가장 많이 맞은 후보 조합</span>
-          <div class="ball-line compact-ball-line">${bestNumbers.map(renderAuditBall).join("")}</div>
-          <strong>${result.maxOverlap}개 일치${best?.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(
-            best?.tier,
-          )}</strong>
-          <em>${snapshotSettingLabel(snapshot)} 설정으로 만들어진 후보입니다.</em>
-        </div>
-        <div class="saved-best-list">
-          <strong>최다 일치 후보 TOP ${bestSavedChecks.length}</strong>
-          ${savedBestRows}
-        </div>
-        <div class="store-tags">
-          <span>저장 후보 ${formatNumber(snapshot.candidates.length)}개</span>
-          <span>최종 추천 ${formatNumber(snapshot.selected.length)}개</span>
-          <span>당첨권 후보 ${formatNumber(result.totalWinners)}개</span>
-          ${tierTags}
-        </div>
-        <div class="candidate-scope-list">
-          <strong>저장 기록 기준 설정별 확인</strong>
-          ${renderSnapshotGroupRow("전체 저장 후보", relevantSnapshots, draw)}
-          ${renderSnapshotGroupRow("사주 0% 통계 추천후보", noSajuSnapshots, draw)}
-          ${renderSnapshotGroupRow("사주 반영 추천후보", sajuSnapshots, draw)}
-        </div>
-        ${renderSettingAdjustmentHint(draw, snapshot, saju)}
-      </details>
+        </details>
+      </div>
     `;
+    return;
   }
 
   function renderElementBars(saju) {
@@ -6109,9 +6029,34 @@
     return `${modeName(setting.mode)} · 사주 ${setting.weight}% · ${settingWindowLabel(setting)}`;
   }
 
+  function buildFastAutoSajuSetting() {
+    const baseSaju = buildSajuProfile(interpretationMode?.value ?? "balance");
+    const scoreValues = Object.values(baseSaju.usefulScores ?? {});
+    const maxScore = Math.max(...scoreValues, 1);
+    const minScore = Math.min(...scoreValues, 0);
+    const spread = clamp((maxScore - minScore) / Math.max(1, maxScore), 0, 1);
+    const topWindow = recallProfile?.bestWindowCounts?.[0]?.window ?? recentWindow?.value ?? "50";
+    const windowInfo = windowOptionInfo(topWindow, draws.length);
+    const mode =
+      baseSaju.strength === "strong"
+        ? "wealth"
+        : baseSaju.climateElement
+          ? "climate"
+          : "balance";
+
+    return {
+      mode,
+      weight: Math.round(clamp(18 + spread * 42, 0, 75)),
+      windowSize: windowInfo.size,
+      windowValue: windowInfo.value,
+      windowLabel: windowInfo.label,
+      fast: true,
+    };
+  }
+
   function applyAutoSajuSettings() {
-    const portfolio = getCachedPersonalPortfolio();
-    const setting = portfolio.autoSetting;
+    const portfolio = peekCachedPersonalPortfolio();
+    const setting = portfolio?.autoSetting ?? buildFastAutoSajuSetting();
     if (!setting) {
       if (autoSajuStatus) {
         autoSajuStatus.textContent = "자동 세팅을 계산할 회차 데이터가 아직 부족합니다.";
@@ -6137,7 +6082,9 @@
       const candidateText = setting.candidateNeed
         ? ` · 역추산 후보 ${formatNumber(setting.candidateNeed)}개 안쪽`
         : "";
-      const reasonText = `${basisText}전체 회차 역추산에서 가장 자주 가까웠던 설정입니다${candidateText}.`;
+      const reasonText = setting.fast
+        ? "빠른 개인 요약 기준으로 먼저 맞췄습니다."
+        : `${basisText}전체 회차 역추산에서 가장 자주 가까웠던 설정입니다${candidateText}.`;
       autoSajuStatus.textContent =
         `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
     }
