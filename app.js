@@ -20,6 +20,8 @@
   const lottoCombinationCount = LOTTO_UNIVERSE_SIZE;
   const CORE_CANDIDATE_MIN_K = 420;
   const DISPLAY_SAMPLE_K = 420;
+  const AUTO_FRONTIER_NUMBER_COUNT = 24;
+  const AUTO_CANDIDATE_POOL_BUDGET = 140000;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -3032,11 +3034,11 @@
     const selected = candidatePoolSize?.value ?? "auto";
     const requested =
       selected === "auto"
-        ? 50000
+        ? AUTO_CANDIDATE_POOL_BUDGET
         : clamp(Number(selected) || 7600, 7600, LOTTO_UNIVERSE_SIZE);
     const browserBudget =
       selected === "auto"
-        ? 50000
+        ? AUTO_CANDIDATE_POOL_BUDGET
         : requested <= 100000
           ? requested
           : requested <= 500000
@@ -3047,6 +3049,7 @@
       mode: selected,
       requested,
       budget: browserBudget,
+      frontierLimit: selected === "auto" ? AUTO_FRONTIER_NUMBER_COUNT : null,
       capped: browserBudget < requested,
       label: selected === "auto" ? "자동 감사 범위" : `${formatNumber(requested)}개 감사 범위`,
     };
@@ -3081,8 +3084,11 @@
       .map((item) => item.number);
   }
 
-  function buildDeterministicNumberFrontier(scores, stats, budget) {
-    const limit = deterministicFrontierLimit(budget);
+  function buildDeterministicNumberFrontier(scores, stats, poolBudget) {
+    const budget = typeof poolBudget === "object" ? poolBudget.budget : poolBudget;
+    const limit = typeof poolBudget === "object" && poolBudget.frontierLimit
+      ? poolBudget.frontierLimit
+      : deterministicFrontierLimit(budget);
     const byScore = rankedNumbersBy(scores, (item) => item.score);
     const byLong = rankedNumbersBy(scores, (item) => stats.frequency[item.number] ?? 0);
     const byRecent = rankedNumbersBy(scores, (item) => stats.recentFrequency[item.number] ?? 0);
@@ -3119,7 +3125,7 @@
   }
 
   function buildDeterministicCandidatePool(stats, scores, saju, learningProfile, poolBudget) {
-    const frontier = buildDeterministicNumberFrontier(scores, stats, poolBudget.budget);
+    const frontier = buildDeterministicNumberFrontier(scores, stats, poolBudget);
     const candidateMap = new Map();
     const scannedCandidateCount = combinationCount(frontier.length, 6);
 
@@ -3327,7 +3333,8 @@
     );
     const corePool = buildCoreCandidatePool(practicalRanked, filtered, target);
     const selected = [];
-    const auditCandidates = ranked.map((candidate) => ({
+    const auditSource = (corePool.length ? corePool : ranked).slice(0, DISPLAY_SAMPLE_K);
+    const auditCandidates = auditSource.map((candidate) => ({
       n: candidate.numbers,
       s: candidate.meta.score,
       g: candidate.meta.gateScore,
@@ -4380,7 +4387,10 @@
           scores,
           modeSaju,
           null,
-          { budget: 7600 },
+          {
+            budget: AUTO_CANDIDATE_POOL_BUDGET,
+            frontierLimit: AUTO_FRONTIER_NUMBER_COUNT,
+          },
         );
         const ranked = [...poolBuild.ranked].sort((a, b) => {
           return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
@@ -5032,7 +5042,7 @@
     const latestDrawNo = Number(dataset.latestDraw ?? latest?.draw ?? 0);
     const nextDrawNo = latestDrawNo ? latestDrawNo + 1 : "-";
     const basisCount = recallProfile?.evaluatedDraws ?? Math.max(0, draws.length - 20);
-    const topWindows = (recallProfile?.bestWindowCounts ?? [])
+    const topWindows = (recallProfile?.frontierHitWindowCounts ?? recallProfile?.bestWindowCounts ?? [])
       .slice(0, 3)
       .map((item) => {
         const label = item.window === "all" ? "전체 회차" : `최근 ${item.window}회`;
@@ -6035,7 +6045,11 @@
     const maxScore = Math.max(...scoreValues, 1);
     const minScore = Math.min(...scoreValues, 0);
     const spread = clamp((maxScore - minScore) / Math.max(1, maxScore), 0, 1);
-    const topWindow = recallProfile?.bestWindowCounts?.[0]?.window ?? recentWindow?.value ?? "50";
+    const topWindow =
+      recallProfile?.frontierHitWindowCounts?.[0]?.window ??
+      recallProfile?.bestWindowCounts?.[0]?.window ??
+      recentWindow?.value ??
+      "50";
     const windowInfo = windowOptionInfo(topWindow, draws.length);
     const mode =
       baseSaju.strength === "strong"

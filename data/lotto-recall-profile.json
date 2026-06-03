@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-03T12:29:52.095Z",
+  "generatedAt": "2026-06-03T14:15:47.505Z",
   "basisLatestDraw": 1223,
   "basisLatestDate": "2026-05-09",
   "sourceDrawCount": 1223,
@@ -10,7 +10,12 @@
   "coreCandidatePolicy": {
     "minK": 420,
     "mode": "adaptive",
-    "objective": "choose the smallest practical candidate pool from learned winner-shape clusters instead of pinning the pool to a fixed K."
+    "objective": "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks."
+  },
+  "candidateFrontier": {
+    "numberCount": 24,
+    "candidateCount": 134596,
+    "objective": "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier."
   },
   "winningShape": {
     "sumBand": {
@@ -345,51 +350,139 @@
   "bestWindowCounts": [
     {
       "window": "500",
-      "count": 226,
-      "rate": 18.8
+      "count": 222,
+      "rate": 18.5
     },
     {
       "window": "20",
-      "count": 203,
-      "rate": 16.9
+      "count": 200,
+      "rate": 16.6
     },
     {
       "window": "200",
-      "count": 186,
-      "rate": 15.5
+      "count": 192,
+      "rate": 16
     },
     {
       "window": "100",
-      "count": 178,
-      "rate": 14.8
+      "count": 181,
+      "rate": 15
     },
     {
       "window": "50",
-      "count": 170,
-      "rate": 14.1
+      "count": 169,
+      "rate": 14
     },
     {
       "window": "700",
-      "count": 111,
-      "rate": 9.2
+      "count": 110,
+      "rate": 9.1
     },
     {
       "window": "1000",
-      "count": 86,
-      "rate": 7.1
+      "count": 88,
+      "rate": 7.3
     },
     {
       "window": "all",
-      "count": 43,
-      "rate": 3.6
+      "count": 41,
+      "rate": 3.4
     }
   ],
+  "frontierHitWindowCounts": [
+    {
+      "window": "200",
+      "count": 18,
+      "rate": 1.5
+    },
+    {
+      "window": "100",
+      "count": 17,
+      "rate": 1.4
+    },
+    {
+      "window": "500",
+      "count": 14,
+      "rate": 1.2
+    },
+    {
+      "window": "1000",
+      "count": 13,
+      "rate": 1.1
+    },
+    {
+      "window": "700",
+      "count": 13,
+      "rate": 1.1
+    },
+    {
+      "window": "all",
+      "count": 12,
+      "rate": 1
+    },
+    {
+      "window": "20",
+      "count": 11,
+      "rate": 0.9
+    },
+    {
+      "window": "50",
+      "count": 8,
+      "rate": 0.7
+    }
+  ],
+  "frontierHitRate": 3.9,
   "recentRecords": [
     {
       "draw": 1223,
       "date": "2026-05-09",
       "bestWindow": "50",
       "bestShapeScore": 0.6399,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.5736
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.6399
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.6256
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.6339
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.594
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.5998
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.5899
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.5838
+        }
+      ],
       "snapshot": {
         "sumBand": 150,
         "odd": 2,
@@ -406,6 +499,51 @@
       "date": "2026-05-02",
       "bestWindow": "1000",
       "bestShapeScore": 0.7519,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.5262
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.6537
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.6265
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.6918
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7519
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7399
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.7519
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7479
+        }
+      ],
       "snapshot": {
         "sumBand": 120,
         "odd": 3,
@@ -422,6 +560,51 @@
       "date": "2026-04-25",
       "bestWindow": "500",
       "bestShapeScore": 0.8569,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.6769
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.7729
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.7914
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.8339
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.8569
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.8516
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.8426
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.8406
+        }
+      ],
       "snapshot": {
         "sumBand": 130,
         "odd": 1,
@@ -438,6 +621,51 @@
       "date": "2026-04-18",
       "bestWindow": "20",
       "bestShapeScore": 0.8052,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.8052
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.7972
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.7255
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.7765
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7726
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7714
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.7687
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7703
+        }
+      ],
       "snapshot": {
         "sumBand": 150,
         "odd": 2,
@@ -454,6 +682,51 @@
       "date": "2026-04-11",
       "bestWindow": "200",
       "bestShapeScore": 0.7539,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.7275
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.6672
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.7313
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.7539
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7482
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.743
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.7412
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7411
+        }
+      ],
       "snapshot": {
         "sumBand": 130,
         "odd": 4,
@@ -468,8 +741,53 @@
     {
       "draw": 1218,
       "date": "2026-04-04",
-      "bestWindow": "500",
-      "bestShapeScore": 0.7387,
+      "bestWindow": "1000",
+      "bestShapeScore": 0.7239,
+      "exactInFrontier": true,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.6223
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.5896
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.6298
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.6608
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7387
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7306
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": true,
+          "shapeScore": 0.7239
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7309
+        }
+      ],
       "snapshot": {
         "sumBand": 180,
         "odd": 3,
@@ -486,6 +804,51 @@
       "date": "2026-03-28",
       "bestWindow": "700",
       "bestShapeScore": 0.7695,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.6911
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.66
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.7113
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.7107
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7586
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7695
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.7542
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7488
+        }
+      ],
       "snapshot": {
         "sumBand": 110,
         "odd": 3,
@@ -502,6 +865,51 @@
       "date": "2026-03-21",
       "bestWindow": "700",
       "bestShapeScore": 0.5683,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.3887
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.5007
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.5512
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.5066
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.563
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.5683
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.5585
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.5597
+        }
+      ],
       "snapshot": {
         "sumBand": 80,
         "odd": 3,
@@ -518,6 +926,51 @@
       "date": "2026-03-14",
       "bestWindow": "200",
       "bestShapeScore": 0.7052,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.6096
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.6844
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.6755
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.7052
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.6895
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7019
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.6855
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.6841
+        }
+      ],
       "snapshot": {
         "sumBand": 150,
         "odd": 5,
@@ -534,6 +987,51 @@
       "date": "2026-03-07",
       "bestWindow": "100",
       "bestShapeScore": 0.9032,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.7708
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.7924
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.9032
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.8839
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.8853
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.8763
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.8745
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.8707
+        }
+      ],
       "snapshot": {
         "sumBand": 130,
         "odd": 4,
@@ -550,6 +1048,51 @@
       "date": "2026-02-28",
       "bestWindow": "200",
       "bestShapeScore": 0.8755,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.7896
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.8162
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.8318
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.8755
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.857
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.8551
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.8582
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.8621
+        }
+      ],
       "snapshot": {
         "sumBand": 140,
         "odd": 4,
@@ -566,6 +1109,51 @@
       "date": "2026-02-21",
       "bestWindow": "50",
       "bestShapeScore": 0.9096,
+      "exactInFrontier": false,
+      "frontierNumberCount": 24,
+      "frontierCandidateCount": 134596,
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.8969
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.9096
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.8205
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.8648
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.855
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.8313
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.8272
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.825
+        }
+      ],
       "snapshot": {
         "sumBand": 150,
         "odd": 4,

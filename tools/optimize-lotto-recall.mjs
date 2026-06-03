@@ -135,6 +135,79 @@ function windowSize(value, sourceCount) {
   return Math.min(Number(value), sourceCount);
 }
 
+function combinationCount(size, pick = 6) {
+  if (size < pick) return 0;
+  let result = 1;
+  for (let index = 1; index <= pick; index += 1) {
+    result = (result * (size - pick + index)) / index;
+  }
+  return Math.round(result);
+}
+
+function rankedNumbersBy(source, ranker) {
+  return Array.from({ length: 45 }, (_, index) => index + 1)
+    .sort((a, b) => ranker(b) - ranker(a) || b - a)
+    .filter((number) => source[number] !== null);
+}
+
+function appendUniqueNumber(target, number, limit) {
+  if (!number || target.includes(number) || target.length >= limit) return;
+  target.push(number);
+}
+
+function buildReverseFrontier(priorDraws, value, limit = 24) {
+  const trendDraws = priorDraws.slice(-windowSize(value, priorDraws.length));
+  const longFrequency = Array(46).fill(0);
+  const trendFrequency = Array(46).fill(0);
+  const lastSeen = Array(46).fill(0);
+  const latestDrawNo = priorDraws.at(-1)?.draw ?? 0;
+  const latestNumbers = new Set(priorDraws.at(-1)?.numbers ?? []);
+  const numberSignal = Array(46).fill(null);
+
+  for (const draw of priorDraws) {
+    for (const number of draw.numbers ?? []) {
+      longFrequency[number] += 1;
+      lastSeen[number] = draw.draw;
+    }
+  }
+
+  for (const draw of trendDraws) {
+    for (const number of draw.numbers ?? []) {
+      trendFrequency[number] += 1;
+    }
+  }
+
+  const maxTrend = Math.max(...trendFrequency, 1);
+  const maxLong = Math.max(...longFrequency, 1);
+
+  for (let number = 1; number <= 45; number += 1) {
+    const trendFit = (trendFrequency[number] + 1) / (maxTrend + 1);
+    const longFit = (longFrequency[number] + 1) / (maxLong + 1);
+    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : Math.max(30, trendDraws.length);
+    const gapFit = clamp(Math.log1p(gap) / 7);
+    const repeatFit = latestNumbers.has(number) ? 0.62 : 1;
+    numberSignal[number] = trendFit * 0.42 + longFit * 0.3 + gapFit * 0.2 + repeatFit * 0.08;
+  }
+
+  const bySignal = rankedNumbersBy(numberSignal, (number) => numberSignal[number]);
+  const byLong = rankedNumbersBy(numberSignal, (number) => longFrequency[number] ?? 0);
+  const byRecent = rankedNumbersBy(numberSignal, (number) => trendFrequency[number] ?? 0);
+  const byCold = rankedNumbersBy(numberSignal, (number) => {
+    const seen = lastSeen[number] ?? 0;
+    return seen ? latestDrawNo - seen : 999;
+  });
+  const frontier = [];
+  const lanes = [bySignal, byLong, byRecent, byCold];
+
+  for (let index = 0; frontier.length < limit && index < 45; index += 1) {
+    for (const lane of lanes) {
+      appendUniqueNumber(frontier, lane[index], limit);
+    }
+  }
+
+  return frontier.sort((a, b) => a - b);
+}
+
 function round(value, digits = 3) {
   const scale = 10 ** digits;
   return Math.round(value * scale) / scale;
@@ -152,6 +225,7 @@ async function main() {
   const minPrior = Number(args.minPrior ?? 20);
   const shape = emptyShape();
   const windowWins = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
+  const frontierHits = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
   const records = [];
 
   for (let index = minPrior; index < draws.length; index += 1) {
@@ -171,12 +245,27 @@ async function main() {
 
     let bestWindow = null;
     let bestScore = -Infinity;
+    let bestFrontierHit = false;
+    let bestFrontier = [];
+    const windowDetails = [];
     for (const value of WINDOW_VALUES) {
       const model = buildPatternModel(priorDraws.slice(-windowSize(value, priorDraws.length)));
-      const score = scoreWinningShape(winningSnapshot, model);
+      const shapeScore = scoreWinningShape(winningSnapshot, model);
+      const frontier = buildReverseFrontier(priorDraws, value);
+      const frontierSet = new Set(frontier);
+      const exactInFrontier = draw.numbers.every((number) => frontierSet.has(number));
+      const score = shapeScore + (exactInFrontier ? 1 : 0);
+      windowDetails.push({
+        window: value,
+        exactInFrontier,
+        shapeScore: round(shapeScore, 4),
+      });
+      if (exactInFrontier) frontierHits[value] += 1;
       if (score > bestScore) {
         bestScore = score;
         bestWindow = value;
+        bestFrontierHit = exactInFrontier;
+        bestFrontier = frontier;
       }
     }
 
@@ -185,7 +274,11 @@ async function main() {
       draw: draw.draw,
       date: draw.date,
       bestWindow,
-      bestShapeScore: round(bestScore, 4),
+      bestShapeScore: round(bestScore - (bestFrontierHit ? 1 : 0), 4),
+      exactInFrontier: bestFrontierHit,
+      frontierNumberCount: bestFrontier.length,
+      frontierCandidateCount: combinationCount(bestFrontier.length, 6),
+      windowDetails,
       snapshot: {
         sumBand: winningSnapshot.sumBand,
         odd: winningSnapshot.odd,
@@ -212,7 +305,12 @@ async function main() {
     coreCandidatePolicy: {
       minK: 420,
       mode: "adaptive",
-      objective: "choose the smallest practical candidate pool from learned winner-shape clusters instead of pinning the pool to a fixed K.",
+      objective: "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks.",
+    },
+    candidateFrontier: {
+      numberCount: 24,
+      candidateCount: combinationCount(24, 6),
+      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier.",
     },
     winningShape: summarizeShape(shape),
     bestWindowCounts: Object.entries(windowWins)
@@ -222,6 +320,16 @@ async function main() {
         rate: records.length ? round((count / records.length) * 100, 1) : 0,
       }))
       .sort((a, b) => b.count - a.count || String(a.window).localeCompare(String(b.window))),
+    frontierHitWindowCounts: Object.entries(frontierHits)
+      .map(([window, count]) => ({
+        window,
+        count,
+        rate: records.length ? round((count / records.length) * 100, 1) : 0,
+      }))
+      .sort((a, b) => b.count - a.count || String(a.window).localeCompare(String(b.window))),
+    frontierHitRate: records.length
+      ? round((records.filter((record) => record.exactInFrontier).length / records.length) * 100, 1)
+      : 0,
     recentRecords: records.slice(-12).reverse(),
   };
 
