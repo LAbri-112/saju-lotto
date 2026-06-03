@@ -155,7 +155,7 @@ function appendUniqueNumber(target, number, limit) {
   target.push(number);
 }
 
-function buildReverseFrontier(priorDraws, value, limit = 24) {
+function buildReverseFrontier(priorDraws, value, limit = 25) {
   const trendDraws = priorDraws.slice(-windowSize(value, priorDraws.length));
   const longFrequency = Array(46).fill(0);
   const trendFrequency = Array(46).fill(0);
@@ -189,7 +189,21 @@ function buildReverseFrontier(priorDraws, value, limit = 24) {
     numberSignal[number] = trendFit * 0.42 + longFit * 0.3 + gapFit * 0.2 + repeatFit * 0.08;
   }
 
+  const reentryScore = (number, lowNumberBoost = 0) => {
+    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : 99;
+    const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
+    return (
+      reentryZone * 2 +
+      ((longFrequency[number] ?? 0) / maxLong) * 0.28 +
+      ((trendFrequency[number] ?? 0) / maxTrend) * 0.14 +
+      lowNumberBoost
+    );
+  };
   const bySignal = rankedNumbersBy(numberSignal, (number) => numberSignal[number]);
+  const byLowReentry = rankedNumbersBy(numberSignal, (number) =>
+    reentryScore(number, number <= 22 ? 0.45 : 0),
+  );
+  const byReentry = rankedNumbersBy(numberSignal, (number) => reentryScore(number));
   const byLong = rankedNumbersBy(numberSignal, (number) => longFrequency[number] ?? 0);
   const byRecent = rankedNumbersBy(numberSignal, (number) => trendFrequency[number] ?? 0);
   const byCold = rankedNumbersBy(numberSignal, (number) => {
@@ -197,7 +211,7 @@ function buildReverseFrontier(priorDraws, value, limit = 24) {
     return seen ? latestDrawNo - seen : 999;
   });
   const frontier = [];
-  const lanes = [bySignal, byLong, byRecent, byCold];
+  const lanes = [bySignal, byLowReentry, byReentry, byLong, byRecent, byCold];
 
   for (let index = 0; frontier.length < limit && index < 45; index += 1) {
     for (const lane of lanes) {
@@ -308,8 +322,8 @@ async function main() {
       objective: "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks.",
     },
     candidateFrontier: {
-      numberCount: 24,
-      candidateCount: combinationCount(24, 6),
+      numberCount: 25,
+      candidateCount: combinationCount(25, 6),
       objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier.",
     },
     winningShape: summarizeShape(shape),

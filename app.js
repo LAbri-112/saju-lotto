@@ -20,8 +20,8 @@
   const lottoCombinationCount = LOTTO_UNIVERSE_SIZE;
   const CORE_CANDIDATE_MIN_K = 420;
   const DISPLAY_SAMPLE_K = 420;
-  const AUTO_FRONTIER_NUMBER_COUNT = 24;
-  const AUTO_CANDIDATE_POOL_BUDGET = 140000;
+  const AUTO_FRONTIER_NUMBER_COUNT = 25;
+  const AUTO_CANDIDATE_POOL_BUDGET = 180000;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -3096,8 +3096,22 @@
       const lastSeen = stats.lastSeen[item.number] ?? 0;
       return lastSeen ? stats.latestDraw - lastSeen : 999;
     });
+    const reentryScore = (number, lowNumberBoost = 0) => {
+      const lastSeen = stats.lastSeen[number] ?? 0;
+      const gap = lastSeen ? stats.latestDraw - lastSeen : 99;
+      const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
+      const longMax = Math.max(...stats.frequency, 1);
+      const recentMax = Math.max(...stats.recentFrequency, 1);
+      const longFit = (stats.frequency[number] ?? 0) / longMax;
+      const recentFit = (stats.recentFrequency[number] ?? 0) / recentMax;
+      return reentryZone * 2 + longFit * 0.28 + recentFit * 0.14 + lowNumberBoost;
+    };
+    const byLowReentry = rankedNumbersBy(scores, (item) =>
+      reentryScore(item.number, item.number <= 22 ? 0.45 : 0),
+    );
+    const byReentry = rankedNumbersBy(scores, (item) => reentryScore(item.number));
     const frontier = [];
-    const lanes = [byScore, byLong, byRecent, byCold];
+    const lanes = [byScore, byLowReentry, byReentry, byLong, byRecent, byCold];
 
     for (let index = 0; frontier.length < limit && index < 45; index += 1) {
       for (const lane of lanes) {
