@@ -1024,7 +1024,7 @@ button:focus-visible {
 
 .candidate-stats {
   display: grid;
-  grid-template-columns: minmax(230px, 1.4fr) repeat(3, minmax(110px, 0.7fr));
+  grid-template-columns: minmax(230px, 1.4fr) repeat(4, minmax(106px, 0.7fr));
   gap: 8px;
 }
 
@@ -1080,9 +1080,35 @@ button:focus-visible {
   font-size: 1rem;
 }
 
+.candidate-stat-card em {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .candidate-stat-card.highlight strong {
   color: var(--teal-dark);
   font-size: 1.22rem;
+}
+
+.candidate-stat-note {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(24, 169, 153, 0.14);
+  border-radius: 8px;
+  background: rgba(232, 250, 247, 0.62);
+  color: var(--muted);
+  padding: 9px 11px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.candidate-stat-note em,
+.candidate-stat-note span {
+  display: block;
+  font-style: normal;
 }
 
 .shuffle-action {
@@ -2058,6 +2084,35 @@ button:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.recommendation-reasons,
+.source-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.recommendation-reasons span,
+.source-buckets span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.73rem;
+  font-weight: 900;
+}
+
+.recommendation-reasons span {
+  background: rgba(255, 241, 248, 0.86);
+  color: #7a3c64;
+}
+
+.source-buckets span {
+  background: rgba(239, 246, 255, 0.9);
+  color: #3465c9;
 }
 
 .chip {

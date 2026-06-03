@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v61" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v63" />
   </head>
   <body>
     <main class="app-shell">
@@ -190,6 +190,19 @@
                       <option value="700">700회</option>
                       <option value="1000">1000회</option>
                       <option value="all">전체 회차</option>
+                    </select>
+                  </div>
+                  <div class="field-group">
+                    <div class="label-row">
+                      <label for="candidatePoolSize">후보망 크기</label>
+                      <button class="help-button" type="button" data-help="후보망 크기는 앱 내부에서 검토하는 조합 수입니다. 후보망이 클수록 실제 당첨 조합이 후보망 안에 들어올 이론적 가능성은 커지지만, 최종 구매 추천번호의 당첨을 보장하지는 않습니다.">?</button>
+                    </div>
+                    <select id="candidatePoolSize" name="candidatePoolSize">
+                      <option value="auto" selected>자동</option>
+                      <option value="50000">5만개 후보망</option>
+                      <option value="100000">10만개 후보망</option>
+                      <option value="500000">50만개 후보망</option>
+                      <option value="1000000">100만개 후보망</option>
                     </select>
                   </div>
                   <div class="field-group is-hidden">
@@ -469,17 +482,29 @@
               </div>
               <div class="field-group">
                 <div class="label-row">
-                  <label for="pensionPersonalWeight">개인 반영</label>
-                  <button class="help-button" type="button" data-help="자동을 선택하면 과거 연금복권 결과 중 당첨금이 큰 회차를 더 무겁게 보고, 생년월일에서 나온 개인 숫자가 그 흐름과 얼마나 겹쳤는지에 따라 0~75% 안에서 조절합니다. 연금복권은 모든 번호의 확률이 같으므로 보조적인 재미 반영입니다.">?</button>
+                  <label for="pensionPersonalWeight">사주 보정</label>
+                  <button class="help-button" type="button" data-help="사주 보정은 생년월일 숫자를 일부 섞는 개인화 요소이며, 추첨 결과를 보장하지 않습니다. 기본 0%는 연금복권의 자리 구조만 보고 추천합니다.">?</button>
                 </div>
                 <select id="pensionPersonalWeight" name="pensionPersonalWeight">
-                  <option value="auto" selected>자동</option>
-                  <option value="0">0%</option>
+                  <option value="0" selected>0%</option>
                   <option value="25">25%</option>
                   <option value="50">50%</option>
                   <option value="75">75%</option>
                 </select>
               </div>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="pensionMode">추천 방식</label>
+                <button class="help-button" type="button" data-help="자리 분산형은 끝자리와 각 자리 숫자가 너무 몰리지 않게 고릅니다. 세트형은 같은 6자리 번호를 여러 조로 나눠 보여줍니다. 혼합형은 두 방식을 섞고, 완전 랜덤은 통계 점수 안에서 무작위로 배치합니다. 모든 번호의 실제 추첨 확률은 같습니다.">?</button>
+              </div>
+              <select id="pensionMode" name="pensionMode">
+                <option value="diversified" selected>자리 분산형</option>
+                <option value="set">세트형</option>
+                <option value="mixed">혼합형</option>
+                <option value="random">완전 랜덤</option>
+              </select>
             </div>
 
             <button class="primary-action pension-action" type="submit">
@@ -551,8 +576,8 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v61"></script>
-    <script defer src="data/pension-results.js?v=feedback-v61"></script>
-    <script defer src="app.js?v=feedback-v61"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v63"></script>
+    <script defer src="data/pension-results.js?v=feedback-v63"></script>
+    <script defer src="app.js?v=feedback-v63"></script>
   </body>
 </html>

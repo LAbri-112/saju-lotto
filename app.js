@@ -15,7 +15,8 @@
   };
 
   const elementKeys = ["wood", "fire", "earth", "metal", "water"];
-  const lottoCombinationCount = 8145060;
+  const LOTTO_UNIVERSE_SIZE = 8145060;
+  const lottoCombinationCount = LOTTO_UNIVERSE_SIZE;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -610,6 +611,7 @@
   const timeCorrectionStatus = document.querySelector("#timeCorrectionStatus");
   const unknownTime = document.querySelector("#unknownTime");
   const recentWindow = document.querySelector("#recentWindow");
+  const candidatePoolSize = document.querySelector("#candidatePoolSize");
   const sajuWeight = document.querySelector("#sajuWeight");
   const sajuWeightNumber = document.querySelector("#sajuWeightNumber");
   const sajuWeightOut = document.querySelector("#sajuWeightOut");
@@ -718,6 +720,14 @@
 
   function formatNumber(value) {
     return new Intl.NumberFormat("ko-KR").format(value);
+  }
+
+  function getExactInclusionRate(candidateCount) {
+    return clamp(Number(candidateCount) / LOTTO_UNIVERSE_SIZE, 0, 1);
+  }
+
+  function formatPercent(value, digits = 3) {
+    return `${(Number(value) * 100).toFixed(digits)}%`;
   }
 
   function formatMoney(value) {
@@ -972,6 +982,7 @@
       timeCorrection: Boolean(timeCorrection?.checked),
       midnightRule: midnightRule?.value ?? "traditional",
       recentWindow: recentWindow?.value ?? "50",
+      candidatePoolSize: candidatePoolSize?.value ?? "auto",
       setCount: setCount?.value ?? "5",
       topOnly: Boolean(topOnly?.checked),
       walkRange: walkRange?.value ?? "10",
@@ -1000,6 +1011,7 @@
     }
     selectValueIfAvailable(midnightRule, profile.midnightRule);
     selectValueIfAvailable(recentWindow, profile.recentWindow);
+    selectValueIfAvailable(candidatePoolSize, profile.candidatePoolSize);
     if (setCount && profile.setCount != null) setCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
     if (topOnly && typeof profile.topOnly === "boolean") topOnly.checked = profile.topOnly;
     selectValueIfAvailable(walkRange, profile.walkRange);
@@ -1023,7 +1035,7 @@
       version: 3,
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
-      personalWeight: pensionPersonalWeight?.value ?? "auto",
+      personalWeight: pensionPersonalWeight?.value ?? "0",
       mode: pensionMode?.value ?? "diversified",
       savedAt: new Date().toISOString(),
     };
@@ -1046,7 +1058,7 @@
     }
     selectValueIfAvailable(
       pensionPersonalWeight,
-      profile.version >= 2 ? profile.personalWeight : "auto",
+      profile.version >= 2 ? profile.personalWeight : "0",
     );
     selectValueIfAvailable(
       pensionMode,
@@ -1088,6 +1100,7 @@
       "recommendation",
       birthStateKey(),
       recentWindow.value,
+      candidatePoolSize?.value ?? "auto",
       sajuWeight.value,
       interpretationMode.value,
       topOnly.checked,
@@ -2666,6 +2679,8 @@
       favoredCount,
       sectorCoverage,
       tailDiversity,
+      consecutive,
+      maxGroupSize: Math.max(...maxGroup),
     };
     meta.bucketStart = scoreBucketStart(meta.score);
     meta.bucketLabel = scoreBucketLabel(meta.score);
@@ -2964,6 +2979,183 @@
     };
   }
 
+  function resolveCandidatePoolBudget() {
+    const selected = candidatePoolSize?.value ?? "auto";
+    const requested =
+      selected === "auto"
+        ? 7600
+        : clamp(Number(selected) || 7600, 7600, LOTTO_UNIVERSE_SIZE);
+    const browserBudget =
+      selected === "auto"
+        ? 7600
+        : requested <= 100000
+          ? requested
+          : requested <= 500000
+            ? 160000
+            : 200000;
+
+    return {
+      mode: selected,
+      requested,
+      budget: browserBudget,
+      capped: browserBudget < requested,
+      label: selected === "auto" ? "자동" : `${formatNumber(requested)}개 후보망`,
+    };
+  }
+
+  function tagCandidateBuckets(numbers, meta, stats) {
+    const buckets = new Set();
+    const longTermAverage =
+      stats.frequency.slice(1).reduce((sum, value) => sum + value, 0) / 45 || 0;
+    const recentAverage =
+      stats.recentFrequency.slice(1).reduce((sum, value) => sum + value, 0) / 45 || 0;
+    const longTermScore =
+      numbers.reduce((sum, number) => sum + (stats.frequency[number] ?? 0), 0) / 6;
+    const recentScore =
+      numbers.reduce((sum, number) => sum + (stats.recentFrequency[number] ?? 0), 0) / 6;
+    const coldCount = numbers.filter((number) => {
+      const lastSeen = stats.lastSeen[number] ?? 0;
+      return lastSeen ? stats.latestDraw - lastSeen >= 30 : true;
+    }).length;
+
+    if (meta.score >= 82 || meta.bucketStart >= 80) buckets.add("distributionCore");
+    if (recentScore >= recentAverage * 1.08 || (meta.repeatLatest >= 1 && meta.repeatLatest <= 2)) {
+      buckets.add("recentFlow");
+    }
+    if (longTermScore >= longTermAverage * 1.08) buckets.add("longTermFrequency");
+    if (coldCount >= 1 && coldCount <= 3) buckets.add("coldRecovery");
+    if (recentScore >= recentAverage * 1.2) buckets.add("hotContinuation");
+    if (meta.favoredCount >= 2) buckets.add("sajuWeighted");
+    if (meta.sectorCoverage >= 5 && meta.tailDiversity >= 4) buckets.add("lowOverlapDiversity");
+    if (
+      meta.sum < 100 ||
+      meta.sum > 180 ||
+      meta.odd <= 1 ||
+      meta.odd >= 5 ||
+      meta.low <= 1 ||
+      meta.low >= 5 ||
+      meta.consecutive >= 2 ||
+      meta.maxGroupSize >= 4
+    ) {
+      buckets.add("weirdButPossible");
+    }
+
+    if (!buckets.size) buckets.add("distributionCore");
+    return [...buckets];
+  }
+
+  const bucketReasonLabels = {
+    distributionCore: "과거 당첨분포 중심부에 가까운 조합입니다.",
+    recentFlow: "최근 흐름 버킷에도 포함된 후보입니다.",
+    longTermFrequency: "장기 빈도 흐름과 함께 비교한 후보입니다.",
+    coldRecovery: "오랫동안 쉬었던 번호가 일부 섞인 후보입니다.",
+    hotContinuation: "최근 자주 보였던 번호 흐름이 일부 반영된 후보입니다.",
+    sajuWeighted: "사주 오행 보정 숫자가 일부 반영되었습니다.",
+    lowOverlapDiversity: "다른 추천 세트와 번호 중복을 줄이기 좋은 후보입니다.",
+    weirdButPossible: "일반적이지 않지만 과거에도 가능한 패턴으로 남긴 후보입니다.",
+  };
+
+  const bucketShortLabels = {
+    distributionCore: "분포 중심",
+    recentFlow: "최근 흐름",
+    longTermFrequency: "장기 빈도",
+    coldRecovery: "미출현 보완",
+    hotContinuation: "최근 빈도",
+    sajuWeighted: "사주 보정",
+    lowOverlapDiversity: "낮은 중복",
+    weirdButPossible: "외곽 패턴",
+  };
+
+  function bucketReasonShortLabel(bucket) {
+    return bucketShortLabels[bucket] ?? bucket;
+  }
+
+  function enrichLottoCandidate(candidate, stats) {
+    const sourceBuckets = tagCandidateBuckets(candidate.numbers, candidate.meta, stats);
+    return {
+      ...candidate,
+      sourceBuckets,
+      reasons: sourceBuckets.slice(0, 3).map((bucket) => bucketReasonLabels[bucket]),
+    };
+  }
+
+  function selectedOverlapPenalty(candidate, selected) {
+    if (!selected.length) return 0;
+    const maxOverlap = Math.max(...selected.map((item) => overlap(item.numbers, candidate.numbers)));
+    return maxOverlap / 6;
+  }
+
+  function bucketDiversityScore(candidate, selected) {
+    if (!selected.length) return 1;
+    const used = new Set(selected.flatMap((item) => item.sourceBuckets ?? []));
+    const fresh = (candidate.sourceBuckets ?? []).filter((bucket) => !used.has(bucket)).length;
+    return clamp(fresh / Math.max(1, candidate.sourceBuckets?.length ?? 1), 0.25, 1);
+  }
+
+  function numberBandDiversityScore(candidate) {
+    return (clamp(candidate.meta.sectorCoverage / 5) + clamp(candidate.meta.tailDiversity / 5)) / 2;
+  }
+
+  function attachFinalReasons(candidate, selected) {
+    const reasons = [...(candidate.reasons ?? [])];
+    const maxOverlap = selected.length
+      ? Math.max(...selected.map((item) => overlap(item.numbers, candidate.numbers)))
+      : 0;
+    if (maxOverlap <= 2) {
+      reasons.unshift("다른 추천 세트와 번호 중복이 낮습니다.");
+    }
+    if ((candidate.sourceBuckets ?? []).includes("recentFlow") && (candidate.sourceBuckets ?? []).includes("longTermFrequency")) {
+      reasons.push("최근 흐름과 장기 빈도 버킷에 함께 포함된 후보입니다.");
+    }
+
+    return {
+      ...candidate,
+      reasons: [...new Set(reasons)].slice(0, 3),
+    };
+  }
+
+  function selectFinalRecommendations(corePool, options = {}) {
+    const target = clamp(Number(options.target) || 5, 1, 10);
+    const rng = options.rng ?? mulberry32(hashString(`final-${Date.now()}`));
+    const candidates = corePool.slice(0, Math.max(600, target * 160));
+    const selected = [];
+
+    while (selected.length < target && candidates.length) {
+      let bestIndex = 0;
+      let bestScore = -Infinity;
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        const candidate = candidates[index];
+        const overlapFit = 1 - selectedOverlapPenalty(candidate, selected);
+        const bucketFit = bucketDiversityScore(candidate, selected);
+        const bandFit = numberBandDiversityScore(candidate);
+        const sajuFit = (candidate.sourceBuckets ?? []).includes("sajuWeighted") ? 1 : 0.45;
+        const recentFit = (candidate.sourceBuckets ?? []).includes("recentFlow") ? 1 : 0.55;
+        const longFit = (candidate.sourceBuckets ?? []).includes("longTermFrequency") ? 1 : 0.55;
+        const jitter = rng() * 4;
+        const finalPickScore =
+          candidate.meta.score * 0.55 +
+          overlapFit * 25 +
+          bucketFit * 10 +
+          bandFit * 5 +
+          sajuFit * 2.5 +
+          recentFit * 1.5 +
+          longFit * 1.5 +
+          jitter;
+
+        if (finalPickScore > bestScore) {
+          bestScore = finalPickScore;
+          bestIndex = index;
+        }
+      }
+
+      const [picked] = candidates.splice(bestIndex, 1);
+      selected.push(attachFinalReasons(picked, selected));
+    }
+
+    return selected;
+  }
+
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
     lottoState.generation += 1;
     const seed = hashString(
@@ -2975,6 +3167,7 @@
         midnightRule?.value,
         unknownTime.checked,
         recentWindow.value,
+        candidatePoolSize?.value ?? "auto",
         sajuWeight.value,
         interpretationMode.value,
         topOnly.checked,
@@ -2987,7 +3180,8 @@
     );
     const rng = mulberry32(seed);
     const candidateMap = new Map();
-    const candidateBudget = 7600;
+    const poolBudget = resolveCandidatePoolBudget();
+    const candidateBudget = poolBudget.budget;
 
     for (let index = 0; index < candidateBudget; index += 1) {
       const numbers = makeCandidate(scores, rng);
@@ -3008,7 +3202,9 @@
       candidateMap.set(improved.numbers.join("-"), improved);
     }
 
-    const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const ranked = [...candidateMap.values()]
+      .map((candidate) => enrichLottoCandidate(candidate, stats))
+      .sort((a, b) => b.meta.score - a.meta.score);
     const practicalRanked = [...ranked].sort((a, b) => {
       return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
     });
@@ -3027,14 +3223,42 @@
       p: candidate.meta.practicalScore,
       b: candidate.meta.band,
       bl: candidate.meta.bucketLabel,
+      sb: candidate.sourceBuckets,
     }));
+    const buildCandidatePoolMeta = (finalRecommendations) => ({
+      universeSize: LOTTO_UNIVERSE_SIZE,
+      requestedRecallCandidateCount: poolBudget.requested,
+      generatedCandidateTarget: poolBudget.budget,
+      generatedCandidateCount: ranked.length,
+      recallCandidateCount: ranked.length,
+      coreCandidateCount: filtered.length,
+      finalRecommendationCount: finalRecommendations.length,
+      selectedPoolMode: poolBudget.mode,
+      selectedPoolLabel: poolBudget.label,
+      cappedForBrowser: poolBudget.capped,
+      exactInclusionRateForRequested: getExactInclusionRate(poolBudget.requested),
+      exactInclusionRateForGenerated: getExactInclusionRate(ranked.length),
+      exactInclusionRateForCore: getExactInclusionRate(filtered.length),
+    });
+    const buildRecallMetrics = (meta) => ({
+      exactInclusionRate: meta.exactInclusionRateForGenerated,
+      coreExactInclusionRate: meta.exactInclusionRateForCore,
+      requestedExactInclusionRate: meta.exactInclusionRateForRequested,
+      randomExpectedLabel: `${formatPercent(meta.exactInclusionRateForGenerated)} 이론적 후보망 포함률`,
+    });
 
     if (topOnly.checked) {
+      const finalRecommendations = selectFinalRecommendations(filtered, { target, rng });
+      const candidatePoolMeta = buildCandidatePoolMeta(finalRecommendations);
       return {
-        items: filtered.slice(0, target),
-        selectedCount: Math.min(filtered.length, target),
+        type: "lotto",
+        generatedAt: new Date().toISOString(),
+        items: finalRecommendations,
+        selectedCount: finalRecommendations.length,
         candidateCount: ranked.length,
         filteredCount: filtered.length,
+        candidatePoolMeta,
+        recallMetrics: buildRecallMetrics(candidatePoolMeta),
         practicalBandCount: ranked.filter(
           (candidate) => candidate.meta.score >= 80 && candidate.meta.score < 90,
         ).length,
@@ -3048,25 +3272,18 @@
       };
     }
 
-    for (const candidate of filtered) {
-      if (selected.every((item) => overlap(item.numbers, candidate.numbers) <= 3)) {
-        selected.push(candidate);
-      }
-      if (selected.length >= target) break;
-    }
-
-    for (const candidate of filtered) {
-      if (selected.length >= target) break;
-      if (!selected.some((item) => item.numbers.join("-") === candidate.numbers.join("-"))) {
-        selected.push(candidate);
-      }
-    }
+    selected.push(...selectFinalRecommendations(filtered, { target, rng }));
+    const candidatePoolMeta = buildCandidatePoolMeta(selected);
 
     return {
+      type: "lotto",
+      generatedAt: new Date().toISOString(),
       items: selected,
       selectedCount: selected.length,
       candidateCount: ranked.length,
       filteredCount: filtered.length,
+      candidatePoolMeta,
+      recallMetrics: buildRecallMetrics(candidatePoolMeta),
       practicalBandCount: ranked.filter(
         (candidate) => candidate.meta.score >= 80 && candidate.meta.score < 90,
       ).length,
@@ -3250,7 +3467,7 @@
   }
 
   function resolvePensionPersonalWeight(luckyDigits, stats) {
-    const setting = pensionPersonalWeight?.value ?? "auto";
+    const setting = pensionPersonalWeight?.value ?? "0";
     if (setting !== "auto") {
       return {
         setting,
@@ -3263,8 +3480,8 @@
     if (!stats?.count || !luckyDigits?.length) {
       return {
         setting: "auto",
-        weight: 25,
-        label: "자동 25%",
+        weight: 0,
+        label: "0%",
         confidence: 0,
       };
     }
@@ -3655,13 +3872,20 @@
         <strong>${dataLabel}</strong>
       </div>
       <div class="candidate-stat-card">
-        <span>개인 반영</span>
+        <span>사주 보정</span>
         <strong>${personalWeightLabel}</strong>
       </div>
       <div class="candidate-stat-card">
         <span>추천 방식</span>
         <strong>${result.modeLabel ?? "자리 분산형"}</strong>
       </div>
+      ${
+        result.stats?.count
+          ? ""
+          : `<div class="candidate-stat-note">
+              <span>연금복권 과거 데이터가 아직 준비되지 않아 현재는 구조 기반 추천으로 동작합니다.</span>
+            </div>`
+      }
     `;
   }
 
@@ -3765,15 +3989,28 @@
     const shown = result.displayMode === "random"
       ? Math.min(Number(setCount.value) || 5, result.pool?.length ?? 0)
       : result.selectedCount;
+    const meta = result.candidatePoolMeta ?? {};
+    const generatedRate = formatPercent(meta.exactInclusionRateForGenerated ?? getExactInclusionRate(result.candidateCount));
+    const coreRate = formatPercent(meta.exactInclusionRateForCore ?? getExactInclusionRate(result.filteredCount));
+    const requestedRate = formatPercent(meta.exactInclusionRateForRequested ?? getExactInclusionRate(result.candidateCount));
+    const capNote = meta.cappedForBrowser
+      ? `<em>선택한 ${meta.selectedPoolLabel}는 성능 보호를 위해 브라우저에서 ${formatNumber(meta.generatedCandidateTarget)}개까지 직접 생성해 요약합니다</em>`
+      : `<em>선택 후보망 기준 이론적 포함률 ${requestedRate}</em>`;
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
-        <span>이번 조건에서 살아남은 추천 후보</span>
+        <span>핵심 후보망</span>
         <strong>${formatNumber(result.filteredCount)}개</strong>
-        <em>지금 화면에는 ${formatNumber(shown)}개 조합을 보여주는 중입니다</em>
+        <em>최종 구매 추천번호는 ${formatNumber(shown)}장만 보여줍니다</em>
       </div>
       <div class="candidate-stat-card">
-        <span>전체 생성</span>
+        <span>생성 후보망</span>
         <strong>${formatNumber(result.candidateCount)}개</strong>
+        <em>${generatedRate}</em>
+      </div>
+      <div class="candidate-stat-card">
+        <span>핵심 포함률</span>
+        <strong>${coreRate}</strong>
+        <em>이론값</em>
       </div>
       <div class="candidate-stat-card">
         <span>90+ 참고</span>
@@ -3782,6 +4019,10 @@
       <div class="candidate-stat-card">
         <span>표시 방식</span>
         <strong>${mode}</strong>
+      </div>
+      <div class="candidate-stat-note">
+        ${capNote}
+        <span>이 값은 후보망 크기 기준의 이론적 포함률입니다. 실제 구매 추천번호의 당첨확률이나 당첨 보장을 의미하지 않습니다.</span>
       </div>
     `;
   }
@@ -3811,6 +4052,13 @@
     container.innerHTML = items
       .map((item, index) => {
         const balls = item.numbers.map(renderBall).join("");
+        const reasonLine = (item.reasons ?? [])
+          .map((reason) => `<span>${reason}</span>`)
+          .join("");
+        const bucketLine = (item.sourceBuckets ?? [])
+          .slice(0, 4)
+          .map((bucket) => `<span>${bucketReasonShortLabel(bucket)}</span>`)
+          .join("");
         return `
           <article class="recommendation-card">
             <div class="card-head">
@@ -3821,6 +4069,7 @@
               <span class="score-pill">${item.meta.score}</span>
             </div>
             <div class="ball-line">${balls}</div>
+            ${reasonLine ? `<div class="recommendation-reasons">${reasonLine}</div>` : ""}
             <div class="card-stats">
               <span class="chip">합 ${item.meta.sum}</span>
               <span class="chip">홀 ${item.meta.odd} / 짝 ${item.meta.even}</span>
@@ -3830,6 +4079,7 @@
               <span class="chip">품질관문 ${item.meta.gateScore}</span>
               <span class="chip" title="직전 회차 당첨번호와 겹치는 개수입니다.">최근중복 ${item.meta.repeatLatest}</span>
             </div>
+            ${bucketLine ? `<div class="source-buckets">${bucketLine}</div>` : ""}
           </article>
         `;
       })
@@ -4028,7 +4278,7 @@
     if (!history.length) {
       container.innerHTML = `
         <div class="empty-state">
-          아직 저장된 추천 기록이 없습니다. 지금 생성된 추천 후보부터 이 브라우저에 저장됩니다.
+          저장 기록 검증은 현재 사용하지 않습니다. 이 화면은 회차별 후보망 재현 검증을 우선합니다.
         </div>
       `;
       return;
@@ -4046,7 +4296,7 @@
       const latestSnapshot = history[0];
       container.innerHTML = `
         <div class="audit-card">
-          <strong>${latestSnapshot.basisLatestDraw}회 기준 추천 후보 저장됨</strong>
+          <strong>${latestSnapshot.basisLatestDraw}회 기준 핵심 후보망 저장됨</strong>
           <p>후보 ${formatNumber(latestSnapshot.candidates.length)}개와 최종 추천 ${latestSnapshot.selected.length}개를 저장했습니다. ${latestSnapshot.expectedDraw}회 당첨번호 데이터가 들어오면 여기서 자동으로 비교합니다.</p>
         </div>
       `;
@@ -4056,8 +4306,8 @@
     container.innerHTML = checks
       .map(({ snapshot, draw, result }) => {
         const exactText = result.candidate
-          ? `당신의 당첨번호 였던 것은 후보 안에 있었습니다`
-          : "후보 안에 없음";
+          ? `당첨번호 조합이 핵심 후보망 안에 있었습니다`
+          : "핵심 후보망 안에 없음";
         const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
         const best = result.bestMatch;
         const bestNumbers = best?.n?.join(", ") ?? "-";
@@ -4296,7 +4546,7 @@
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)}`;
     const foundSettingLine = bestEligible
       ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · ${settingWindowLabel(bestEligible)}`
-      : "자동 후보 기준 통과 설정 없음";
+      : "핵심 후보망 기준 통과 설정 없음";
     const replaySetting = bestEligible ?? best;
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
     const replayBest = replay?.result?.bestMatch;
@@ -4307,7 +4557,7 @@
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
     const foundExactSetting = qualifyingSettings.length > 0;
-    const statusText = foundExactSetting ? "자동 후보 기준 통과" : "전체 설정 위치 확인";
+    const statusText = foundExactSetting ? "핵심 후보망 기준 통과" : "전체 설정 위치 확인";
     const statusClass = foundExactSetting ? "is-hit" : "is-info";
     const hitLocationTitle = foundExactSetting ? foundSettingLine : settingLine;
     const directLocationText = `${latestDraw.draw}회 당첨번호 6개 조합을 생성 후보 기록이 아니라 전체 조합 ${formatNumber(
@@ -4316,11 +4566,11 @@
       portfolio.scanCount,
     )}가지입니다. 그중 가장 높게 잡힌 위치는 ${settingLine}이고, 점수는 ${best.meta.score}점(${best.meta.bucketLabel}, ${best.meta.band})입니다.`;
     const candidateLine = foundExactSetting
-      ? `${directLocationText} 이 설정은 자동 후보 기준도 통과했습니다. 되돌려 만든 자동 추천 후보는 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
-      : `${directLocationText} 다만 현재 자동 추천 후보 컷은 ${best.scoreFloor}점 근처라서, 당첨번호 조합은 자동 후보 목록에는 들어오지 못했습니다. 즉 조합 자체가 없다는 뜻이 아니라, 자동 선별 기준이 이 회차 당첨번호보다 더 좁게 잡혔다는 뜻입니다.`;
+      ? `${directLocationText} 이 설정은 핵심 후보망 기준도 통과했습니다. 되돌려 만든 핵심 후보망은 ${replayCandidateCount}개였고, 화면 검증용으로 상위 ${replayCheckedCount}개를 비교했습니다.`
+      : `${directLocationText} 다만 현재 핵심 후보망 컷은 ${best.scoreFloor}점 근처라서, 당첨번호 조합은 핵심 후보망에는 들어오지 못했습니다. 즉 조합 자체가 없다는 뜻이 아니라, 자동 선별 기준이 이 회차 당첨번호보다 더 좁게 잡혔다는 뜻입니다.`;
     const positionMeaning = foundExactSetting
-      ? `이 설정이면 당첨번호 조합 자체가 자동 후보 기준 안쪽으로 들어옵니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
-      : `이 설정이 전체 평가에서 가장 가까웠습니다. 자동 후보 안에 없다고 끝내지 않고, 아래에는 이 설정으로 다시 만든 후보 중 가장 많이 맞은 조합도 함께 보여줍니다.`;
+      ? `이 설정이면 당첨번호 조합 자체가 핵심 후보망 기준 안쪽으로 들어옵니다. 랜덤으로 다시 뽑은 후보 목록에 우연히 포함됐는지와는 별개입니다.`
+      : `이 설정이 전체 평가에서 가장 가까웠습니다. 핵심 후보망 안에 없다고 끝내지 않고, 아래에는 이 설정으로 다시 만든 후보 중 가장 많이 맞은 조합도 함께 보여줍니다.`;
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -4348,7 +4598,7 @@
           <div>
             <span>${index + 1}</span>
             <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
-            <em>이 설정에서는 당첨번호 6개 조합이 자동 후보 기준을 통과했습니다.${index === 0 ? ` 대표 후보 수 ${replayCandidateCount}개.` : ""}</em>
+            <em>이 설정에서는 당첨번호 6개 조합이 핵심 후보망 기준을 통과했습니다.${index === 0 ? ` 대표 후보망 ${replayCandidateCount}개.` : ""}</em>
           </div>
         `,
       )
@@ -4362,6 +4612,8 @@
           </div>
           <b class="${statusClass}">${statusText}</b>
         </div>
+        <p class="portfolio-note">이 결과는 후보망 검증 지표이며, 실제 구매 추천번호의 당첨을 의미하지 않습니다. 후보망을 크게 만들수록 실제 당첨 조합이 후보망 안에 들어올 이론적 가능성은 커지지만, 최종 구매 추천번호의 당첨을 보장하지는 않습니다.</p>
+        <p class="portfolio-note">4개 일치 + 보너스 일치는 등위상 4등입니다. 보너스 번호는 5개 번호와 함께 맞을 때만 2등 조건에 사용됩니다.</p>
         <div class="portfolio-latest">
           <div>
             <span>${latestDraw.draw}회 당첨번호</span>
@@ -4371,12 +4623,12 @@
         <div class="portfolio-hit-location ${statusClass}">
           <span>당첨번호의 실제 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${foundExactSetting ? `${foundSettingLine} 설정에서 당첨번호 6개 조합이 자동 후보 기준도 통과했습니다. 추천 후보는 ${replayCandidateCount}개였습니다.` : `자동 후보 기준에는 없었지만, 전체 설정을 직접 평가했을 때 가장 가까운 위치는 ${settingLine}입니다. 점수는 ${best.meta.score}점(${best.meta.bucketLabel})입니다.`}</p>
+          <p>${foundExactSetting ? `${foundSettingLine} 설정에서 당첨번호 6개 조합이 핵심 후보망 기준도 통과했습니다. 핵심 후보망은 ${replayCandidateCount}개였습니다.` : `핵심 후보망 기준에는 없었지만, 전체 설정을 직접 평가했을 때 가장 가까운 위치는 ${settingLine}입니다. 점수는 ${best.meta.score}점(${best.meta.bucketLabel})입니다.`}</p>
         </div>
         ${
           qualifyingSettingRows
             ? `<div class="portfolio-setting-list">
-                <strong>당첨번호가 자동 후보 기준을 통과했던 설정</strong>
+                <strong>당첨번호가 핵심 후보망 기준을 통과했던 설정</strong>
                 ${qualifyingSettingRows}
               </div>`
             : ""
@@ -4385,7 +4637,7 @@
           <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
           <strong>${replayText}</strong>
-          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 추천 후보 ${formatNumber(replay.candidateCount)}개 중 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
+          <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label} · 핵심 후보망 ${formatNumber(replay.candidateCount)}개 기준 최다 일치 조합입니다.` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
         </div>
         <div class="portfolio-position-grid">
           <div class="portfolio-position-card ${statusClass}">
@@ -4402,11 +4654,11 @@
         <div class="store-tags">
           <span>전체 조합 ${formatNumber(lottoCombinationCount)}개 중 당첨번호 조합 직접 평가</span>
           <span>검사 설정 ${formatNumber(portfolio.scanCount)}가지</span>
-          <span>자동 후보 기준 통과 설정 ${qualifyingSettings.length}개</span>
+          <span>핵심 후보망 기준 통과 설정 ${qualifyingSettings.length}개</span>
         </div>
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
-          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 당첨번호 조합이 자동 후보 기준까지 통과한 회차는 ${portfolio.eligibleCount}회입니다. 기준 밖인 회차도 당첨번호 자체는 위처럼 전체 설정에 직접 넣어 위치를 봅니다.</p>
+          <p class="portfolio-note">최근 ${portfolio.records.length}개 회차를 되돌려 계산했을 때, 당첨번호 조합이 핵심 후보망 기준까지 통과한 회차는 ${portfolio.eligibleCount}회입니다. 기준 밖인 회차도 당첨번호 자체는 위처럼 전체 설정에 직접 넣어 위치를 봅니다.</p>
           ${summarySentence ? `<p class="portfolio-note">${summarySentence}</p>` : ""}
           <div class="portfolio-bars">
             ${portfolio.ranges
@@ -4432,8 +4684,8 @@
               .map((record) => {
                 const item = record.best;
                 const hitLabel = record.eligible
-                  ? '<mark class="candidate-hit-label">자동 후보 기준 통과</mark>'
-                  : '<mark class="candidate-miss-label">자동 후보 기준 밖</mark>';
+                  ? '<mark class="candidate-hit-label">핵심 후보망 기준 통과</mark>'
+                  : '<mark class="candidate-miss-label">핵심 후보망 기준 밖</mark>';
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
@@ -4665,7 +4917,7 @@
     container.innerHTML = `
       ${portfolioHtml}
       <details class="saved-history-details">
-        <summary>과거 추천 후보 중 최다 일치 기록 보기</summary>
+        <summary>과거 핵심 후보망 중 최다 일치 기록 보기</summary>
         <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
           <div class="audit-result-main">
             <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
@@ -5536,7 +5788,7 @@
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 후보 ${formatNumber(result.filteredCount)}개`;
+      `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 핵심 후보망 ${formatNumber(result.filteredCount)}개`;
 
     lottoState.lastResult = result;
     renderRecommendations(result);
@@ -5685,7 +5937,7 @@
     if (autoSajuStatus) {
       const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
       const reasonText = setting.exact
-        ? `${basisText}당첨번호가 자동 후보 기준을 통과했던 설정을 적용했습니다.`
+        ? `${basisText}당첨번호가 핵심 후보망 기준을 통과했던 설정을 적용했습니다.`
         : `${basisText}당첨번호와 가장 가까웠던 설정을 적용했습니다.`;
       autoSajuStatus.textContent =
         `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
@@ -5864,6 +6116,7 @@
       unknownTime,
       interpretationMode,
       walkRange,
+      candidatePoolSize,
     ]) {
       control.addEventListener("input", () => {
         saveProfile();
