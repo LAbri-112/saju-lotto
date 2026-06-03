@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v64" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v66" />
   </head>
   <body>
     <main class="app-shell">
@@ -194,15 +194,15 @@
                   </div>
                   <div class="field-group">
                     <div class="label-row">
-                      <label for="candidatePoolSize">후보망 크기</label>
-                      <button class="help-button" type="button" data-help="후보망 크기는 앱 내부에서 검토하는 조합 수입니다. 후보망이 클수록 실제 당첨 조합이 후보망 안에 들어올 이론적 가능성은 커지지만, 최종 구매 추천번호의 당첨을 보장하지는 않습니다.">?</button>
+                      <label for="candidatePoolSize">랭킹 감사 범위</label>
+                      <button class="help-button" type="button" data-help="전체 조합 중 몇 개 구간까지 내부 점수화를 살펴볼지 정합니다. 핵심 후보망은 최대 2,701개를 상한으로 두고, 조건이 충분히 좁혀지면 그 이하로 자동 축소됩니다. 이 설정은 검증용 감사 범위이지, 추천 후보망을 무작정 키우는 설정이 아닙니다.">?</button>
                     </div>
                     <select id="candidatePoolSize" name="candidatePoolSize">
-                      <option value="auto" selected>자동</option>
-                      <option value="50000">5만개 후보망</option>
-                      <option value="100000">10만개 후보망</option>
-                      <option value="500000">50만개 후보망</option>
-                      <option value="1000000">100만개 후보망</option>
+                      <option value="auto" selected>자동 감사</option>
+                      <option value="50000">5만개 감사</option>
+                      <option value="100000">10만개 감사</option>
+                      <option value="500000">50만개 감사</option>
+                      <option value="1000000">100만개 감사</option>
                     </select>
                   </div>
                   <div class="field-group is-hidden">
@@ -230,7 +230,7 @@
                 <div class="field-group">
                   <div class="label-row">
                     <label for="sajuWeight">사주 반영</label>
-                    <button class="help-button" type="button" data-help="추천 생성 버튼을 누르면 생년월일·출생시각 기준으로 과거 회차를 되돌려보고, 이 사람에게 당첨번호가 더 자주 자동 후보 기준을 통과했던 사주 반영률을 맞춥니다. 직접 조절할 수도 있지만 추천 생성 시에는 자동 세팅이 우선 적용됩니다.">?</button>
+                    <button class="help-button" type="button" data-help="추천 생성 버튼을 누르면 생년월일·출생시각 기준으로 과거 회차를 되돌려보고, 이 사람에게 당첨번호가 직접 점수 기준에 더 가까웠던 사주 반영률을 맞춥니다. 실제 핵심 후보망 포함 여부는 자동 축소된 핵심 후보망 크기 기준으로 별도 검증합니다.">?</button>
                   </div>
                   <div class="range-line range-with-buttons">
                     <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
@@ -576,8 +576,8 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v64"></script>
-    <script defer src="data/pension-results.js?v=feedback-v64"></script>
-    <script defer src="app.js?v=feedback-v64"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v66"></script>
+    <script defer src="data/pension-results.js?v=feedback-v66"></script>
+    <script defer src="app.js?v=feedback-v66"></script>
   </body>
 </html>
