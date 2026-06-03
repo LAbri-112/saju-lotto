@@ -55,15 +55,14 @@ jobs:
       - name: Validate app files
         run: npm run check
 
-      - name: Commit updated lotto data
-        if: steps.before.outputs.latest != steps.after.outputs.latest
+      - name: Commit updated lotto data and recall profile
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
+          if git diff --cached --quiet; then
+            echo "No lotto data or recall profile changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
+            exit 0
+          fi
           git commit -m "Update lotto data to draw ${{ steps.after.outputs.latest }}"
           git push origin HEAD:${{ github.ref_name }}
-
-      - name: Skip commit when no new draw exists
-        if: steps.before.outputs.latest == steps.after.outputs.latest
-        run: echo "No new draw found. Current latest draw is ${{ steps.after.outputs.latest }}."
