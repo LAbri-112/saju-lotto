@@ -210,9 +210,9 @@ async function main() {
     goal:
       "Use all historical draws in reverse to favor compact candidate pools whose patterns resemble where past winning numbers actually appeared.",
     coreCandidatePolicy: {
-      maxK: 2701,
       minK: 420,
-      objective: "shrink candidate pools when the learned winner-shape cluster is clear, without expanding K just to improve recall.",
+      mode: "adaptive",
+      objective: "choose the smallest practical candidate pool from learned winner-shape clusters instead of pinning the pool to a fixed K.",
     },
     winningShape: summarizeShape(shape),
     bestWindowCounts: Object.entries(windowWins)
