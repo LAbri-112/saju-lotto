@@ -255,6 +255,10 @@ label {
   align-items: start;
 }
 
+.game-panel[hidden] {
+  display: none !important;
+}
+
 .control-panel,
 .main-panel {
   box-shadow: var(--shadow);

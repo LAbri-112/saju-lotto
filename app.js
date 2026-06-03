@@ -3072,18 +3072,33 @@
   }
 
   function buildPensionHistoricalStats() {
+    const cacheKey = `historical-stats-${pensionDataset.latestRound ?? 0}-${pensionDraws.length}`;
+    if (pensionState.cache.has(cacheKey)) return pensionState.cache.get(cacheKey);
+
     const groups = Array(6).fill(0);
     const positions = Array.from({ length: 6 }, () => Array(10).fill(0));
     const tailDigits = Array(10).fill(0);
+    const weightedGroups = Array(6).fill(0);
+    const weightedPositions = Array.from({ length: 6 }, () => Array(10).fill(0));
+    const weightedTailDigits = Array(10).fill(0);
     const sumValues = [];
     const uniqueValues = [];
     const maxRepeatValues = [];
+    let weightedSum = 0;
+    let totalPrizeWeight = 0;
 
     for (const draw of pensionDraws) {
       if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
-      if (draw.group >= 1 && draw.group <= 5) groups[draw.group] += 1;
+      const prizeWeight = pensionPrizeWeight(draw);
+      if (draw.group >= 1 && draw.group <= 5) {
+        groups[draw.group] += 1;
+        weightedGroups[draw.group] += prizeWeight;
+      }
       draw.digits.forEach((digit, index) => {
-        if (digit >= 0 && digit <= 9) positions[index][digit] += 1;
+        if (digit >= 0 && digit <= 9) {
+          positions[index][digit] += 1;
+          weightedPositions[index][digit] += prizeWeight;
+        }
       });
       const sum = draw.digits.reduce((total, digit) => total + digit, 0);
       const counts = Object.values(
@@ -3097,24 +3112,42 @@
       uniqueValues.push(unique);
       maxRepeatValues.push(Math.max(...counts));
       tailDigits[draw.digits.at(-1)] += 1;
+      weightedTailDigits[draw.digits.at(-1)] += prizeWeight;
+      weightedSum += sum * prizeWeight;
+      totalPrizeWeight += prizeWeight;
     }
 
     const sortedSums = [...sumValues].sort((a, b) => a - b);
+    const sumMean = sumValues.length
+      ? sumValues.reduce((total, value) => total + value, 0) / sumValues.length
+      : 27;
+    const sumStd = sumValues.length
+      ? Math.sqrt(sumValues.reduce((total, value) => total + (value - sumMean) ** 2, 0) / sumValues.length)
+      : 6;
     const quantile = (values, rate, fallback) => {
       if (!values.length) return fallback;
       return values[Math.floor((values.length - 1) * rate)];
     };
 
-    return {
+    const result = {
       count: pensionDraws.length,
       latestRound: pensionDataset.latestRound ?? latestPension?.round ?? 0,
       latestDate: pensionDataset.latestDate ?? latestPension?.date ?? "",
       groups,
       positions,
       tailDigits,
+      weightedGroups,
+      weightedPositions,
+      weightedTailDigits,
       maxGroupCount: Math.max(...groups, 1),
+      maxWeightedGroupCount: Math.max(...weightedGroups, 1),
       maxPositionCounts: positions.map((items) => Math.max(...items, 1)),
+      maxWeightedPositionCounts: weightedPositions.map((items) => Math.max(...items, 1)),
       maxTailCount: Math.max(...tailDigits, 1),
+      maxWeightedTailCount: Math.max(...weightedTailDigits, 1),
+      sumMean,
+      sumStd,
+      weightedSumMean: totalPrizeWeight ? weightedSum / totalPrizeWeight : sumMean,
       sumQ25: quantile(sortedSums, 0.25, 18),
       sumQ75: quantile(sortedSums, 0.75, 36),
       commonUnique:
@@ -3126,6 +3159,9 @@
           ? Math.round(maxRepeatValues.reduce((sum, value) => sum + value, 0) / maxRepeatValues.length)
           : 2,
     };
+
+    pensionState.cache.set(cacheKey, result);
+    return result;
   }
 
   function derivePensionLuckyDigits(birthText) {
@@ -3213,10 +3249,83 @@
     };
   }
 
-  function makePensionCandidate(rng) {
-    const group = Math.floor(rng() * 5) + 1;
-    const digits = Array.from({ length: 6 }, () => Math.floor(rng() * 10));
-    return { group, digits };
+  function pickWeightedIndex(weights, rng, fallbackSize = weights.length) {
+    const safeWeights = Array.from({ length: fallbackSize }, (_, index) =>
+      Math.max(0.001, Number(weights?.[index] ?? 0) + 0.35),
+    );
+    const total = safeWeights.reduce((sum, value) => sum + value, 0);
+    let roll = rng() * total;
+
+    for (let index = 0; index < safeWeights.length; index += 1) {
+      roll -= safeWeights[index];
+      if (roll <= 0) return index;
+    }
+
+    return safeWeights.length - 1;
+  }
+
+  function buildPensionDigitWeights(stats, index, luckyDigits, personalWeight) {
+    const source =
+      stats?.count && stats.weightedPositions?.[index]
+        ? stats.weightedPositions[index]
+        : Array(10).fill(1);
+    const maxWeight = Math.max(...source, 1);
+    const personalBoost = clamp(Number(personalWeight) / 100, 0, 0.75);
+
+    return source.map((value, digit) => {
+      const historyWeight = (Number(value) + 1) ** 1.18;
+      const luckyWeight = luckyDigits.includes(digit) ? maxWeight * personalBoost * 0.42 : 0;
+      return historyWeight + luckyWeight;
+    });
+  }
+
+  function buildPensionGroupWeights(stats, luckyDigits, personalWeight) {
+    const source = stats?.count ? stats.weightedGroups : Array(6).fill(1);
+    const maxWeight = Math.max(...source.slice(1), 1);
+    const personalBoost = clamp(Number(personalWeight) / 100, 0, 0.75);
+
+    return Array.from({ length: 5 }, (_, index) => {
+      const group = index + 1;
+      const historyWeight = (Number(source?.[group] ?? 1) + 1) ** 1.12;
+      const luckyWeight = luckyDigits.includes(group + 4) ? maxWeight * personalBoost * 0.35 : 0;
+      return historyWeight + luckyWeight;
+    });
+  }
+
+  function rebalancePensionDigits(digits, stats, luckyDigits, personalWeight, rng) {
+    const next = [...digits];
+    const targetMean = stats?.count ? stats.weightedSumMean ?? stats.sumMean : 27;
+    let sum = next.reduce((total, digit) => total + digit, 0);
+    let guard = 0;
+
+    while (Math.abs(sum - targetMean) > 9 && guard < 8) {
+      const index = Math.floor(rng() * next.length);
+      const weights = buildPensionDigitWeights(stats, index, luckyDigits, personalWeight);
+      if (sum > targetMean) {
+        weights.forEach((_, digit) => {
+          weights[digit] *= digit <= next[index] ? 1.4 : 0.55;
+        });
+      } else {
+        weights.forEach((_, digit) => {
+          weights[digit] *= digit >= next[index] ? 1.4 : 0.55;
+        });
+      }
+      next[index] = pickWeightedIndex(weights, rng, 10);
+      sum = next.reduce((total, digit) => total + digit, 0);
+      guard += 1;
+    }
+
+    return next;
+  }
+
+  function makePensionCandidate(rng, stats, luckyDigits, personalWeight) {
+    const groupWeights = buildPensionGroupWeights(stats, luckyDigits, personalWeight);
+    const group = pickWeightedIndex(groupWeights, rng, 5) + 1;
+    const digits = Array.from({ length: 6 }, (_, index) => {
+      return pickWeightedIndex(buildPensionDigitWeights(stats, index, luckyDigits, personalWeight), rng, 10);
+    });
+
+    return { group, digits: rebalancePensionDigits(digits, stats, luckyDigits, personalWeight, rng) };
   }
 
   function pensionCandidateKey(candidate) {
@@ -3243,25 +3352,29 @@
     const tailUnique = new Set(tail).size;
     const luckyHits = digits.filter((digit) => luckyDigits.includes(digit)).length;
 
-    const sumFit = clamp(1 - Math.abs(sum - 27) / 22);
+    const sumCenter = stats?.count ? stats.weightedSumMean ?? stats.sumMean ?? 27 : 27;
+    const sumBand = stats?.count ? Math.max(8, (stats.sumStd ?? 6) * 1.7) : 22;
+    const sumFit = clamp(1 - Math.abs(sum - sumCenter) / sumBand);
     const oddFit = odd === 3 ? 1 : odd === 2 || odd === 4 ? 0.86 : 0.58;
     const highFit = high === 3 ? 1 : high === 2 || high === 4 ? 0.86 : 0.58;
-    const uniqueFit = unique >= 4 && unique <= 5 ? 1 : unique === 3 || unique === 6 ? 0.78 : 0.46;
-    const repeatFit = maxRepeat <= 2 ? 1 : maxRepeat === 3 ? 0.7 : 0.38;
+    const commonUnique = stats?.count ? stats.commonUnique ?? 5 : 5;
+    const commonMaxRepeat = stats?.count ? stats.commonMaxRepeat ?? 2 : 2;
+    const uniqueFit = clamp(1 - Math.abs(unique - commonUnique) / 3, 0.46, 1);
+    const repeatFit = clamp(1 - Math.abs(maxRepeat - commonMaxRepeat) / 3, 0.38, 1);
     const adjacentFit = adjacent <= 2 ? 1 : adjacent === 3 ? 0.72 : 0.45;
     const tailFit = tailUnique >= 2 ? 1 : 0.45;
     const personalFit = clamp(luckyHits / 3);
     const groupFit = luckyDigits.includes(candidate.group + 4) ? 0.9 : 0.78;
     const groupHistoryFit = stats?.count
-      ? clamp(((stats.groups[candidate.group] ?? 0) + 1) / ((stats.maxGroupCount ?? 1) + 1), 0.2, 1)
+      ? clamp(((stats.weightedGroups?.[candidate.group] ?? stats.groups[candidate.group] ?? 0) + 1) / ((stats.maxWeightedGroupCount ?? stats.maxGroupCount ?? 1) + 1), 0.2, 1)
       : 0.72;
     const positionHistoryFit = stats?.count
       ? digits.reduce((total, digit, index) => {
-          return total + clamp(((stats.positions[index][digit] ?? 0) + 1) / ((stats.maxPositionCounts[index] ?? 1) + 1), 0.2, 1);
+          return total + clamp(((stats.weightedPositions?.[index]?.[digit] ?? stats.positions[index][digit] ?? 0) + 1) / ((stats.maxWeightedPositionCounts?.[index] ?? stats.maxPositionCounts[index] ?? 1) + 1), 0.2, 1);
         }, 0) / 6
       : 0.72;
     const tailHistoryFit = stats?.count
-      ? clamp(((stats.tailDigits[digits.at(-1)] ?? 0) + 1) / ((stats.maxTailCount ?? 1) + 1), 0.2, 1)
+      ? clamp(((stats.weightedTailDigits?.[digits.at(-1)] ?? stats.tailDigits[digits.at(-1)] ?? 0) + 1) / ((stats.maxWeightedTailCount ?? stats.maxTailCount ?? 1) + 1), 0.2, 1)
       : 0.72;
     const historicalFit = positionHistoryFit * 0.7 + groupHistoryFit * 0.18 + tailHistoryFit * 0.12;
     const base =
@@ -3304,17 +3417,17 @@
         pensionSetCount?.value ?? "5",
         personalWeightState.setting,
         personalWeight,
+        stats.latestRound,
+        stats.latestDate,
         dateToIso(new Date()),
-        pensionState.generation,
-        Date.now(),
       ].join("|"),
     );
     const rng = mulberry32(seed);
     const candidateMap = new Map();
-    const candidateBudget = 2400;
+    const candidateBudget = stats.count ? 6400 : 3200;
 
     for (let index = 0; index < candidateBudget; index += 1) {
-      const candidate = makePensionCandidate(rng);
+      const candidate = makePensionCandidate(rng, stats, luckyDigits, personalWeight);
       const key = pensionCandidateKey(candidate);
       if (candidateMap.has(key)) continue;
       candidateMap.set(key, {
@@ -5437,9 +5550,12 @@
   }
 
   function switchGame(game) {
-    const pensionActive = game === "pension";
+    const nextGame = game === "pension" ? "pension" : "lotto";
+    const pensionActive = nextGame === "pension";
     gameTabs.forEach((tab) => {
-      tab.classList.toggle("is-active", tab.dataset.game === game);
+      const active = tab.dataset.game === nextGame;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-pressed", String(active));
     });
     if (lottoWorkspace) lottoWorkspace.hidden = pensionActive;
     if (pensionWorkspace) pensionWorkspace.hidden = !pensionActive;
