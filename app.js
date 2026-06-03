@@ -3096,7 +3096,7 @@
       const lastSeen = stats.lastSeen[item.number] ?? 0;
       return lastSeen ? stats.latestDraw - lastSeen : 999;
     });
-    const reentryScore = (number, lowNumberBoost = 0) => {
+    const reentryScore = (number) => {
       const lastSeen = stats.lastSeen[number] ?? 0;
       const gap = lastSeen ? stats.latestDraw - lastSeen : 99;
       const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
@@ -3104,10 +3104,18 @@
       const recentMax = Math.max(...stats.recentFrequency, 1);
       const longFit = (stats.frequency[number] ?? 0) / longMax;
       const recentFit = (stats.recentFrequency[number] ?? 0) / recentMax;
-      return reentryZone * 2 + longFit * 0.28 + recentFit * 0.14 + lowNumberBoost;
+      return reentryZone * 2 + longFit * 0.3 + recentFit * 0.15;
+    };
+    const lowReentryScore = (number) => {
+      const lastSeen = stats.lastSeen[number] ?? 0;
+      const gap = lastSeen ? stats.latestDraw - lastSeen : 99;
+      const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
+      const longMax = Math.max(...stats.frequency, 1);
+      const longFit = (stats.frequency[number] ?? 0) / longMax;
+      return reentryZone * 2 + longFit * 0.2 + (number <= 22 ? 0.45 : 0);
     };
     const byLowReentry = rankedNumbersBy(scores, (item) =>
-      reentryScore(item.number, item.number <= 22 ? 0.45 : 0),
+      lowReentryScore(item.number),
     );
     const byReentry = rankedNumbersBy(scores, (item) => reentryScore(item.number));
     const frontier = [];

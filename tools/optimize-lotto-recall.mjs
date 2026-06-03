@@ -189,20 +189,22 @@ function buildReverseFrontier(priorDraws, value, limit = 25) {
     numberSignal[number] = trendFit * 0.42 + longFit * 0.3 + gapFit * 0.2 + repeatFit * 0.08;
   }
 
-  const reentryScore = (number, lowNumberBoost = 0) => {
+  const reentryScore = (number) => {
     const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : 99;
     const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
     return (
       reentryZone * 2 +
-      ((longFrequency[number] ?? 0) / maxLong) * 0.28 +
-      ((trendFrequency[number] ?? 0) / maxTrend) * 0.14 +
-      lowNumberBoost
+      ((longFrequency[number] ?? 0) / maxLong) * 0.3 +
+      ((trendFrequency[number] ?? 0) / maxTrend) * 0.15
     );
   };
+  const lowReentryScore = (number) => {
+    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : 99;
+    const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
+    return reentryZone * 2 + ((longFrequency[number] ?? 0) / maxLong) * 0.2 + (number <= 22 ? 0.45 : 0);
+  };
   const bySignal = rankedNumbersBy(numberSignal, (number) => numberSignal[number]);
-  const byLowReentry = rankedNumbersBy(numberSignal, (number) =>
-    reentryScore(number, number <= 22 ? 0.45 : 0),
-  );
+  const byLowReentry = rankedNumbersBy(numberSignal, (number) => lowReentryScore(number));
   const byReentry = rankedNumbersBy(numberSignal, (number) => reentryScore(number));
   const byLong = rankedNumbersBy(numberSignal, (number) => longFrequency[number] ?? 0);
   const byRecent = rankedNumbersBy(numberSignal, (number) => trendFrequency[number] ?? 0);
