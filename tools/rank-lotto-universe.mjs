@@ -11,16 +11,52 @@ class TopK {
     this.items = [];
   }
 
+  compare(a, b) {
+    return a.score - b.score;
+  }
+
+  siftUp(index) {
+    let current = index;
+    while (current > 0) {
+      const parent = Math.floor((current - 1) / 2);
+      if (this.compare(this.items[current], this.items[parent]) >= 0) break;
+      [this.items[current], this.items[parent]] = [this.items[parent], this.items[current]];
+      current = parent;
+    }
+  }
+
+  siftDown(index) {
+    let current = index;
+    while (true) {
+      const left = current * 2 + 1;
+      const right = left + 1;
+      let smallest = current;
+
+      if (left < this.items.length && this.compare(this.items[left], this.items[smallest]) < 0) {
+        smallest = left;
+      }
+      if (right < this.items.length && this.compare(this.items[right], this.items[smallest]) < 0) {
+        smallest = right;
+      }
+      if (smallest === current) break;
+
+      [this.items[current], this.items[smallest]] = [this.items[smallest], this.items[current]];
+      current = smallest;
+    }
+  }
+
   push(item) {
+    if (this.limit <= 0) return;
+
     if (this.items.length < this.limit) {
       this.items.push(item);
-      if (this.items.length === this.limit) this.items.sort((a, b) => a.score - b.score);
+      this.siftUp(this.items.length - 1);
       return;
     }
 
-    if (item.score <= this.items[0].score) return;
+    if (this.compare(item, this.items[0]) <= 0) return;
     this.items[0] = item;
-    this.items.sort((a, b) => a.score - b.score);
+    this.siftDown(0);
   }
 
   values() {
