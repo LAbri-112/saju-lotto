@@ -1,6 +1,7 @@
 (function () {
   const dataset = window.LOTTO_RESULTS;
   const pensionDataset = window.PENSION_RESULTS ?? { draws: [], count: 0, latestRound: 0 };
+  const recallProfile = window.LOTTO_RECALL_PROFILE ?? null;
   const draws = dataset?.draws ?? [];
   const pensionDraws = pensionDataset?.draws ?? [];
   const latest = draws.at(-1);
@@ -1851,6 +1852,27 @@
     return Math.round(clamp(fit) * 1000) / 10;
   }
 
+  function recallProfileFit(key, value) {
+    const bucket = recallProfile?.winningShape?.[key];
+    if (!bucket) return 0.5;
+    return clamp(((bucket.counts?.[value] ?? 0) + 1) / ((bucket.max ?? 1) + 1), 0.08, 1);
+  }
+
+  function recallProfileScore(snapshot) {
+    if (!recallProfile?.winningShape) return null;
+    const fit =
+      recallProfileFit("sumBand", snapshot.sumBand) * 0.18 +
+      recallProfileFit("odd", snapshot.odd) * 0.12 +
+      recallProfileFit("low", snapshot.low) * 0.12 +
+      recallProfileFit("sectorCoverage", snapshot.sectorCoverage) * 0.15 +
+      recallProfileFit("tailDiversity", snapshot.tailDiversity) * 0.13 +
+      recallProfileFit("spreadBand", snapshot.spreadBand) * 0.15 +
+      recallProfileFit("repeatPrevious", snapshot.repeatBand) * 0.1 +
+      recallProfileFit("consecutive", snapshot.consecutiveBand) * 0.05;
+
+    return Math.round(clamp(fit) * 1000) / 10;
+  }
+
   function buildStats(windowSize, sourceDraws = draws) {
     const frequency = Array(46).fill(0);
     const bonusFrequency = Array(46).fill(0);
@@ -2653,10 +2675,12 @@
       spacingScore * 0.02;
     const modelScore = Math.round((signalScore * 0.56 + gateScore * 0.44) * 1000) / 10;
     const distributionScore = distributionFitScore(stats, snapshot);
+    const historicalRecallScore = recallProfileScore(snapshot);
     const meta = {
       score: distributionScore,
       modelScore,
       distributionScore,
+      recallProfileScore: historicalRecallScore,
       signalScore: Math.round(signalScore * 1000) / 10,
       gateScore: Math.round(gateScore * 1000) / 10,
       sum,
@@ -2748,19 +2772,21 @@
       learningProfile?.bucketPreference?.[meta.bucketStart] ??
       clamp(1 - Math.abs(meta.score - targetScore) / Math.max(8, targetSpread));
     const distributionFit = clamp(meta.distributionScore / 100);
+    const recallFit = clamp((meta.recallProfileScore ?? meta.distributionScore) / 100);
     const signalFit = clamp(meta.signalScore / 100);
     const gateFit = clamp(meta.gateScore / 100);
     const diversityFit =
       (clamp(meta.sectorCoverage / 4) + clamp(meta.tailDiversity / 5)) / 2;
     const repeatFit = meta.repeatLatest <= 2 ? 1 : 0.62;
     const practical =
-      distributionFit * 0.58 +
-      gateFit * 0.14 +
+      distributionFit * 0.42 +
+      recallFit * 0.2 +
+      gateFit * 0.13 +
       learnedBucketFit * 0.1 +
-      scoreFit * 0.08 +
-      diversityFit * 0.06 +
+      scoreFit * 0.07 +
+      diversityFit * 0.05 +
       signalFit * 0.02 +
-      repeatFit * 0.02;
+      repeatFit * 0.03;
 
     return Math.round(clamp(practical, 0, 1) * 1000) / 10;
   }
@@ -4111,7 +4137,7 @@
       </div>
       <div class="candidate-stat-note">
         ${capNote}
-        <span>생성 후보망은 내부 점수화 범위이고, ExactRecall은 자동 축소된 핵심 후보망 ${formatNumber(coreK)}개 기준으로 봅니다. 실제 구매 추천번호의 당첨확률이나 당첨 보장을 의미하지 않습니다.</span>
+        <span>전 회차 당첨번호를 역으로 다시 넣어 보며 학습한 당첨모양 프로필을 랭킹에 반영합니다. ExactRecall은 자동 축소된 핵심 후보망 ${formatNumber(coreK)}개 기준으로 보고, 다음 회차가 들어오면 이 학습 기준도 다시 갱신됩니다.</span>
       </div>
     `;
   }
