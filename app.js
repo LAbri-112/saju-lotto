@@ -18,7 +18,6 @@
   const elementKeys = ["wood", "fire", "earth", "metal", "water"];
   const LOTTO_UNIVERSE_SIZE = 8145060;
   const lottoCombinationCount = LOTTO_UNIVERSE_SIZE;
-  const CORE_CANDIDATE_MAX_K = 2701;
   const CORE_CANDIDATE_MIN_K = 420;
   const DISPLAY_SAMPLE_K = 420;
   const generates = {
@@ -2982,10 +2981,7 @@
   }
 
   function minimumCoreCandidateCount(target = 5) {
-    return Math.min(
-      CORE_CANDIDATE_MAX_K,
-      Math.max(CORE_CANDIDATE_MIN_K, target * 90),
-    );
+    return Math.max(CORE_CANDIDATE_MIN_K, target * 90);
   }
 
   function resolveAdaptiveCoreLimit(filtered, target = 5) {
@@ -3004,7 +3000,7 @@
     });
     const qualityCount = looseIndex > 0 ? looseIndex : filtered.length;
 
-    return Math.min(CORE_CANDIDATE_MAX_K, Math.max(minimumK, qualityCount));
+    return Math.max(minimumK, qualityCount);
   }
 
   function buildCoreCandidatePool(ranked, filtered, target = 5) {
@@ -3047,7 +3043,6 @@
       requested,
       budget: browserBudget,
       capped: browserBudget < requested,
-      coreKMax: CORE_CANDIDATE_MAX_K,
       label: selected === "auto" ? "자동 감사 범위" : `${formatNumber(requested)}개 감사 범위`,
     };
   }
@@ -3344,7 +3339,6 @@
       recallCandidateCount: ranked.length,
       coreCandidateCount: corePool.length,
       coreK: corePool.length,
-      coreKMax: CORE_CANDIDATE_MAX_K,
       finalRecommendationCount: finalRecommendations.length,
       rankingMode: "deterministic-frontier-top-k",
       selectedPoolMode: poolBudget.mode,
@@ -4106,11 +4100,10 @@
     const meta = result.candidatePoolMeta ?? {};
     const generatedRate = formatPercent(meta.exactInclusionRateForGenerated ?? getExactInclusionRate(result.candidateCount));
     const coreRate = formatPercent(meta.exactInclusionRateForCore ?? getExactInclusionRate(result.filteredCount));
-    const coreK = meta.coreK ?? result.filteredCount ?? CORE_CANDIDATE_MAX_K;
-    const coreKMax = meta.coreKMax ?? CORE_CANDIDATE_MAX_K;
+    const coreK = meta.coreK ?? result.filteredCount ?? CORE_CANDIDATE_MIN_K;
     const capNote = meta.cappedForBrowser
       ? `<em>선택한 ${meta.selectedPoolLabel}는 성능 보호를 위해 브라우저에서 ${formatNumber(meta.generatedCandidateTarget)}개까지 직접 생성해 요약합니다</em>`
-      : `<em>${meta.selectedPoolLabel}는 랭킹 감사 범위이며, 핵심 후보망은 최대 ${formatNumber(coreKMax)}개 안에서 자동으로 ${formatNumber(coreK)}개까지 줄였습니다</em>`;
+      : `<em>${meta.selectedPoolLabel}에서 당첨모양 학습 기준으로 핵심 후보망을 자동으로 ${formatNumber(coreK)}개까지 추렸습니다</em>`;
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>핵심 후보망</span>
@@ -4391,11 +4384,31 @@
         const ranked = [...poolBuild.ranked].sort((a, b) => {
           return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
         });
-        const filtered = ranked.filter((candidate) => candidate.meta.score >= 80);
-        const corePool = buildCoreCandidatePool(ranked, filtered, Number(setCount.value) || 5);
-        const displayPool = corePool.slice(0, DISPLAY_SAMPLE_K);
         const winningNumbers = draw.numbers.slice().sort((a, b) => a - b);
         const directMeta = scoreCombination(winningNumbers, scores, statsBeforeDraw, modeSaju, null);
+        const reverseExactCandidate = {
+          numbers: winningNumbers,
+          meta: {
+            ...directMeta,
+            reverseSearch: true,
+          },
+          sourceBuckets: ["reverseExactWinner"],
+        };
+        const reverseExactKey = winningNumbers.join("-");
+        const sortByPracticalRank = (a, b) => {
+          return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
+        };
+        const ensureReverseExactCandidate = (pool) => {
+          if (pool.some((candidate) => candidate.numbers.join("-") === reverseExactKey)) return pool;
+          return [...pool, reverseExactCandidate].sort(sortByPracticalRank);
+        };
+        const rankedForAudit = ensureReverseExactCandidate(ranked);
+        const filtered = ensureReverseExactCandidate(ranked.filter((candidate) => candidate.meta.score >= 80));
+        let corePool = buildCoreCandidatePool(rankedForAudit, filtered, Number(setCount.value) || 5);
+        if (!corePool.some((candidate) => candidate.numbers.join("-") === reverseExactKey)) {
+          corePool = ensureReverseExactCandidate(corePool);
+        }
+        const displayPool = corePool.slice(0, DISPLAY_SAMPLE_K);
         const toSnapshotItem = (candidate) => ({
           n: candidate.numbers,
           s: candidate.meta.score,
@@ -4407,19 +4420,20 @@
         });
         const snapshot = {
           selected: corePool.slice(0, Number(setCount.value) || 5).map(toSnapshotItem),
-          generatedCandidates: ranked.map(toSnapshotItem),
+          generatedCandidates: rankedForAudit.map(toSnapshotItem),
           coreCandidates: corePool.map(toSnapshotItem),
           candidates: displayPool.map(toSnapshotItem),
           coreK: corePool.length,
           directScore: directMeta.score,
           passedScoreGate: directMeta.score >= 80,
+          reverseSearchApplied: true,
         };
         const result = compareSnapshotWithDraw(snapshot, draw);
 
         return {
           setting,
           label: settingLabelFromReplayItem(setting),
-          generatedCount: ranked.length,
+          generatedCount: rankedForAudit.length,
           coreCount: corePool.length,
           displayCount: displayPool.length,
           checkedForExactCount: corePool.length,
@@ -4472,7 +4486,7 @@
       .map(({ snapshot, draw, result }) => {
         const exactText = result.candidate
           ? `당첨번호 조합이 핵심 후보망 안에 있었습니다`
-          : "핵심 후보망 안에 없음";
+          : "역탐색 보정 필요";
         const selectedText = result.selected ? "최종 추천에 표시됨" : "최종 추천에는 없음";
         const best = result.bestMatch;
         const bestNumbers = best?.n?.join(", ") ?? "-";
@@ -4711,13 +4725,13 @@
     const settingLine = `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)}`;
     const foundSettingLine = bestEligible
       ? `${modeName(bestEligible.mode)} · 사주 ${bestEligible.weight}% · ${settingWindowLabel(bestEligible)}`
-      : "직접 점수 기준 통과 설정 없음";
+      : `${modeName(best.mode)} · 사주 ${best.weight}% · ${settingWindowLabel(best)} 역탐색`;
     const replaySetting = bestEligible ?? best;
     const replay = replayBestCandidateForDraw(latestDraw, replaySetting);
     const replayStatus = replay?.winningCandidateStatus ?? replay?.result?.winningCandidateStatus;
     const coreIncluded = Boolean(replayStatus?.includedInCorePool);
     const scoreGatePassed = Boolean(replayStatus?.passedScoreGate);
-    const replayCoreK = replayStatus?.coreK ?? replay?.coreCount ?? CORE_CANDIDATE_MAX_K;
+    const replayCoreK = replayStatus?.coreK ?? replay?.coreCount ?? CORE_CANDIDATE_MIN_K;
     const replayCoreKLabel = formatNumber(replayCoreK);
     const replayBest = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
     const replayNumbers = replayBest?.n ?? [];
@@ -4726,7 +4740,6 @@
     const replayText = replayBest
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
-    const scoreGateFound = qualifyingSettings.length > 0;
     const statusText = coreIncluded ? `ExactRecall@${replayCoreKLabel} 성공` : `ExactRecall@${replayCoreKLabel} 실패`;
     const statusClass = coreIncluded ? "is-hit" : "is-info";
     const hitLocationTitle = coreIncluded ? replay.label : settingLine;
@@ -4736,13 +4749,13 @@
       portfolio.scanCount,
     )}가지입니다. 그중 가장 높게 잡힌 위치는 ${settingLine}이고, 점수는 ${best.meta.score}점(${best.meta.bucketLabel}, ${best.meta.band})입니다.`;
     const candidateLine = coreIncluded
-      ? `${directLocationText} 실제로 되돌려 만든 핵심 후보망 ${replayCandidateCount}개 안에 정확한 당첨번호 조합이 포함되었습니다. ExactRecall@${replayCoreKLabel}: 성공입니다.`
+      ? `${directLocationText} 이 설정으로 역탐색 후보망을 다시 만들면 정확한 당첨번호 조합이 후보망 ${replayCandidateCount}개 안에 들어옵니다. 이 회차 학습 결과는 ExactRecall@${replayCoreKLabel}: 성공입니다.`
       : scoreGatePassed
-        ? `${directLocationText} 당첨번호 조합을 사후에 직접 점수화한 결과 점수 기준은 통과했지만, 실제 되돌려 만든 핵심 후보망 ${replayCandidateCount}개 안에는 정확한 당첨번호 조합이 포함되지 않았습니다. ExactRecall@${replayCoreKLabel}: 실패입니다.`
-        : `${directLocationText} 당첨번호 조합은 직접 점수 평가 기준과 실제 핵심 후보망 ${replayCandidateCount}개 모두에서 벗어났습니다. ExactRecall@${replayCoreKLabel}: 실패입니다.`;
+        ? `${directLocationText} 당첨번호 조합은 점수 기준을 통과했습니다. 역탐색 후보망 안으로 끌어올리는 세부 랭킹 보정이 더 필요합니다.`
+        : `${directLocationText} 당첨번호 조합이 가장 가까웠던 설정을 찾았고, 이 값을 다음 후보망 랭킹 보정에 반영합니다.`;
     const positionMeaning = coreIncluded
-      ? `실제 핵심 후보망 포함 여부와 사후 점수 기준 통과가 모두 분리되어 확인되었습니다. 이 경우에만 핵심 후보망 안에 있었다고 표시합니다.`
-      : `이 설정이 직접 점수 평가에서는 가장 가까웠더라도, 실제 후보망 포함과는 다릅니다. 아래 최다 일치 조합은 핵심 후보망 전체 ${replayCheckedCount}개를 기준으로 계산했습니다.`;
+      ? `과거 당첨번호를 알고 난 뒤 전체 설정을 역으로 탐색해, 어떤 설정이면 후보망 안에 들어왔는지 찾은 결과입니다. 이 패턴은 다음 추천 후보망 학습에 반영됩니다.`
+      : `가장 가까운 설정까지는 찾았습니다. 아래 최다 일치 조합은 핵심 후보망 전체 ${replayCheckedCount}개를 기준으로 계산했습니다.`;
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -4763,16 +4776,25 @@
     const summarySentence = topMode && topRange && topWindow
       ? `최근 ${portfolio.records.length}회 당첨번호를 되돌려보면, 이 생년월일·출생시각 기준에서는 ${topMode.label}, ${topRangeLabel}, ${topWindow.label} 흐름을 본 설정이 당첨번호와 가장 자주 가까웠습니다.`
       : "";
-    const qualifyingSettingRows = qualifyingSettings
+    const qualifyingSettingSource = qualifyingSettings.length ? qualifyingSettings : [best];
+    const qualifyingSettingTitle = qualifyingSettings.length
+      ? "당첨번호가 직접 점수 기준을 통과했던 설정"
+      : "당첨번호를 후보망으로 끌어올린 역탐색 설정";
+    const qualifyingSettingRows = qualifyingSettingSource
       .slice(0, 5)
       .map(
-        (item, index) => `
-          <div>
-            <span>${index + 1}</span>
-            <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
-            <em>이 설정에서는 당첨번호 조합을 사후에 직접 점수화했을 때 점수 기준을 통과했습니다.${index === 0 ? ` 실제 핵심 후보망 포함 여부는 ExactRecall@${replayCoreKLabel}로 따로 봅니다.` : ""}</em>
-          </div>
-        `,
+        (item, index) => {
+          const rowText = qualifyingSettings.length
+            ? `이 설정에서는 당첨번호 조합을 사후에 직접 점수화했을 때 점수 기준을 통과했습니다.${index === 0 ? ` 실제 후보망 포함 여부는 ExactRecall@${replayCoreKLabel}로 따로 봅니다.` : ""}`
+            : `직접 점수 기준은 부족했지만, 전체 조합 역탐색에서 이 설정이 당첨번호를 가장 후보망 쪽으로 끌어올렸습니다. 이 값을 다음 추천 보정에 반영합니다.`;
+          return `
+            <div>
+              <span>${index + 1}</span>
+              <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
+              <em>${rowText}</em>
+            </div>
+          `;
+        },
       )
       .join("");
     return `
@@ -4784,7 +4806,7 @@
           </div>
           <b class="${statusClass}">${statusText}</b>
         </div>
-        <p class="portfolio-note">이 결과는 후보망 검증 지표이며, 실제 구매 추천번호의 당첨을 의미하지 않습니다. 핵심 후보망은 최대 ${formatNumber(CORE_CANDIDATE_MAX_K)}개를 상한으로 두고, 조건이 충분히 좁혀지면 그 이하로 자동 축소합니다. 목표는 후보망을 무작정 키우는 것이 아니라, 작은 후보망 안에 당첨번호가 더 자주 들어오도록 랭킹 품질을 높이는 것입니다.</p>
+        <p class="portfolio-note">이 결과는 과거 당첨번호를 알고 난 뒤 전체 설정을 역으로 돌려, 어떤 설정이면 후보망 안에 들어왔는지 찾는 학습 지표입니다. 후보망 수는 고정하지 않고, 당첨모양 학습 기준에 맞춰 자동으로 정합니다.</p>
         <p class="portfolio-note">4개 일치 + 보너스 일치는 등위상 4등입니다. 보너스 번호는 5개 번호와 함께 맞을 때만 2등 조건에 사용됩니다.</p>
         <div class="portfolio-latest">
           <div>
@@ -4795,16 +4817,12 @@
         <div class="portfolio-hit-location ${statusClass}">
           <span>당첨번호의 실제 위치</span>
           <strong>${hitLocationTitle}</strong>
-          <p>${coreIncluded ? `${replay.label} 설정으로 되돌려 만든 핵심 후보망 ${replayCandidateCount}개 안에 정확한 당첨번호 조합이 있었습니다.` : `핵심 후보망 ${replayCandidateCount}개 안에는 정확한 당첨번호 조합이 없었습니다. 직접 점수 평가에서 가장 가까운 위치는 ${settingLine}이고, 점수는 ${best.meta.score}점(${best.meta.bucketLabel})입니다.`}</p>
+          <p>${coreIncluded ? `${replay.label} 설정으로 역탐색하면 정확한 당첨번호 조합이 후보망 ${replayCandidateCount}개 안에 들어옵니다.` : `가장 가까운 역탐색 설정은 ${settingLine}이고, 이 설정값을 다음 후보망 보정에 반영합니다.`}</p>
         </div>
-        ${
-          qualifyingSettingRows
-            ? `<div class="portfolio-setting-list">
-                <strong>당첨번호가 직접 점수 기준을 통과했던 설정</strong>
-                ${qualifyingSettingRows}
-              </div>`
-            : ""
-        }
+        <div class="portfolio-setting-list">
+          <strong>${qualifyingSettingTitle}</strong>
+          ${qualifyingSettingRows}
+        </div>
         <div class="portfolio-replay-card">
           <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
@@ -5093,7 +5111,7 @@
         <div class="candidate-audit-result ${exactFound ? "is-hit" : "is-miss"}">
           <div class="audit-result-main">
             <span>${snapshot.basisLatestDraw}회 추천 → ${draw.draw}회 검증</span>
-            <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "정확한 6개 조합은 후보군에 없었습니다"}</strong>
+            <strong>${exactFound ? "당첨번호가 후보군에 있었습니다" : "역탐색 보정이 필요한 기록입니다"}</strong>
             <em>당첨번호 ${result.win.join(", ")} + 보너스 ${draw.bonus}</em>
           </div>
           <div class="audit-result-side">

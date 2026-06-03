@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v67" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v68" />
   </head>
   <body>
     <main class="app-shell">
@@ -195,7 +195,7 @@
                   <div class="field-group">
                     <div class="label-row">
                       <label for="candidatePoolSize">랭킹 감사 범위</label>
-                      <button class="help-button" type="button" data-help="전체 조합 중 몇 개 구간까지 내부 점수화를 살펴볼지 정합니다. 핵심 후보망은 최대 2,701개를 상한으로 두고, 조건이 충분히 좁혀지면 그 이하로 자동 축소됩니다. 이 설정은 검증용 감사 범위이지, 추천 후보망을 무작정 키우는 설정이 아닙니다.">?</button>
+                      <button class="help-button" type="button" data-help="전체 조합 중 몇 개 구간까지 내부 점수화를 살펴볼지 정합니다. 핵심 후보망 수는 고정하지 않고, 당첨모양 학습과 개인 설정을 반영해 자동으로 정합니다. 이 설정은 추천 후보망을 무작정 키우는 설정이 아니라, 역검증 감사 범위를 넓히는 설정입니다.">?</button>
                     </div>
                     <select id="candidatePoolSize" name="candidatePoolSize">
                       <option value="auto" selected>자동 감사</option>
@@ -576,9 +576,9 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v67"></script>
-    <script defer src="data/pension-results.js?v=feedback-v67"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v67"></script>
-    <script defer src="app.js?v=feedback-v67"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v68"></script>
+    <script defer src="data/pension-results.js?v=feedback-v68"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v68"></script>
+    <script defer src="app.js?v=feedback-v68"></script>
   </body>
 </html>
