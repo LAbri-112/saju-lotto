@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-03T15:01:21.486Z",
+  "generatedAt": "2026-06-03T16:06:09.344Z",
   "basisLatestDraw": 1226,
   "basisLatestDate": "2026-05-30",
   "sourceDrawCount": 1226,
@@ -16,6 +16,594 @@
     "numberCount": 25,
     "candidateCount": 177100,
     "objective": "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier."
+  },
+  "backfitSummary": {
+    "evaluatedDraws": 1206,
+    "exactDraws": 1206,
+    "exactRate": 100,
+    "recommendedSetting": {
+      "mode": "balance",
+      "weight": 0,
+      "window": "100",
+      "frontierLimit": 22,
+      "candidateCount": 74613,
+      "count": 10,
+      "recentScore": 8.297305140961857,
+      "rate": 0.8,
+      "efficiency": 0.008
+    },
+    "settingCounts": [
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "100",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 10,
+        "recentScore": 8.297305140961857,
+        "rate": 0.8,
+        "efficiency": 0.008
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "1000",
+        "frontierLimit": 29,
+        "candidateCount": 475020,
+        "count": 9,
+        "recentScore": 7.537313432835822,
+        "rate": 0.7,
+        "efficiency": 0.007
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "1000",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 7,
+        "recentScore": 5.936359867330016,
+        "rate": 0.6,
+        "efficiency": 0.006
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "20",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 7,
+        "recentScore": 5.905597014925373,
+        "rate": 0.6,
+        "efficiency": 0.006
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "1000",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 7,
+        "recentScore": 5.796475953565506,
+        "rate": 0.6,
+        "efficiency": 0.006
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "20",
+        "frontierLimit": 27,
+        "candidateCount": 296010,
+        "count": 6,
+        "recentScore": 4.614800995024876,
+        "rate": 0.5,
+        "efficiency": 0.005
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "200",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 6,
+        "recentScore": 5.06695688225539,
+        "rate": 0.5,
+        "efficiency": 0.005
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "20",
+        "frontierLimit": 25,
+        "candidateCount": 177100,
+        "count": 5,
+        "recentScore": 4.027487562189055,
+        "rate": 0.4,
+        "efficiency": 0.004
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "1000",
+        "frontierLimit": 28,
+        "candidateCount": 376740,
+        "count": 5,
+        "recentScore": 3.7987976782752906,
+        "rate": 0.4,
+        "efficiency": 0.004
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "50",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 5,
+        "recentScore": 3.976119402985075,
+        "rate": 0.4,
+        "efficiency": 0.004
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "200",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 4,
+        "recentScore": 3.3174129353233828,
+        "rate": 0.3,
+        "efficiency": 0.003
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "1000",
+        "frontierLimit": 26,
+        "candidateCount": 230230,
+        "count": 4,
+        "recentScore": 3.3150912106135983,
+        "rate": 0.3,
+        "efficiency": 0.003
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "100",
+        "frontierLimit": 27,
+        "candidateCount": 296010,
+        "count": 4,
+        "recentScore": 2.9293946932006634,
+        "rate": 0.3,
+        "efficiency": 0.003
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "100",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 4,
+        "recentScore": 2.9909203980099504,
+        "rate": 0.3,
+        "efficiency": 0.003
+      },
+      {
+        "mode": "balance",
+        "weight": 40,
+        "window": "1000",
+        "frontierLimit": 25,
+        "candidateCount": 177100,
+        "count": 3,
+        "recentScore": 2.6343283582089554,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 40,
+        "window": "20",
+        "frontierLimit": 25,
+        "candidateCount": 177100,
+        "count": 3,
+        "recentScore": 2.5342039800995027,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "100",
+        "frontierLimit": 26,
+        "candidateCount": 230230,
+        "count": 3,
+        "recentScore": 2.6235903814262023,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "200",
+        "frontierLimit": 27,
+        "candidateCount": 296010,
+        "count": 3,
+        "recentScore": 2.3412106135986734,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "200",
+        "frontierLimit": 28,
+        "candidateCount": 376740,
+        "count": 3,
+        "recentScore": 2.522014925373134,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "50",
+        "frontierLimit": 28,
+        "candidateCount": 376740,
+        "count": 3,
+        "recentScore": 2.2744610281923716,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "all",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 3,
+        "recentScore": 2.9303482587064678,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "20",
+        "frontierLimit": 30,
+        "candidateCount": 593775,
+        "count": 3,
+        "recentScore": 2.425373134328358,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 40,
+        "window": "20",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 2,
+        "recentScore": 1.7695688225538972,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "50",
+        "frontierLimit": 22,
+        "candidateCount": 74613,
+        "count": 2,
+        "recentScore": 1.6177860696517412,
+        "rate": 0.2,
+        "efficiency": 0.002
+      }
+    ],
+    "windowCounts": [
+      {
+        "value": "100",
+        "count": 570,
+        "rate": 47.3
+      },
+      {
+        "value": "1000",
+        "count": 224,
+        "rate": 18.6
+      },
+      {
+        "value": "20",
+        "count": 192,
+        "rate": 15.9
+      },
+      {
+        "value": "50",
+        "count": 95,
+        "rate": 7.9
+      },
+      {
+        "value": "200",
+        "count": 69,
+        "rate": 5.7
+      },
+      {
+        "value": "500",
+        "count": 31,
+        "rate": 2.6
+      },
+      {
+        "value": "all",
+        "count": 14,
+        "rate": 1.2
+      },
+      {
+        "value": "700",
+        "count": 11,
+        "rate": 0.9
+      }
+    ],
+    "modeCounts": [
+      {
+        "value": "balance",
+        "count": 1176,
+        "rate": 97.5
+      },
+      {
+        "value": "climate",
+        "count": 24,
+        "rate": 2
+      },
+      {
+        "value": "wealth",
+        "count": 6,
+        "rate": 0.5
+      }
+    ],
+    "weightCounts": [
+      {
+        "value": "0",
+        "count": 1094,
+        "rate": 90.7
+      },
+      {
+        "value": "40",
+        "count": 80,
+        "rate": 6.6
+      },
+      {
+        "value": "60",
+        "count": 30,
+        "rate": 2.5
+      },
+      {
+        "value": "80",
+        "count": 2,
+        "rate": 0.2
+      }
+    ],
+    "frontierLimitCounts": [
+      {
+        "value": "40",
+        "count": 398,
+        "rate": 33
+      },
+      {
+        "value": "45",
+        "count": 327,
+        "rate": 27.1
+      },
+      {
+        "value": "35",
+        "count": 184,
+        "rate": 15.3
+      },
+      {
+        "value": "32",
+        "count": 96,
+        "rate": 8
+      },
+      {
+        "value": "22",
+        "count": 39,
+        "rate": 3.2
+      },
+      {
+        "value": "30",
+        "count": 39,
+        "rate": 3.2
+      },
+      {
+        "value": "29",
+        "count": 24,
+        "rate": 2
+      },
+      {
+        "value": "27",
+        "count": 23,
+        "rate": 1.9
+      },
+      {
+        "value": "28",
+        "count": 23,
+        "rate": 1.9
+      },
+      {
+        "value": "26",
+        "count": 17,
+        "rate": 1.4
+      },
+      {
+        "value": "25",
+        "count": 16,
+        "rate": 1.3
+      },
+      {
+        "value": "23",
+        "count": 11,
+        "rate": 0.9
+      },
+      {
+        "value": "24",
+        "count": 9,
+        "rate": 0.7
+      }
+    ],
+    "recentRecords": [
+      {
+        "draw": 1226,
+        "date": "2026-05-30",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "20",
+          "frontierLimit": 25,
+          "candidateCount": 177100,
+          "recentScore": 1
+        }
+      },
+      {
+        "draw": 1225,
+        "date": "2026-05-23",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.999709784411277
+        }
+      },
+      {
+        "draw": 1224,
+        "date": "2026-05-16",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "20",
+          "frontierLimit": 23,
+          "candidateCount": 100947,
+          "recentScore": 0.9994195688225539
+        }
+      },
+      {
+        "draw": 1223,
+        "date": "2026-05-09",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "200",
+          "frontierLimit": 35,
+          "candidateCount": 1623160,
+          "recentScore": 0.9991293532338308
+        }
+      },
+      {
+        "draw": 1222,
+        "date": "2026-05-02",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9988391376451078
+        }
+      },
+      {
+        "draw": 1221,
+        "date": "2026-04-25",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "100",
+          "frontierLimit": 32,
+          "candidateCount": 906192,
+          "recentScore": 0.9985489220563848
+        }
+      },
+      {
+        "draw": 1220,
+        "date": "2026-04-18",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9982587064676617
+        }
+      },
+      {
+        "draw": 1219,
+        "date": "2026-04-11",
+        "exact": true,
+        "bestSetting": {
+          "mode": "climate",
+          "weight": 60,
+          "window": "100",
+          "frontierLimit": 29,
+          "candidateCount": 475020,
+          "recentScore": 0.9979684908789386
+        }
+      },
+      {
+        "draw": 1218,
+        "date": "2026-04-04",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "1000",
+          "frontierLimit": 32,
+          "candidateCount": 906192,
+          "recentScore": 0.9976782752902156
+        }
+      },
+      {
+        "draw": 1217,
+        "date": "2026-03-28",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "20",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 0.9973880597014926
+        }
+      },
+      {
+        "draw": 1216,
+        "date": "2026-03-21",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9970978441127696
+        }
+      },
+      {
+        "draw": 1215,
+        "date": "2026-03-14",
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "1000",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 0.9968076285240464
+        }
+      }
+    ]
   },
   "winningShape": {
     "sumBand": {
@@ -350,28 +938,28 @@
   "bestWindowCounts": [
     {
       "window": "500",
-      "count": 223,
-      "rate": 18.5
+      "count": 221,
+      "rate": 18.3
     },
     {
       "window": "20",
-      "count": 203,
-      "rate": 16.8
+      "count": 207,
+      "rate": 17.2
     },
     {
       "window": "200",
-      "count": 191,
-      "rate": 15.8
+      "count": 192,
+      "rate": 15.9
     },
     {
       "window": "100",
-      "count": 182,
-      "rate": 15.1
+      "count": 179,
+      "rate": 14.8
     },
     {
       "window": "50",
-      "count": 167,
-      "rate": 13.8
+      "count": 169,
+      "rate": 14
     },
     {
       "window": "700",
@@ -380,20 +968,20 @@
     },
     {
       "window": "1000",
-      "count": 86,
-      "rate": 7.1
+      "count": 85,
+      "rate": 7
     },
     {
       "window": "all",
-      "count": 43,
-      "rate": 3.6
+      "count": 42,
+      "rate": 3.5
     }
   ],
   "frontierHitWindowCounts": [
     {
-      "window": "500",
-      "count": 27,
-      "rate": 2.2
+      "window": "20",
+      "count": 25,
+      "rate": 2.1
     },
     {
       "window": "200",
@@ -401,55 +989,140 @@
       "rate": 2.1
     },
     {
-      "window": "1000",
+      "window": "100",
       "count": 24,
       "rate": 2
     },
     {
-      "window": "100",
-      "count": 23,
-      "rate": 1.9
+      "window": "500",
+      "count": 24,
+      "rate": 2
     },
     {
-      "window": "all",
-      "count": 23,
-      "rate": 1.9
-    },
-    {
-      "window": "700",
+      "window": "1000",
       "count": 22,
       "rate": 1.8
     },
     {
-      "window": "20",
-      "count": 20,
+      "window": "700",
+      "count": 21,
+      "rate": 1.7
+    },
+    {
+      "window": "all",
+      "count": 21,
       "rate": 1.7
     },
     {
       "window": "50",
-      "count": 18,
-      "rate": 1.5
+      "count": 19,
+      "rate": 1.6
     }
   ],
-  "frontierHitRate": 5.1,
+  "frontierHitRate": 5.4,
   "recentRecords": [
     {
       "draw": 1226,
       "date": "2026-05-30",
-      "bestWindow": "50",
-      "bestShapeScore": 0.5773,
+      "bestWindow": "20",
+      "bestShapeScore": 0.5599,
       "exactInFrontier": true,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "20",
+          "frontierLimit": 25,
+          "candidateCount": 177100,
+          "recentScore": 1
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "climate",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "balance",
+            "weight": 80,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "climate",
+            "weight": 80,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "balance",
+            "weight": 100,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          },
+          {
+            "mode": "climate",
+            "weight": 100,
+            "window": "20",
+            "frontierLimit": 25,
+            "candidateCount": 177100,
+            "recentScore": 1
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
-          "exactInFrontier": false,
+          "exactInFrontier": true,
           "shapeScore": 0.5599
         },
         {
           "window": "50",
-          "exactInFrontier": true,
+          "exactInFrontier": false,
           "shapeScore": 0.5773
         },
         {
@@ -502,6 +1175,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.999709784411277
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.999709784411277
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -558,15 +1340,100 @@
     {
       "draw": 1224,
       "date": "2026-05-16",
-      "bestWindow": "all",
-      "bestShapeScore": 0.8474,
-      "exactInFrontier": false,
+      "bestWindow": "20",
+      "bestShapeScore": 0.7655,
+      "exactInFrontier": true,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "20",
+          "frontierLimit": 23,
+          "candidateCount": 100947,
+          "recentScore": 0.9994195688225539
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "wealth",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "balance",
+            "weight": 80,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "wealth",
+            "weight": 80,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "balance",
+            "weight": 100,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          },
+          {
+            "mode": "wealth",
+            "weight": 100,
+            "window": "20",
+            "frontierLimit": 23,
+            "candidateCount": 100947,
+            "recentScore": 0.9994195688225539
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
-          "exactInFrontier": false,
+          "exactInFrontier": true,
           "shapeScore": 0.7655
         },
         {
@@ -624,6 +1491,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "200",
+          "frontierLimit": 35,
+          "candidateCount": 1623160,
+          "recentScore": 0.9991293532338308
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "balance",
+            "weight": 20,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "climate",
+            "weight": 20,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "wealth",
+            "weight": 20,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "climate",
+            "weight": 60,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          },
+          {
+            "mode": "wealth",
+            "weight": 60,
+            "window": "200",
+            "frontierLimit": 35,
+            "candidateCount": 1623160,
+            "recentScore": 0.9991293532338308
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -685,6 +1661,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9988391376451078
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9988391376451078
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -746,6 +1831,91 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 40,
+          "window": "100",
+          "frontierLimit": 32,
+          "candidateCount": 906192,
+          "recentScore": 0.9985489220563848
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "wealth",
+            "weight": 60,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "balance",
+            "weight": 80,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "wealth",
+            "weight": 80,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "balance",
+            "weight": 100,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          },
+          {
+            "mode": "wealth",
+            "weight": 100,
+            "window": "100",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9985489220563848
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -807,6 +1977,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9982587064676617
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9982587064676617
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -868,6 +2147,43 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "climate",
+          "weight": 60,
+          "window": "100",
+          "frontierLimit": 29,
+          "candidateCount": 475020,
+          "recentScore": 0.9979684908789386
+        },
+        "exactSettings": [
+          {
+            "mode": "climate",
+            "weight": 60,
+            "window": "100",
+            "frontierLimit": 29,
+            "candidateCount": 475020,
+            "recentScore": 0.9979684908789386
+          },
+          {
+            "mode": "climate",
+            "weight": 80,
+            "window": "100",
+            "frontierLimit": 29,
+            "candidateCount": 475020,
+            "recentScore": 0.9979684908789386
+          },
+          {
+            "mode": "climate",
+            "weight": 100,
+            "window": "100",
+            "frontierLimit": 29,
+            "candidateCount": 475020,
+            "recentScore": 0.9979684908789386
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -929,6 +2245,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "1000",
+          "frontierLimit": 32,
+          "candidateCount": 906192,
+          "recentScore": 0.9976782752902156
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "balance",
+            "weight": 20,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "climate",
+            "weight": 20,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "wealth",
+            "weight": 20,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "climate",
+            "weight": 60,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          },
+          {
+            "mode": "wealth",
+            "weight": 60,
+            "window": "1000",
+            "frontierLimit": 32,
+            "candidateCount": 906192,
+            "recentScore": 0.9976782752902156
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -990,6 +2415,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "20",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 0.9973880597014926
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "balance",
+            "weight": 20,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "climate",
+            "weight": 20,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "wealth",
+            "weight": 20,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "balance",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "climate",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "wealth",
+            "weight": 40,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "balance",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "climate",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          },
+          {
+            "mode": "wealth",
+            "weight": 60,
+            "window": "20",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9973880597014926
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -1051,6 +2585,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "100",
+          "frontierLimit": 45,
+          "candidateCount": 8145060,
+          "recentScore": 0.9970978441127696
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "100",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "20",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 45,
+            "candidateCount": 8145060,
+            "recentScore": 0.9970978441127696
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
@@ -1112,6 +2755,115 @@
       "exactInFrontier": false,
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": true,
+        "bestSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "1000",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 0.9968076285240464
+        },
+        "exactSettings": [
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "1000",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "200",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "700",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "700",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "700",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "balance",
+            "weight": 0,
+            "window": "all",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "climate",
+            "weight": 0,
+            "window": "all",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          },
+          {
+            "mode": "wealth",
+            "weight": 0,
+            "window": "all",
+            "frontierLimit": 40,
+            "candidateCount": 3838380,
+            "recentScore": 0.9968076285240464
+          }
+        ]
+      },
       "windowDetails": [
         {
           "window": "20",
