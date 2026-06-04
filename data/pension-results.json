@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-03T16:23:37.343391Z",
+  "generatedAt": "2026-06-04T23:42:52.029354Z",
   "source": "dhlottery-pension720-xlsx",
-  "sourceUrl": "연금720+ 회차별 당첨번호_20260604011253.xlsx",
+  "sourceUrl": "연금720+ 회차별 당첨번호_20260605083926.xlsx",
   "latestSourceUrl": "https://www.dhlottery.co.kr/pt720/stats",
-  "latestRound": 317,
-  "latestDate": "2026-05-28",
-  "count": 317,
+  "latestRound": 318,
+  "latestDate": "2026-06-04",
+  "count": 318,
   "draws": [
     {
       "round": 1,
@@ -7608,6 +7608,30 @@
       "first": {
         "group": 3,
         "number": "827917"
+      },
+      "bonusDigits": [],
+      "bonusNumber": "",
+      "bonus": {
+        "number": ""
+      },
+      "prizes": {}
+    },
+    {
+      "round": 318,
+      "date": "2026-06-04",
+      "group": 5,
+      "digits": [
+        4,
+        0,
+        1,
+        3,
+        8,
+        4
+      ],
+      "number": "401384",
+      "first": {
+        "group": 5,
+        "number": "401384"
       },
       "bonusDigits": [],
       "bonusNumber": "",
