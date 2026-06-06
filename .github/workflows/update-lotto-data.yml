@@ -2,12 +2,10 @@ name: Update lotto data
 
 on:
   schedule:
-    # GitHub Actions uses UTC. These run every Saturday after draw results usually appear.
     - cron: "45 11 * * 6" # 20:45 KST Saturday
     - cron: "10 12 * * 6" # 21:10 KST Saturday
     - cron: "30 12 * * 6" # 21:30 KST Saturday
-    # Safety retry on Sunday morning KST.
-    - cron: "30 0 * * 0"
+    - cron: "30 0 * * 0" # Sunday safety retry
   workflow_dispatch:
 
 permissions:
@@ -66,7 +64,7 @@ jobs:
               'draw selector markup',
             );
           }
-          index = index.replace(/feedback-v\d+/g, 'feedback-v86');
+          index = index.replace(/feedback-v\d+/g, 'feedback-v87');
           writeIfChanged('index.html', index);
 
           let styles = fs.readFileSync('styles.css', 'utf8');
@@ -120,83 +118,89 @@ jobs:
 
           let app = fs.readFileSync('app.js', 'utf8');
           if (!app.includes('const drawSelect = document.querySelector("#drawSelect");')) {
+            const drawSelectConstant = [
+              '  const latestDrawResult = document.querySelector("#latestDrawResult");',
+              '  const drawSelect = document.querySelector("#drawSelect");',
+            ].join('\n');
             app = replaceOnce(
               app,
               '  const latestDrawResult = document.querySelector("#latestDrawResult");',
-              '  const latestDrawResult = document.querySelector("#latestDrawResult");\n  const drawSelect = document.querySelector("#drawSelect");',
+              drawSelectConstant,
               'draw select constant',
             );
           }
 
-          const drawFunctions = `  function drawByNumber(drawNo) {
-    const parsed = Number(drawNo);
-    return draws.find((item) => item.draw === parsed) ?? latest;
-  }
-
-  function selectedDrawForResult() {
-    return drawByNumber(drawSelect?.value || latest?.draw);
-  }
-
-  function renderDrawSelect() {
-    if (!drawSelect || !draws.length) return;
-    const currentValue = drawSelect.value || String(latest?.draw ?? "");
-    drawSelect.innerHTML = draws
-      .slice()
-      .reverse()
-      .map((draw) => `<option value="${draw.draw}">${draw.draw}회</option>`)
-      .join("");
-    drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)
-      ? currentValue
-      : String(latest?.draw ?? "");
-  }
-
-  function prizeTierFromDraw(draw, rank) {
-    const tier = draw?.prizeTiers?.[String(rank)];
-    const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];
-    return {
-      rank,
-      winners: Number(tier?.winners ?? draw?.[`${prefix}Winners`] ?? 0),
-      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),
-      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),
-      criteria: tier?.criteria ?? "",
-    };
-  }
-
-  function renderPrizeTierCard(draw, rank) {
-    const tier = prizeTierFromDraw(draw, rank);
-    const hasData = tier.winners > 0 || tier.prize > 0 || tier.totalPrize > 0;
-    const className = rank === 1 ? " first" : rank === 2 ? " second" : "";
-    return `
-      <div class="draw-prize-card${className}">
-        <span>${rank}등</span>
-        <strong>${hasData ? `${formatNumber(tier.winners)}명` : "정보 없음"}</strong>
-        <em>${hasData ? `1게임당 ${formatMoney(tier.prize)}` : "동행복권 결과 갱신 후 표시"}</em>
-      </div>
-    `;
-  }
-
-  function renderDrawResult(draw = selectedDrawForResult()) {
-    if (!latestDrawResult || !draw) return;
-    latestDrawResult.innerHTML = `
-      <div class="draw-result-card">
-        <div class="draw-result-main">
-          <strong>${draw.draw}회 당첨결과</strong>
-          <span>${draw.date || ""} 추첨</span>
-          <div class="draw-balls">
-            ${draw.numbers.map(renderBall).join("")}
-            <b class="draw-plus">+</b>
-            <span class="bonus-wrap">
-              <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>
-              <small>보너스</small>
-            </span>
-          </div>
-        </div>
-        <div class="draw-prize-grid">
-          ${[1, 2, 3, 4, 5].map((rank) => renderPrizeTierCard(draw, rank)).join("")}
-        </div>
-      </div>
-    `;
-  }`;
+          const drawFunctions = [
+            '  function drawByNumber(drawNo) {',
+            '    const parsed = Number(drawNo);',
+            '    return draws.find((item) => item.draw === parsed) ?? latest;',
+            '  }',
+            '',
+            '  function selectedDrawForResult() {',
+            '    return drawByNumber(drawSelect?.value || latest?.draw);',
+            '  }',
+            '',
+            '  function renderDrawSelect() {',
+            '    if (!drawSelect || !draws.length) return;',
+            '    const currentValue = drawSelect.value || String(latest?.draw ?? "");',
+            '    drawSelect.innerHTML = draws',
+            '      .slice()',
+            '      .reverse()',
+            '      .map((draw) => `<option value="${draw.draw}">${draw.draw}회</option>`)',
+            '      .join("");',
+            '    drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)',
+            '      ? currentValue',
+            '      : String(latest?.draw ?? "");',
+            '  }',
+            '',
+            '  function prizeTierFromDraw(draw, rank) {',
+            '    const tier = draw?.prizeTiers?.[String(rank)];',
+            '    const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];',
+            '    return {',
+            '      rank,',
+            '      winners: Number(tier?.winners ?? draw?.[`${prefix}Winners`] ?? 0),',
+            '      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),',
+            '      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),',
+            '      criteria: tier?.criteria ?? "",',
+            '    };',
+            '  }',
+            '',
+            '  function renderPrizeTierCard(draw, rank) {',
+            '    const tier = prizeTierFromDraw(draw, rank);',
+            '    const hasData = tier.winners > 0 || tier.prize > 0 || tier.totalPrize > 0;',
+            '    const className = rank === 1 ? " first" : rank === 2 ? " second" : "";',
+            '    return `',
+            '      <div class="draw-prize-card${className}">',
+            '        <span>${rank}등</span>',
+            '        <strong>${hasData ? `${formatNumber(tier.winners)}명` : "정보 없음"}</strong>',
+            '        <em>${hasData ? `1게임당 ${formatMoney(tier.prize)}` : "동행복권 결과 갱신 후 표시"}</em>',
+            '      </div>',
+            '    `;',
+            '  }',
+            '',
+            '  function renderDrawResult(draw = selectedDrawForResult()) {',
+            '    if (!latestDrawResult || !draw) return;',
+            '    latestDrawResult.innerHTML = `',
+            '      <div class="draw-result-card">',
+            '        <div class="draw-result-main">',
+            '          <strong>${draw.draw}회 당첨결과</strong>',
+            '          <span>${draw.date || ""} 추첨</span>',
+            '          <div class="draw-balls">',
+            '            ${draw.numbers.map(renderBall).join("")}',
+            '            <b class="draw-plus">+</b>',
+            '            <span class="bonus-wrap">',
+            '              <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>',
+            '              <small>보너스</small>',
+            '            </span>',
+            '          </div>',
+            '        </div>',
+            '        <div class="draw-prize-grid">',
+            '          ${[1, 2, 3, 4, 5].map((rank) => renderPrizeTierCard(draw, rank)).join("")}',
+            '        </div>',
+            '      </div>',
+            '    `;',
+            '  }',
+          ].join('\n');
 
           if (!app.includes('function renderDrawResult(')) {
             const start = app.indexOf('  function renderLatestDrawResult() {');
@@ -208,18 +212,18 @@ jobs:
             }
           }
 
-          app = app.replace('    renderLatestDrawResult();', '    renderDrawSelect();\n    renderDrawResult();');
+          app = app.replace('    renderLatestDrawResult();', ['    renderDrawSelect();', '    renderDrawResult();'].join('\n'));
 
           if (!app.includes('drawSelect?.addEventListener("change", () => renderDrawResult());')) {
             app = app.replace(
               '    for (const control of [\n',
-              '    drawSelect?.addEventListener("change", () => renderDrawResult());\n\n    for (const control of [\n',
+              ['    drawSelect?.addEventListener("change", () => renderDrawResult());', '', '    for (const control of [\n'].join('\n'),
             );
           }
           writeIfChanged('app.js', app);
 
           let sw = fs.readFileSync('service-worker.js', 'utf8');
-          sw = sw.replace(/saju-lotto-v\d+/g, 'saju-lotto-v86').replace(/feedback-v\d+/g, 'feedback-v86');
+          sw = sw.replace(/saju-lotto-v\d+/g, 'saju-lotto-v87').replace(/feedback-v\d+/g, 'feedback-v87');
           writeIfChanged('service-worker.js', sw);
           NODE
 
