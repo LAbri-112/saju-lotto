@@ -6,7 +6,10 @@ const rootDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const WINDOW_VALUES = ["20", "50", "100", "200", "500", "700", "1000", "all"];
 const BACKFIT_MODES = ["balance", "wealth", "climate"];
 const BACKFIT_WEIGHTS = [0, 20, 40, 60, 80, 100];
-const BACKFIT_FRONTIER_LIMITS = [22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 35, 40, 45];
+const LOTTO_UNIVERSE_SIZE = 8145060;
+const PRACTICAL_FRONTIER_LIMIT_MAX = 30;
+const BACKFIT_FRONTIER_LIMITS = [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];
+const DIAGNOSTIC_FRONTIER_LIMITS = [32, 35, 40];
 
 function clamp(value, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value));
@@ -288,7 +291,7 @@ function summarizeSettingCounts(map, total) {
     .map((item) => ({
       ...item,
       rate: total ? round((item.count / total) * 100, 1) : 0,
-      efficiency: round((item.count / Math.max(1, total)) / Math.max(1, item.candidateCount / 8145060), 3),
+      efficiency: round((item.count / Math.max(1, total)) / Math.max(1, item.candidateCount / LOTTO_UNIVERSE_SIZE), 3),
     }))
     .sort((a, b) => {
       const practicalA = a.frontierLimit <= 30 ? 1 : 0;
@@ -313,36 +316,44 @@ function compareBackfitSetting(a, b) {
 }
 
 function findBackfitSetting(draw, priorDraws, recencyWeight = 1) {
-  const exactSettings = [];
+  const scanLimits = (limits) => {
+    const exactSettings = [];
 
-  for (const frontierLimit of BACKFIT_FRONTIER_LIMITS) {
-    for (const window of WINDOW_VALUES) {
-      for (const mode of BACKFIT_MODES) {
-        for (const weight of BACKFIT_WEIGHTS) {
-          const frontier = buildReverseFrontier(priorDraws, window, frontierLimit, { mode, weight });
-          const frontierSet = new Set(frontier);
-          const exact = draw.numbers.every((number) => frontierSet.has(number));
-          if (!exact) continue;
+    for (const frontierLimit of limits) {
+      for (const window of WINDOW_VALUES) {
+        for (const mode of BACKFIT_MODES) {
+          for (const weight of BACKFIT_WEIGHTS) {
+            const frontier = buildReverseFrontier(priorDraws, window, frontierLimit, { mode, weight });
+            const frontierSet = new Set(frontier);
+            const exact = draw.numbers.every((number) => frontierSet.has(number));
+            if (!exact) continue;
 
-          exactSettings.push({
-            mode,
-            weight,
-            window,
-            frontierLimit,
-            candidateCount: combinationCount(frontierLimit, 6),
-            recentScore: recencyWeight,
-          });
+            exactSettings.push({
+              mode,
+              weight,
+              window,
+              frontierLimit,
+              candidateCount: combinationCount(frontierLimit, 6),
+              recentScore: recencyWeight,
+            });
+          }
         }
       }
+      if (exactSettings.length) break;
     }
-    if (exactSettings.length) break;
-  }
 
-  exactSettings.sort(compareBackfitSetting);
+    exactSettings.sort(compareBackfitSetting);
+    return exactSettings;
+  };
+
+  const exactSettings = scanLimits(BACKFIT_FRONTIER_LIMITS);
+  const diagnosticSettings = exactSettings.length ? [] : scanLimits(DIAGNOSTIC_FRONTIER_LIMITS);
   return {
     exact: exactSettings.length > 0,
     bestSetting: exactSettings[0] ?? null,
     exactSettings: exactSettings.slice(0, 12),
+    diagnosticExact: diagnosticSettings.length > 0,
+    diagnosticSetting: diagnosticSettings[0] ?? null,
   };
 }
 
@@ -442,6 +453,9 @@ async function main() {
   }
 
   const backfitExactRecords = records.filter((record) => record.backfit?.bestSetting);
+  const diagnosticOnlyRecords = records.filter(
+    (record) => !record.backfit?.bestSetting && record.backfit?.diagnosticSetting,
+  );
   const backfitSettings = summarizeSettingCounts(backfitSettingCounts, records.length);
   const recommendedBackfitSetting =
     backfitSettings.find((setting) => setting.frontierLimit <= 30) ??
@@ -474,12 +488,14 @@ async function main() {
     candidateFrontier: {
       numberCount: Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)),
       candidateCount: combinationCount(Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)), 6),
-      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier.",
+      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and count only compact practical frontiers, excluding the full 8,145,060-combination universe from recall success.",
+      practicalMaxFrontierLimit: PRACTICAL_FRONTIER_LIMIT_MAX,
     },
     backfitSummary: {
       evaluatedDraws: records.length,
       exactDraws: backfitExactRecords.length,
       exactRate: records.length ? round((backfitExactRecords.length / records.length) * 100, 1) : 0,
+      diagnosticOnlyDraws: diagnosticOnlyRecords.length,
       recommendedSetting: recommendedBackfitSetting,
       settingCounts: backfitSettings.slice(0, 24),
       windowCounts: summarizeFlatCounts(backfitWindowCounts, records.length),
@@ -491,6 +507,7 @@ async function main() {
         date: record.date,
         exact: Boolean(record.backfit?.bestSetting),
         bestSetting: record.backfit?.bestSetting ?? null,
+        diagnosticSetting: record.backfit?.diagnosticSetting ?? null,
       })),
     },
     winningShape: summarizeShape(shape),

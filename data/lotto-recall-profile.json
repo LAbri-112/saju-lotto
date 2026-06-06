@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-06T12:58:42.832Z",
+  "generatedAt": "2026-06-06T13:28:49.560Z",
   "basisLatestDraw": 1227,
   "basisLatestDate": "2026-06-06",
   "sourceDrawCount": 1227,
@@ -13,37 +13,28 @@
     "objective": "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks."
   },
   "candidateFrontier": {
-    "numberCount": 25,
-    "candidateCount": 177100,
-    "objective": "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier."
+    "numberCount": 29,
+    "candidateCount": 475020,
+    "objective": "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and count only compact practical frontiers, excluding the full 8,145,060-combination universe from recall success.",
+    "practicalMaxFrontierLimit": 30
   },
   "backfitSummary": {
     "evaluatedDraws": 1207,
-    "exactDraws": 1207,
-    "exactRate": 100,
+    "exactDraws": 201,
+    "exactRate": 16.7,
+    "diagnosticOnlyDraws": 678,
     "recommendedSetting": {
       "mode": "balance",
       "weight": 0,
-      "window": "100",
-      "frontierLimit": 22,
-      "candidateCount": 74613,
-      "count": 10,
-      "recentScore": 8.295816072908035,
-      "rate": 0.8,
-      "efficiency": 0.008
+      "window": "1000",
+      "frontierLimit": 29,
+      "candidateCount": 475020,
+      "count": 9,
+      "recentScore": 7.535915492957746,
+      "rate": 0.7,
+      "efficiency": 0.007
     },
     "settingCounts": [
-      {
-        "mode": "balance",
-        "weight": 0,
-        "window": "100",
-        "frontierLimit": 22,
-        "candidateCount": 74613,
-        "count": 10,
-        "recentScore": 8.295816072908035,
-        "rate": 0.8,
-        "efficiency": 0.008
-      },
       {
         "mode": "balance",
         "weight": 0,
@@ -54,28 +45,6 @@
         "recentScore": 7.535915492957746,
         "rate": 0.7,
         "efficiency": 0.007
-      },
-      {
-        "mode": "balance",
-        "weight": 0,
-        "window": "1000",
-        "frontierLimit": 22,
-        "candidateCount": 74613,
-        "count": 7,
-        "recentScore": 5.935211267605634,
-        "rate": 0.6,
-        "efficiency": 0.006
-      },
-      {
-        "mode": "balance",
-        "weight": 0,
-        "window": "20",
-        "frontierLimit": 22,
-        "candidateCount": 74613,
-        "count": 7,
-        "recentScore": 5.904473902236951,
-        "rate": 0.6,
-        "efficiency": 0.006
       },
       {
         "mode": "balance",
@@ -146,11 +115,11 @@
       {
         "mode": "balance",
         "weight": 0,
-        "window": "200",
-        "frontierLimit": 22,
-        "candidateCount": 74613,
+        "window": "100",
+        "frontierLimit": 18,
+        "candidateCount": 18564,
         "count": 4,
-        "recentScore": 3.3168185584092793,
+        "recentScore": 3.511101905550953,
         "rate": 0.3,
         "efficiency": 0.003
       },
@@ -186,6 +155,17 @@
         "recentScore": 2.99059652029826,
         "rate": 0.3,
         "efficiency": 0.003
+      },
+      {
+        "mode": "balance",
+        "weight": 0,
+        "window": "20",
+        "frontierLimit": 18,
+        "candidateCount": 18564,
+        "count": 3,
+        "recentScore": 2.722493786246893,
+        "rate": 0.2,
+        "efficiency": 0.002
       },
       {
         "mode": "balance",
@@ -278,133 +258,130 @@
       {
         "mode": "balance",
         "weight": 40,
-        "window": "20",
-        "frontierLimit": 22,
-        "candidateCount": 74613,
+        "window": "200",
+        "frontierLimit": 18,
+        "candidateCount": 18564,
         "count": 2,
-        "recentScore": 1.7691797845898922,
+        "recentScore": 1.6955260977630489,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 40,
+        "window": "1000",
+        "frontierLimit": 19,
+        "candidateCount": 27132,
+        "count": 2,
+        "recentScore": 1.6108533554266777,
+        "rate": 0.2,
+        "efficiency": 0.002
+      },
+      {
+        "mode": "balance",
+        "weight": 40,
+        "window": "100",
+        "frontierLimit": 20,
+        "candidateCount": 38760,
+        "count": 2,
+        "recentScore": 1.681897265948633,
         "rate": 0.2,
         "efficiency": 0.002
       },
       {
         "mode": "balance",
         "weight": 0,
-        "window": "50",
+        "window": "1000",
         "frontierLimit": 22,
         "candidateCount": 74613,
         "count": 2,
-        "recentScore": 1.617522783761392,
+        "recentScore": 1.748301574150787,
         "rate": 0.2,
         "efficiency": 0.002
       }
     ],
     "windowCounts": [
       {
-        "value": "100",
-        "count": 571,
-        "rate": 47.3
-      },
-      {
         "value": "1000",
-        "count": 224,
-        "rate": 18.6
+        "count": 50,
+        "rate": 4.1
       },
       {
         "value": "20",
-        "count": 192,
-        "rate": 15.9
+        "count": 44,
+        "rate": 3.6
       },
       {
-        "value": "50",
-        "count": 95,
-        "rate": 7.9
-      },
-      {
-        "value": "200",
-        "count": 69,
-        "rate": 5.7
-      },
-      {
-        "value": "500",
+        "value": "100",
         "count": 31,
         "rate": 2.6
       },
       {
+        "value": "200",
+        "count": 30,
+        "rate": 2.5
+      },
+      {
+        "value": "50",
+        "count": 26,
+        "rate": 2.2
+      },
+      {
+        "value": "500",
+        "count": 10,
+        "rate": 0.8
+      },
+      {
         "value": "all",
-        "count": 14,
-        "rate": 1.2
+        "count": 8,
+        "rate": 0.7
       },
       {
         "value": "700",
-        "count": 11,
-        "rate": 0.9
+        "count": 2,
+        "rate": 0.2
       }
     ],
     "modeCounts": [
       {
         "value": "balance",
-        "count": 1177,
-        "rate": 97.5
+        "count": 178,
+        "rate": 14.7
       },
       {
         "value": "climate",
-        "count": 24,
-        "rate": 2
+        "count": 15,
+        "rate": 1.2
       },
       {
         "value": "wealth",
-        "count": 6,
-        "rate": 0.5
+        "count": 8,
+        "rate": 0.7
       }
     ],
     "weightCounts": [
       {
         "value": "0",
-        "count": 1095,
-        "rate": 90.7
+        "count": 129,
+        "rate": 10.7
       },
       {
         "value": "40",
-        "count": 80,
-        "rate": 6.6
+        "count": 46,
+        "rate": 3.8
       },
       {
         "value": "60",
-        "count": 30,
-        "rate": 2.5
+        "count": 23,
+        "rate": 1.9
       },
       {
         "value": "80",
-        "count": 2,
+        "count": 3,
         "rate": 0.2
       }
     ],
     "frontierLimitCounts": [
-      {
-        "value": "40",
-        "count": 398,
-        "rate": 33
-      },
-      {
-        "value": "45",
-        "count": 328,
-        "rate": 27.2
-      },
-      {
-        "value": "35",
-        "count": 184,
-        "rate": 15.2
-      },
-      {
-        "value": "32",
-        "count": 96,
-        "rate": 8
-      },
-      {
-        "value": "22",
-        "count": 39,
-        "rate": 3.2
-      },
       {
         "value": "30",
         "count": 39,
@@ -431,6 +408,11 @@
         "rate": 1.4
       },
       {
+        "value": "18",
+        "count": 16,
+        "rate": 1.3
+      },
+      {
         "value": "25",
         "count": 16,
         "rate": 1.3
@@ -444,21 +426,35 @@
         "value": "24",
         "count": 9,
         "rate": 0.7
+      },
+      {
+        "value": "22",
+        "count": 8,
+        "rate": 0.7
+      },
+      {
+        "value": "21",
+        "count": 6,
+        "rate": 0.5
+      },
+      {
+        "value": "19",
+        "count": 5,
+        "rate": 0.4
+      },
+      {
+        "value": "20",
+        "count": 4,
+        "rate": 0.3
       }
     ],
     "recentRecords": [
       {
         "draw": 1227,
         "date": "2026-06-06",
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 1
-        }
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": null
       },
       {
         "draw": 1226,
@@ -471,20 +467,15 @@
           "frontierLimit": 25,
           "candidateCount": 177100,
           "recentScore": 0.9997100248550124
-        }
+        },
+        "diagnosticSetting": null
       },
       {
         "draw": 1225,
         "date": "2026-05-23",
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9994200497100248
-        }
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": null
       },
       {
         "draw": 1224,
@@ -497,13 +488,15 @@
           "frontierLimit": 23,
           "candidateCount": 100947,
           "recentScore": 0.9991300745650373
-        }
+        },
+        "diagnosticSetting": null
       },
       {
         "draw": 1223,
         "date": "2026-05-09",
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "200",
@@ -515,21 +508,16 @@
       {
         "draw": 1222,
         "date": "2026-05-02",
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9985501242750622
-        }
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": null
       },
       {
         "draw": 1221,
         "date": "2026-04-25",
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 40,
           "window": "100",
@@ -541,15 +529,9 @@
       {
         "draw": 1220,
         "date": "2026-04-18",
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.997970173985087
-        }
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": null
       },
       {
         "draw": 1219,
@@ -562,13 +544,15 @@
           "frontierLimit": 29,
           "candidateCount": 475020,
           "recentScore": 0.9976801988400994
-        }
+        },
+        "diagnosticSetting": null
       },
       {
         "draw": 1218,
         "date": "2026-04-04",
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "1000",
@@ -580,8 +564,9 @@
       {
         "draw": 1217,
         "date": "2026-03-28",
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "20",
@@ -593,15 +578,9 @@
       {
         "draw": 1216,
         "date": "2026-03-21",
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9968102734051367
-        }
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": null
       }
     ]
   },
@@ -1030,113 +1009,11 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 1
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 1
-          }
-        ]
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -1282,7 +1159,9 @@
             "candidateCount": 177100,
             "recentScore": 0.9997100248550124
           }
-        ]
+        ],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -1346,113 +1225,11 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9994200497100248
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9994200497100248
-          }
-        ]
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -1598,7 +1375,9 @@
             "candidateCount": 100947,
             "recentScore": 0.9991300745650373
           }
-        ]
+        ],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -1662,113 +1441,18 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": true,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "200",
           "frontierLimit": 35,
           "candidateCount": 1623160,
           "recentScore": 0.9988400994200497
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "balance",
-            "weight": 20,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "climate",
-            "weight": 20,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "wealth",
-            "weight": 20,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "balance",
-            "weight": 40,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "climate",
-            "weight": 40,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "wealth",
-            "weight": 40,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "balance",
-            "weight": 60,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "climate",
-            "weight": 60,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          },
-          {
-            "mode": "wealth",
-            "weight": 60,
-            "window": "200",
-            "frontierLimit": 35,
-            "candidateCount": 1623160,
-            "recentScore": 0.9988400994200497
-          }
-        ]
+        }
       },
       "windowDetails": [
         {
@@ -1832,113 +1516,11 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9985501242750622
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9985501242750622
-          }
-        ]
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -2002,89 +1584,18 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": true,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 40,
           "window": "100",
           "frontierLimit": 32,
           "candidateCount": 906192,
           "recentScore": 0.9982601491300747
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 40,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "climate",
-            "weight": 40,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "wealth",
-            "weight": 40,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "balance",
-            "weight": 60,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "wealth",
-            "weight": 60,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "balance",
-            "weight": 80,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "wealth",
-            "weight": 80,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "balance",
-            "weight": 100,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          },
-          {
-            "mode": "wealth",
-            "weight": 100,
-            "window": "100",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9982601491300747
-          }
-        ]
+        }
       },
       "windowDetails": [
         {
@@ -2148,113 +1659,11 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.997970173985087
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.997970173985087
-          }
-        ]
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -2352,7 +1761,9 @@
             "candidateCount": 475020,
             "recentScore": 0.9976801988400994
           }
-        ]
+        ],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {
@@ -2416,113 +1827,18 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": true,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "1000",
           "frontierLimit": 32,
           "candidateCount": 906192,
           "recentScore": 0.9973902236951118
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "balance",
-            "weight": 20,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "climate",
-            "weight": 20,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "wealth",
-            "weight": 20,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "balance",
-            "weight": 40,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "climate",
-            "weight": 40,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "wealth",
-            "weight": 40,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "balance",
-            "weight": 60,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "climate",
-            "weight": 60,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          },
-          {
-            "mode": "wealth",
-            "weight": 60,
-            "window": "1000",
-            "frontierLimit": 32,
-            "candidateCount": 906192,
-            "recentScore": 0.9973902236951118
-          }
-        ]
+        }
       },
       "windowDetails": [
         {
@@ -2586,113 +1902,18 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": true,
+        "diagnosticSetting": {
           "mode": "balance",
           "weight": 0,
           "window": "20",
           "frontierLimit": 40,
           "candidateCount": 3838380,
           "recentScore": 0.9971002485501242
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "balance",
-            "weight": 20,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "climate",
-            "weight": 20,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "wealth",
-            "weight": 20,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "balance",
-            "weight": 40,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "climate",
-            "weight": 40,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "wealth",
-            "weight": 40,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "balance",
-            "weight": 60,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "climate",
-            "weight": 60,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          },
-          {
-            "mode": "wealth",
-            "weight": 60,
-            "window": "20",
-            "frontierLimit": 40,
-            "candidateCount": 3838380,
-            "recentScore": 0.9971002485501242
-          }
-        ]
+        }
       },
       "windowDetails": [
         {
@@ -2756,113 +1977,11 @@
       "frontierNumberCount": 25,
       "frontierCandidateCount": 177100,
       "backfit": {
-        "exact": true,
-        "bestSetting": {
-          "mode": "balance",
-          "weight": 0,
-          "window": "100",
-          "frontierLimit": 45,
-          "candidateCount": 8145060,
-          "recentScore": 0.9968102734051367
-        },
-        "exactSettings": [
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "100",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "1000",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "20",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "balance",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "climate",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          },
-          {
-            "mode": "wealth",
-            "weight": 0,
-            "window": "200",
-            "frontierLimit": 45,
-            "candidateCount": 8145060,
-            "recentScore": 0.9968102734051367
-          }
-        ]
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": false,
+        "diagnosticSetting": null
       },
       "windowDetails": [
         {

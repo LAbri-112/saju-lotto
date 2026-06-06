@@ -21,7 +21,7 @@
   const CORE_CANDIDATE_MIN_K = 420;
   const DISPLAY_SAMPLE_K = 420;
   const AUTO_FRONTIER_NUMBER_COUNT = 25;
-  const ACTIVE_FRONTIER_LIMIT_MAX = 26;
+  const ACTIVE_FRONTIER_LIMIT_MAX = 29;
   const AUTO_CANDIDATE_POOL_BUDGET = 180000;
   const generates = {
     wood: "fire",
@@ -4435,6 +4435,7 @@
     const totalWinners = tierCounts.reduce((sum, item) => sum + item.count, 0);
     const directScore = Number(snapshot.directScore);
     const passedScoreGate = Boolean(snapshot.passedScoreGate);
+    const generatedInCandidatePool = Boolean(generatedCandidate);
     const includedInCorePool = Boolean(coreCandidate);
     const includedInFinalRecommendations = Boolean(selected);
     const winningCandidateStatus = {
@@ -4444,7 +4445,7 @@
       directScoreEvaluated: Number.isFinite(directScore),
       directScore: Number.isFinite(directScore) ? directScore : null,
       passedScoreGate,
-      generatedInCandidatePool: Boolean(generatedCandidate),
+      generatedInCandidatePool,
       includedInCorePool,
       includedInFinalRecommendations,
       exactRecallAtCoreK: includedInCorePool,
@@ -4469,9 +4470,9 @@
         : null,
       explanation: includedInCorePool
         ? "당첨번호 조합은 실제 핵심 후보망 안에 포함되었습니다."
-        : passedScoreGate
-          ? "당첨번호 조합은 점수상 가까웠지만 실제 핵심 후보망에는 포함되지 않았습니다."
-          : "당첨번호 조합은 실제 핵심 후보망 밖에 있었습니다.",
+        : generatedInCandidatePool
+          ? "당첨번호 조합은 생성 후보에는 있었지만 핵심 후보망까지 올라오지 못했습니다."
+          : "당첨번호 조합은 실제 추천 후보망 안에 없었습니다.",
     };
 
     return {
@@ -4752,7 +4753,7 @@
         const compactness = clamp(1 - (item.candidateNeed ?? LOTTO_UNIVERSE_SIZE) / 120000, 0, 1);
         return {
           ...item,
-          exact: Boolean(record.reverseSettings?.length),
+          estimatedClose: (item.candidateNeed ?? LOTTO_UNIVERSE_SIZE) <= 120000,
           vote: 1 + recency * 0.25 + compactness * 1.4,
         };
       })
@@ -4791,7 +4792,7 @@
       windowLabel: windowInfo.label,
       candidateNeed,
       sourceCount: source.length,
-      hitCount: source.filter((item) => item.exact).length,
+      closeCount: source.filter((item) => item.estimatedClose).length,
     };
   }
 
@@ -4811,11 +4812,10 @@
       windowValue: picked.windowValue,
       windowLabel: picked.windowLabel,
       basisDraw: latest.draw?.draw,
-      exact: reverseSettings.length > 0,
-      exactCount: reverseSettings.length,
+      estimatedClose: (picked.candidateNeed ?? LOTTO_UNIVERSE_SIZE) <= 120000,
+      closeCount: 0,
       candidateNeed: picked.candidateNeed,
       sourceCount: 1,
-      hitCount: reverseSettings.length > 0 ? 1 : 0,
     };
   }
 
@@ -4961,16 +4961,24 @@
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
     const statusText = coreIncluded
-      ? "실제 후보망 안"
-      : `역추산 ${formatNumber(reverseRank)}번째`;
+      ? "핵심 후보 안"
+      : generatedIncluded
+        ? "생성 후보 안"
+        : "후보망 밖";
     const statusClass = coreIncluded ? "is-hit" : "is-info";
-    const hitLocationTitle = coreIncluded ? "추천 후보 안에 있었음" : "후보망 보정 중";
+    const hitLocationTitle = coreIncluded
+      ? "당첨번호가 후보 안에 있었습니다"
+      : generatedIncluded
+        ? "넓은 생성 후보에는 있었습니다"
+        : "당첨번호는 후보망 밖이었습니다";
     const candidateLine = coreIncluded
-      ? `${selectedSettingLine} 설정에서는 당첨번호 6개 조합이 실제 후보망 ${replayCoreCount}개 안에 있었습니다.`
-      : `${selectedSettingLine} 설정이 가장 가까웠고, 당첨번호는 역추산 ${formatNumber(reverseRank)}번째 위치였습니다.`;
+      ? `${selectedSettingLine} 설정의 핵심 후보망 ${replayCoreCount}개 안에 6개 조합이 있었습니다.`
+      : generatedIncluded
+        ? `${selectedSettingLine} 설정의 넓은 생성 후보에는 있었지만, 핵심 후보망 ${replayCoreCount}개 안에는 없었습니다.`
+        : `${selectedSettingLine} 설정으로 만든 후보망에는 6개 조합이 없었습니다. 아래에는 그 후보망에서 가장 많이 맞춘 조합을 보여줍니다.`;
     const positionMeaning = generatedIncluded
       ? "생성 후보에는 있었지만 최종 핵심 후보망까지 올라오지는 못했습니다."
-      : "다음 후보망에 더 강하게 반영할 위치를 찾는 중입니다.";
+      : "이 결과는 다음 자동 학습에서 후보망을 다시 조정할 때 참고합니다.";
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -4999,7 +5007,7 @@
             <div>
               <span>${index + 1}</span>
               <strong>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)}</strong>
-              <em>당첨번호 위치: 후보 ${formatNumber(item.candidateNeed)}개 안쪽 추정</em>
+              <em>점수상 가까웠던 설정</em>
             </div>
           `;
         },
@@ -5009,12 +5017,12 @@
         <div class="personal-portfolio-card">
           <div class="portfolio-head">
             <div>
-              <span>개인별 당첨번호 위치</span>
-              <strong>${latestDraw.draw}회 당첨번호 역추산</strong>
+              <span>개인별 후보 검증</span>
+              <strong>${latestDraw.draw}회 당첨번호 포함 여부</strong>
             </div>
             <b class="${statusClass}">${statusText}</b>
           </div>
-        <p class="portfolio-note">중화·조후·재성, 사주 0~100%, 최근 20~전체 회차를 모두 되돌려 가장 가까운 설정을 찾습니다.</p>
+        <p class="portfolio-note">실제 추천 후보망에 당첨번호가 있었는지 먼저 봅니다.</p>
         <div class="portfolio-latest">
           <div>
             <span>${latestDraw.draw}회 당첨번호</span>
@@ -5022,7 +5030,7 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호의 실제 위치</span>
+          <span>당첨번호 포함 여부</span>
           <strong>${hitLocationTitle}</strong>
           <p>${candidateLine}</p>
         </div>
@@ -5036,22 +5044,10 @@
           <strong>${replayText}</strong>
           <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label}` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
         </div>
-        <div class="portfolio-position-grid">
-          <div class="portfolio-position-card ${statusClass}">
-          <span>당첨번호의 실제 위치</span>
-          <strong>${hitLocationTitle}</strong>
-            <p>${candidateLine}</p>
-          </div>
-          <div class="portfolio-position-card">
-            <span>가장 가까운 설정</span>
-            <strong>${selectedSettingLine}</strong>
-            <p>${positionMeaning}</p>
-          </div>
-        </div>
         <div class="store-tags">
           <span>회차당 설정 ${formatNumber(portfolio.scanCount)}가지</span>
           <span>검증 회차 ${formatNumber(portfolio.records.length)}개</span>
-          <span>최소 위치 ${formatNumber(selectedSetting.candidateNeed)}개 안쪽</span>
+          <span>후보망 실제 포함 기준</span>
         </div>
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
@@ -5079,13 +5075,10 @@
               .reverse()
               .map((record) => {
                 const item = record.best;
-                const hitLabel = item?.candidateNeed <= CORE_CANDIDATE_MIN_K
-                  ? '<mark class="candidate-hit-label">핵심권</mark>'
-                  : '<mark class="candidate-miss-label">역추산</mark>';
                 return `
                   <div>
                     <strong>${record.draw.draw}회</strong>
-                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)} · 후보 ${formatNumber(item.candidateNeed)}개 안쪽 ${hitLabel}</span>
+                    <span>${modeName(item.mode)} · 사주 ${item.weight}% · ${settingWindowLabel(item)} · 점수상 가까웠던 설정</span>
                   </div>
                 `;
               })
@@ -6343,12 +6336,9 @@
 
     if (autoSajuStatus) {
       const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
-      const candidateText = setting.candidateNeed
-        ? ` · 역추산 후보 ${formatNumber(setting.candidateNeed)}개 안쪽`
-        : "";
       const reasonText = setting.fast
         ? "빠른 개인 요약 기준으로 먼저 맞췄습니다."
-        : `${basisText}전체 회차 역추산에서 가장 자주 가까웠던 설정입니다${candidateText}.`;
+        : `${basisText}전체 회차 요약에서 자주 가까웠던 설정입니다.`;
       autoSajuStatus.textContent =
         `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
     }
