@@ -1,18 +1,12 @@
 name: Update lotto data
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/update-lotto-data.yml
   schedule:
-    # GitHub Actions uses UTC. These run every Saturday at 20:45, 21:10,
-    # and 21:30 KST so the app can update soon after the draw result appears.
-    - cron: "45 11 * * 6"
-    - cron: "10 12 * * 6"
-    - cron: "30 12 * * 6"
-    # Safety retry on Sunday at 09:30 KST in case the first request was delayed.
+    # GitHub Actions uses UTC. These run every Saturday after draw results usually appear.
+    - cron: "45 11 * * 6" # 20:45 KST Saturday
+    - cron: "10 12 * * 6" # 21:10 KST Saturday
+    - cron: "30 12 * * 6" # 21:30 KST Saturday
+    # Safety retry on Sunday morning KST.
     - cron: "30 0 * * 0"
   workflow_dispatch:
 
@@ -36,249 +30,130 @@ jobs:
         with:
           node-version: 22
 
-      - name: Apply result UI patch
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          function read(path) {
-            return fs.readFileSync(path, 'utf8');
-          }
-
-          function writeIfChanged(path, next) {
-            const current = read(path);
-            if (current !== next) fs.writeFileSync(path, next, 'utf8');
-          }
-
-          function replaceOrThrow(text, from, to, label) {
-            if (text.includes(to)) return text;
-            if (!text.includes(from)) throw new Error(`Could not find ${label}`);
-            return text.replace(from, to);
-          }
-
-          let html = read('index.html');
-          if (!html.includes('id="drawSelect"')) {
-            html = html.replace(
-              '<p>동행복권 공개 데이터를 기준으로 표시합니다</p>',
-              '<label class="draw-select-label" for="drawSelect">\n                <span>회차 선택</span>\n                <select id="drawSelect" aria-label="당첨번호 회차 선택"></select>\n              </label>',
-            );
-          }
-          html = html.replaceAll('feedback-v79', 'feedback-v81').replaceAll('feedback-v80', 'feedback-v81').replaceAll('feedback-v78', 'feedback-v81');
-          writeIfChanged('index.html', html);
-
-          let app = read('app.js');
-          if (!app.includes('const drawSelect = document.querySelector("#drawSelect");')) {
-            app = replaceOrThrow(
-              app,
-              '  const latestDrawResult = document.querySelector("#latestDrawResult");',
-              '  const latestDrawResult = document.querySelector("#latestDrawResult");\n  const drawSelect = document.querySelector("#drawSelect");',
-              'drawSelect query',
-            );
-          }
-
-          if (!app.includes('function drawByNumber(drawNo)')) {
-            const helper = [
-              '  function drawByNumber(drawNo) {',
-              '    const parsed = Number(drawNo);',
-              '    return draws.find((item) => item.draw === parsed) ?? latest;',
-              '  }',
-              '',
-              '  function selectedDrawForResult() {',
-              '    return drawByNumber(drawSelect?.value || latest?.draw);',
-              '  }',
-              '',
-              '  function renderDrawSelect() {',
-              '    if (!drawSelect || !draws.length) return;',
-              '    const currentValue = drawSelect.value || String(latest?.draw ?? "");',
-              '    drawSelect.innerHTML = draws',
-              '      .slice()',
-              '      .reverse()',
-              '      .map((draw) => `<option value="${draw.draw}">${draw.draw}회</option>`)',
-              '      .join("");',
-              '    drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)',
-              '      ? currentValue',
-              '      : String(latest?.draw ?? "");',
-              '  }',
-              '',
-              '  function prizeTierFromDraw(draw, rank) {',
-              '    const tier = draw?.prizeTiers?.[String(rank)];',
-              '    const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];',
-              '    return {',
-              '      rank,',
-              '      winners: Number(tier?.winners ?? draw?.[`${prefix}Winners`] ?? 0),',
-              '      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),',
-              '      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),',
-              '      criteria: tier?.criteria ?? "",',
-              '    };',
-              '  }',
-              '',
-              '  function renderPrizeTierCard(draw, rank) {',
-              '    const tier = prizeTierFromDraw(draw, rank);',
-              '    const hasData = tier.winners > 0 || tier.prize > 0 || tier.totalPrize > 0;',
-              '    const className = rank === 1 ? " first" : rank === 2 ? " second" : "";',
-              '    return `',
-              '      <div class="draw-prize-card${className}">',
-              '        <span>${rank}등</span>',
-              '        <strong>${hasData ? `${formatNumber(tier.winners)}명` : "정보 없음"}</strong>',
-              '        <em>${hasData ? `1게임당 ${formatMoney(tier.prize)}` : "동행복권 결과표 갱신 후 표시"}</em>',
-              '      </div>',
-              '    `;',
-              '  }',
-              '',
-              '  function renderDrawResult(draw = selectedDrawForResult()) {',
-              '    if (!latestDrawResult || !draw) return;',
-              '    latestDrawResult.innerHTML = `',
-              '      <div class="draw-result-card">',
-              '        <div class="draw-result-main">',
-              '          <strong>${draw.draw}회 당첨결과</strong>',
-              '          <span>${draw.date || ""} 추첨</span>',
-              '          <div class="draw-balls">',
-              '            ${draw.numbers.map(renderBall).join("")}',
-              '            <b class="draw-plus">+</b>',
-              '            <span class="bonus-wrap">',
-              '              <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>',
-              '              <small>보너스</small>',
-              '            </span>',
-              '          </div>',
-              '        </div>',
-              '        <div class="draw-prize-grid">',
-              '          ${[1, 2, 3, 4, 5].map((rank) => renderPrizeTierCard(draw, rank)).join("")}',
-              '        </div>',
-              '      </div>',
-              '    `;',
-              '  }',
-            ].join('\n');
-
-            app = replaceOrThrow(app, '\n  function renderStaticSummary() {', `\n${helper}\n\n  function renderStaticSummary() {`, 'renderStaticSummary insertion point');
-          }
-          app = app.replace('    renderLatestDrawResult();', '    renderDrawSelect();\n    renderDrawResult();');
-          if (!app.includes('drawSelect?.addEventListener("change", () => renderDrawResult());')) {
-            app = replaceOrThrow(
-              app,
-              '    renderFirstPaintPanels();\n    afterNextPaint(() => {',
-              '    renderFirstPaintPanels();\n    drawSelect?.addEventListener("change", () => renderDrawResult());\n    afterNextPaint(() => {',
-              'draw select listener',
-            );
-          }
-          writeIfChanged('app.js', app);
-
-          let css = read('styles.css');
-          if (!css.includes('.draw-select-label')) {
-            css = css.replace(
-              '.draw-result-panel {\n  margin-top: 12px;\n}\n\n',
-              '.draw-result-panel {\n  margin-top: 12px;\n}\n\n.draw-select-label {\n  display: grid;\n  gap: 5px;\n  min-width: 150px;\n  margin: 0;\n}\n\n.draw-select-label span {\n  color: var(--muted);\n  font-size: 0.76rem;\n  font-weight: 900;\n}\n\n.draw-select-label select {\n  min-height: 38px;\n  border: 1px solid rgba(24, 169, 153, 0.24);\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.92);\n  color: var(--ink);\n  padding: 0 34px 0 12px;\n  font-weight: 900;\n}\n\n',
-            );
-          }
-          css = css.replace('.draw-prize-grid {\n  display: grid;\n  gap: 10px;\n}', '.draw-prize-grid {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 10px;\n}');
-          if (!css.includes('#latestNumbers .ball')) {
-            css += '\n#latestNumbers {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 5px;\n  align-items: center;\n}\n\n#latestNumbers .ball,\n.draw-balls .ball,\n.ball.range-4 {\n  color: #fff !important;\n  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);\n}\n\n#latestNumbers .ball {\n  width: 30px;\n  min-width: 30px;\n  font-size: 0.82rem;\n  line-height: 1;\n}\n\n@media (max-width: 640px) {\n  .draw-prize-grid {\n    grid-template-columns: 1fr;\n  }\n\n  .draw-select-label {\n    width: 100%;\n  }\n}\n';
-          }
-          writeIfChanged('styles.css', css);
-
-          let sw = read('service-worker.js');
-          sw = sw.replace(/saju-lotto-v\d+/g, 'saju-lotto-v86').replaceAll('feedback-v79', 'feedback-v81').replaceAll('feedback-v80', 'feedback-v81').replaceAll('feedback-v78', 'feedback-v81');
-          writeIfChanged('service-worker.js', sw);
-          NODE
-
-      - name: Read current draw number
-        id: before
-        run: |
-          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/lotto-results.json','utf8')).latestDraw)")
-          echo "latest=$latest" >> "$GITHUB_OUTPUT"
-
       - name: Fetch latest draw data
-        run: npm run update:data
+        run: |
+          npm run update:data || echo "Latest lotto fetch failed or no new draw exists yet. Keeping existing data."
 
-      - name: Enrich latest prize rows
+      - name: Try enrich latest prize rows
         run: |
           node <<'NODE'
           const fs = require('node:fs');
 
-          const RESULT_URL = 'https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo=';
           const jsonPath = 'data/lotto-results.json';
           const jsPath = 'data/lotto-results.js';
 
-          function stripTags(value) {
-            return String(value)
-              .replace(/<[^>]*>/g, ' ')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-          }
+          const normalizeWon = (value) => {
+            const amount = Number(String(value || '').replace(/[^0-9]/g, ''));
+            return Number.isFinite(amount) ? amount : 0;
+          };
 
-          function parseMoney(value) {
-            return Number(stripTags(value).replace(/[^\d]/g, '')) || 0;
-          }
+          const stripTags = (value) => String(value || '')
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/\s+/g, ' ')
+            .trim();
 
-          function parseRows(html) {
-            const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
-            const tiers = {};
-            for (const row of rows) {
-              const cells = [...row.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((match) => stripTags(match[1]));
-              const rankIndex = cells.findIndex((cell) => /^[1-5]등/.test(cell));
-              if (rankIndex < 0) continue;
-              const rank = Number(cells[rankIndex].replace(/\D/g, ''));
-              tiers[String(rank)] = {
+          const parsePrizeRows = (html) => {
+            const rows = [];
+            const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+            let match;
+            while ((match = rowRegex.exec(html))) {
+              const cells = [...match[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => stripTags(cell[1]));
+              const rankCell = cells.find((cell) => /^\d등$/.test(cell));
+              if (!rankCell) continue;
+
+              const rank = Number(rankCell.replace(/[^0-9]/g, ''));
+              const numericCells = cells.map(normalizeWon).filter((value) => value > 0);
+              const winnersCandidate = cells.map((cell) => {
+                const compact = cell.replace(/,/g, '').trim();
+                return /^\d+$/.test(compact) ? Number(compact) : 0;
+              }).find((value) => value > 0 && value < 100000000);
+
+              rows.push({
                 rank,
-                totalPrize: parseMoney(cells[rankIndex + 1] ?? '0'),
-                winners: parseMoney(cells[rankIndex + 2] ?? '0'),
-                prize: parseMoney(cells[rankIndex + 3] ?? '0'),
-                criteria: stripTags(cells[rankIndex + 4] ?? ''),
-                note: stripTags(cells[rankIndex + 5] ?? ''),
-              };
+                totalPrize: numericCells[0] || 0,
+                winners: winnersCandidate || 0,
+                prize: numericCells.length > 1 ? numericCells[1] : numericCells[0] || 0,
+                criteria: cells.find((cell) => cell.includes('번호') || cell.includes('일치')) || '',
+              });
             }
-            return tiers;
+            return rows.filter((row) => row.rank >= 1 && row.rank <= 5);
+          };
+
+          async function main() {
+            try {
+              if (!fs.existsSync(jsonPath)) {
+                console.log('lotto-results.json not found. Skipping prize enrichment.');
+                return;
+              }
+
+              const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+              const latestDraw = data.latestDraw || data.results?.[data.results.length - 1]?.draw;
+              const latest = data.results?.find((item) => item.draw === latestDraw);
+              if (!latestDraw || !latest) {
+                console.log('No latest draw found. Skipping prize enrichment.');
+                return;
+              }
+
+              const response = await fetch(`https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo=${latestDraw}`, {
+                headers: {
+                  'user-agent': 'Mozilla/5.0 GitHub Actions lotto data updater',
+                  'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+                },
+              });
+
+              if (!response.ok) {
+                console.log(`Prize page responded ${response.status}. Skipping prize enrichment.`);
+                return;
+              }
+
+              const html = await response.text();
+              const prizeTiers = parsePrizeRows(html);
+              if (!prizeTiers.length) {
+                console.log('Prize rows were not found. Skipping prize enrichment.');
+                return;
+              }
+
+              latest.prizeTiers = prizeTiers;
+              const first = prizeTiers.find((row) => row.rank === 1);
+              if (first) {
+                latest.firstWinners = first.winners || latest.firstWinners;
+                latest.firstPrize = first.prize || latest.firstPrize;
+              }
+
+              data.generatedAt = new Date().toISOString();
+              fs.writeFileSync(jsonPath, `${JSON.stringify(data, null, 2)}\n`);
+              fs.writeFileSync(jsPath, `window.LOTTO_RESULTS = ${JSON.stringify(data, null, 2)};\n`);
+              console.log(`Prize rows enriched for draw ${latestDraw}.`);
+            } catch (error) {
+              console.log(`Prize enrichment skipped safely: ${error.message}`);
+            }
           }
 
-          const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-          const latest = data.draws[data.draws.length - 1];
-          const response = await fetch(`${RESULT_URL}${latest.draw}`, {
-            headers: {
-              'user-agent': 'Mozilla/5.0 AppleWebKit/537.36 Chrome/125 Safari/537.36',
-              referer: 'https://www.dhlottery.co.kr/lt645/result',
-            },
-          });
-          if (!response.ok) throw new Error(`Prize page failed: ${response.status}`);
-          const tiers = parseRows(await response.text());
-          if (!tiers['2']?.winners) throw new Error('Could not parse second prize row.');
-
-          latest.prizeTiers = tiers;
-          for (const rank of [1, 2, 3, 4, 5]) {
-            const row = tiers[String(rank)];
-            if (!row) continue;
-            const prefix = ['', 'first', 'second', 'third', 'fourth', 'fifth'][rank];
-            latest[`${prefix}Winners`] = row.winners;
-            latest[`${prefix}Prize`] = row.prize;
-            latest[`${prefix}TotalPrize`] = row.totalPrize;
-          }
-          data.source = data.source.includes('prize-row') ? data.source : `${data.source}+prize-row`;
-          fs.writeFileSync(jsonPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
-          fs.writeFileSync(jsPath, `window.LOTTO_RESULTS = ${JSON.stringify(data)};\n`, 'utf8');
+          main();
           NODE
-
-      - name: Check updated draw number
-        id: after
-        run: |
-          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/lotto-results.json','utf8')).latestDraw)")
-          echo "latest=$latest" >> "$GITHUB_OUTPUT"
 
       - name: Validate lottery data
         run: npm run validate:data -- lotto
 
       - name: Rebuild recall optimization profile
-        run: npm run optimize:recall
+        run: |
+          npm run optimize:recall || echo "Recall optimization skipped. Keeping the current profile."
 
       - name: Validate app files
         run: npm run check
 
-      - name: Commit updated lotto data and UI
+      - name: Commit updated lotto data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app.js index.html styles.css service-worker.js data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
+          git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
           if git diff --cached --quiet; then
-            echo "No lotto data, UI, or recall profile changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
-            exit 0
+            echo "No lotto data changes to commit."
+          else
+            git commit -m "Update lotto data"
+            git push origin HEAD:${{ github.ref_name }}
           fi
-          git commit -m "Update lotto prizes and draw selector to draw ${{ steps.after.outputs.latest }}"
-          git push origin HEAD:${{ github.ref_name }}
