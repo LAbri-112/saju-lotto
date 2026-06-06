@@ -1,6 +1,11 @@
 name: Update lotto data
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/update-lotto-data.yml
   schedule:
     # GitHub Actions uses UTC. These run every Saturday at 20:45, 21:10,
     # and 21:30 KST so the app can update soon after the draw result appears.
@@ -31,6 +36,92 @@ jobs:
         with:
           node-version: 22
 
+      - name: Apply recall tuning patch
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          function writeIfChanged(path, next) {
+            const current = fs.readFileSync(path, 'utf8');
+            if (current !== next) fs.writeFileSync(path, next, 'utf8');
+          }
+
+          function replaceExact(path, from, to) {
+            const text = fs.readFileSync(path, 'utf8');
+            if (text.includes(to)) return;
+            if (!text.includes(from)) {
+              throw new Error(`Could not find target text in ${path}`);
+            }
+            writeIfChanged(path, text.replace(from, to));
+          }
+
+          replaceExact(
+            'app.js',
+            '  const ACTIVE_FRONTIER_LIMIT_MAX = 26;',
+            '  const ACTIVE_FRONTIER_LIMIT_MAX = 29;',
+          );
+
+          let app = fs.readFileSync('app.js', 'utf8');
+          app = app.replace(
+            `      explanation: includedInCorePool\n        ? "당첨번호 조합은 실제 핵심 후보망 안에 포함되었습니다."\n        : passedScoreGate\n          ? "당첨번호 조합은 점수상 가까웠지만 실제 핵심 후보망에는 포함되지 않았습니다."\n          : "당첨번호 조합은 실제 핵심 후보망 밖에 있었습니다.",`,
+            `      explanation: includedInCorePool\n        ? "당첨번호 조합은 실제 핵심 후보망 안에 포함되었습니다."\n        : generatedInCandidatePool\n          ? "당첨번호 조합은 생성 후보에는 있었지만 핵심 후보망까지 올라오지 못했습니다."\n          : "당첨번호 조합은 실제 추천 후보망 안에 없었습니다.",`,
+          );
+          app = app.replace(
+            '    const includedInCorePool = Boolean(coreCandidate);',
+            '    const generatedInCandidatePool = Boolean(generatedCandidate);\n    const includedInCorePool = Boolean(coreCandidate);',
+          );
+          app = app.replace(
+            '      generatedInCandidatePool: Boolean(generatedCandidate),',
+            '      generatedInCandidatePool,'
+          );
+          app = app.replaceAll('역추산 후보 ${formatNumber(setting.candidateNeed)}개 안쪽', '후보망 학습 기준');
+          writeIfChanged('app.js', app);
+
+          let tool = fs.readFileSync('tools/optimize-lotto-recall.mjs', 'utf8');
+          if (!tool.includes('const PRACTICAL_FRONTIER_LIMIT_MAX = 30;')) {
+            tool = tool.replace(
+              'const BACKFIT_FRONTIER_LIMITS = [22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 35, 40, 45];',
+              [
+                'const LOTTO_UNIVERSE_SIZE = 8145060;',
+                'const PRACTICAL_FRONTIER_LIMIT_MAX = 30;',
+                'const BACKFIT_FRONTIER_LIMITS = [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];',
+                'const DIAGNOSTIC_FRONTIER_LIMITS = [32, 35, 40];',
+              ].join('\n'),
+            );
+            tool = tool.replaceAll('item.candidateCount / 8145060', 'item.candidateCount / LOTTO_UNIVERSE_SIZE');
+            tool = tool.replace(
+              /function findBackfitSetting\(draw, priorDraws, recencyWeight = 1\) \{[\s\S]*?\n\}\n\nasync function main\(\) \{/,
+              `function findBackfitSetting(draw, priorDraws, recencyWeight = 1) {\n  const scanLimits = (limits) => {\n    const exactSettings = [];\n\n    for (const frontierLimit of limits) {\n      for (const window of WINDOW_VALUES) {\n        for (const mode of BACKFIT_MODES) {\n          for (const weight of BACKFIT_WEIGHTS) {\n            const frontier = buildReverseFrontier(priorDraws, window, frontierLimit, { mode, weight });\n            const frontierSet = new Set(frontier);\n            const exact = draw.numbers.every((number) => frontierSet.has(number));\n            if (!exact) continue;\n\n            exactSettings.push({\n              mode,\n              weight,\n              window,\n              frontierLimit,\n              candidateCount: combinationCount(frontierLimit, 6),\n              recentScore: recencyWeight,\n            });\n          }\n        }\n      }\n      if (exactSettings.length) break;\n    }\n\n    exactSettings.sort(compareBackfitSetting);\n    return exactSettings;\n  };\n\n  const exactSettings = scanLimits(BACKFIT_FRONTIER_LIMITS);\n  const diagnosticSettings = exactSettings.length ? [] : scanLimits(DIAGNOSTIC_FRONTIER_LIMITS);\n  return {\n    exact: exactSettings.length > 0,\n    bestSetting: exactSettings[0] ?? null,\n    exactSettings: exactSettings.slice(0, 12),\n    diagnosticExact: diagnosticSettings.length > 0,\n    diagnosticSetting: diagnosticSettings[0] ?? null,\n  };\n}\n\nasync function main() {`,
+            );
+            tool = tool.replace(
+              '  const backfitExactRecords = records.filter((record) => record.backfit?.bestSetting);',
+              `  const backfitExactRecords = records.filter((record) => record.backfit?.bestSetting);\n  const diagnosticOnlyRecords = records.filter(\n    (record) => !record.backfit?.bestSetting && record.backfit?.diagnosticSetting,\n  );`,
+            );
+            tool = tool.replace(
+              '      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and prefer windows that contained all six winning numbers in the generated frontier.",',
+              '      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and count only compact practical frontiers, excluding the full 8,145,060-combination universe from recall success.",\n      practicalMaxFrontierLimit: PRACTICAL_FRONTIER_LIMIT_MAX,',
+            );
+            tool = tool.replace(
+              '      exactRate: records.length ? round((backfitExactRecords.length / records.length) * 100, 1) : 0,',
+              '      exactRate: records.length ? round((backfitExactRecords.length / records.length) * 100, 1) : 0,\n      diagnosticOnlyDraws: diagnosticOnlyRecords.length,',
+            );
+            tool = tool.replace(
+              '        bestSetting: record.backfit?.bestSetting ?? null,',
+              '        bestSetting: record.backfit?.bestSetting ?? null,\n        diagnosticSetting: record.backfit?.diagnosticSetting ?? null,',
+            );
+            writeIfChanged('tools/optimize-lotto-recall.mjs', tool);
+          }
+
+          for (const path of ['index.html', 'service-worker.js']) {
+            let text = fs.readFileSync(path, 'utf8');
+            text = text.replaceAll('feedback-v77', 'feedback-v79').replaceAll('feedback-v78', 'feedback-v79');
+            if (path === 'service-worker.js') {
+              text = text.replace(/saju-lotto-v\d+/g, 'saju-lotto-v84');
+            }
+            writeIfChanged(path, text);
+          }
+          NODE
+
       - name: Read current draw number
         id: before
         run: |
@@ -59,10 +150,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
+          git add app.js index.html service-worker.js tools/optimize-lotto-recall.mjs data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
           if git diff --cached --quiet; then
-            echo "No lotto data or recall profile changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
+            echo "No lotto data, recall profile, or tuning changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
             exit 0
           fi
-          git commit -m "Update lotto data to draw ${{ steps.after.outputs.latest }}"
+          git commit -m "Update lotto tuning and data to draw ${{ steps.after.outputs.latest }}"
           git push origin HEAD:${{ github.ref_name }}
