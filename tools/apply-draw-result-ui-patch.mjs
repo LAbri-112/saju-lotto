@@ -103,6 +103,28 @@ if (!styles.includes("#latestNumbers .ball,\n.draw-balls .ball")) {
 }
 `;
 }
+if (!styles.includes(".draw-purchase-types")) {
+  styles = styles.replace(
+    ".draw-prize-card.second strong {\n  color: #148a62;\n}\n",
+    `.draw-prize-card.second strong {
+  color: #148a62;
+}
+
+.draw-purchase-types {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: rgba(24, 169, 153, 0.12);
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.2;
+  padding: 5px 8px;
+}
+`,
+  );
+}
 writeIfChanged("styles.css", styles);
 
 let app = fs.readFileSync("app.js", "utf8");
@@ -153,7 +175,19 @@ const drawFunctions = [
   "      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),",
   "      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),",
   '      criteria: tier?.criteria ?? "",',
+  '      note: tier?.note ?? "",',
+  "      purchaseTypes: tier?.purchaseTypes ?? (rank === 1 ? draw?.firstPurchaseTypes : null),",
   "    };",
+  "  }",
+  "",
+  "  function renderFirstPurchaseTypes(tier) {",
+  "    const types = tier?.purchaseTypes;",
+  '    if (!types) return "";',
+  "    const auto = Number(types.auto ?? 0);",
+  "    const manual = Number(types.manual ?? 0);",
+  "    const semiAuto = Number(types.semiAuto ?? types.semi ?? 0);",
+  '    if (!auto && !manual && !semiAuto) return "";',
+  '    return `<small class="draw-purchase-types">\\uC790\\uB3D9 ${formatNumber(auto)} \\u00B7 \\uC218\\uB3D9 ${formatNumber(manual)} \\u00B7 \\uBC18\\uC790\\uB3D9 ${formatNumber(semiAuto)}</small>`;',
   "  }",
   "",
   "  function renderPrizeTierCard(draw, rank) {",
@@ -165,6 +199,7 @@ const drawFunctions = [
   "        <span>${rank}\\uB4F1</span>",
   '        <strong>${hasData ? `${formatNumber(tier.winners)}\\uBA85` : "\\uC815\\uBCF4 \\uC5C6\\uC74C"}</strong>',
   '        <em>${hasData ? `1\\uAC8C\\uC784\\uB2F9 ${formatMoney(tier.prize)}` : "\\uB3D9\\uD589\\uBCF5\\uAD8C \\uACB0\\uACFC \\uAC31\\uC2E0 \\uD6C4 \\uD45C\\uC2DC"}</em>',
+  '        ${rank === 1 ? renderFirstPurchaseTypes(tier) : ""}',
   "      </div>",
   "    `;",
   "  }",
@@ -201,6 +236,41 @@ if (!app.includes("function renderDrawResult(")) {
   } else {
     console.log("Skipped draw renderer replacement: function boundary not found");
   }
+}
+
+const purchaseRenderer = [
+  "  function renderFirstPurchaseTypes(tier) {",
+  "    const types = tier?.purchaseTypes;",
+  '    if (!types) return "";',
+  "    const auto = Number(types.auto ?? 0);",
+  "    const manual = Number(types.manual ?? 0);",
+  "    const semiAuto = Number(types.semiAuto ?? types.semi ?? 0);",
+  '    if (!auto && !manual && !semiAuto) return "";',
+  '    return `<small class="draw-purchase-types">\\uC790\\uB3D9 ${formatNumber(auto)} \\u00B7 \\uC218\\uB3D9 ${formatNumber(manual)} \\u00B7 \\uBC18\\uC790\\uB3D9 ${formatNumber(semiAuto)}</small>`;',
+  "  }",
+].join("\n");
+
+if (!app.includes("function renderFirstPurchaseTypes(")) {
+  app = app.replace(
+    '      criteria: tier?.criteria ?? "",\n    };',
+    [
+      '      criteria: tier?.criteria ?? "",',
+      '      note: tier?.note ?? "",',
+      "      purchaseTypes: tier?.purchaseTypes ?? (rank === 1 ? draw?.firstPurchaseTypes : null),",
+      "    };",
+    ].join("\n"),
+  );
+  app = app.replace(
+    "\n  function renderPrizeTierCard(draw, rank) {",
+    `\n${purchaseRenderer}\n\n  function renderPrizeTierCard(draw, rank) {`,
+  );
+}
+
+if (!app.includes("renderFirstPurchaseTypes(tier)")) {
+  app = app.replace(
+    /(\n\s*<em>\$\{hasData \? `1[\s\S]*?\}<\/em>\n)(\s*<\/div>)/,
+    '$1        ${rank === 1 ? renderFirstPurchaseTypes(tier) : ""}\n$2',
+  );
 }
 
 app = app.replace(
