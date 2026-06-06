@@ -1,6 +1,11 @@
 name: Update lotto data
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/update-lotto-data.yml
   schedule:
     # GitHub Actions uses UTC. These run every Saturday at 20:45, 21:10,
     # and 21:30 KST so the app can update soon after the draw result appears.
@@ -31,6 +36,150 @@ jobs:
         with:
           node-version: 22
 
+      - name: Apply result UI patch
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          function read(path) {
+            return fs.readFileSync(path, 'utf8');
+          }
+
+          function writeIfChanged(path, next) {
+            const current = read(path);
+            if (current !== next) fs.writeFileSync(path, next, 'utf8');
+          }
+
+          function replaceOrThrow(text, from, to, label) {
+            if (text.includes(to)) return text;
+            if (!text.includes(from)) throw new Error(`Could not find ${label}`);
+            return text.replace(from, to);
+          }
+
+          let html = read('index.html');
+          if (!html.includes('id="drawSelect"')) {
+            html = html.replace(
+              '<p>동행복권 공개 데이터를 기준으로 표시합니다</p>',
+              '<label class="draw-select-label" for="drawSelect">\n                <span>회차 선택</span>\n                <select id="drawSelect" aria-label="당첨번호 회차 선택"></select>\n              </label>',
+            );
+          }
+          html = html.replaceAll('feedback-v79', 'feedback-v81').replaceAll('feedback-v80', 'feedback-v81').replaceAll('feedback-v78', 'feedback-v81');
+          writeIfChanged('index.html', html);
+
+          let app = read('app.js');
+          if (!app.includes('const drawSelect = document.querySelector("#drawSelect");')) {
+            app = replaceOrThrow(
+              app,
+              '  const latestDrawResult = document.querySelector("#latestDrawResult");',
+              '  const latestDrawResult = document.querySelector("#latestDrawResult");\n  const drawSelect = document.querySelector("#drawSelect");',
+              'drawSelect query',
+            );
+          }
+
+          if (!app.includes('function drawByNumber(drawNo)')) {
+            const helper = [
+              '  function drawByNumber(drawNo) {',
+              '    const parsed = Number(drawNo);',
+              '    return draws.find((item) => item.draw === parsed) ?? latest;',
+              '  }',
+              '',
+              '  function selectedDrawForResult() {',
+              '    return drawByNumber(drawSelect?.value || latest?.draw);',
+              '  }',
+              '',
+              '  function renderDrawSelect() {',
+              '    if (!drawSelect || !draws.length) return;',
+              '    const currentValue = drawSelect.value || String(latest?.draw ?? "");',
+              '    drawSelect.innerHTML = draws',
+              '      .slice()',
+              '      .reverse()',
+              '      .map((draw) => `<option value="${draw.draw}">${draw.draw}회</option>`)',
+              '      .join("");',
+              '    drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)',
+              '      ? currentValue',
+              '      : String(latest?.draw ?? "");',
+              '  }',
+              '',
+              '  function prizeTierFromDraw(draw, rank) {',
+              '    const tier = draw?.prizeTiers?.[String(rank)];',
+              '    const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];',
+              '    return {',
+              '      rank,',
+              '      winners: Number(tier?.winners ?? draw?.[`${prefix}Winners`] ?? 0),',
+              '      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),',
+              '      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),',
+              '      criteria: tier?.criteria ?? "",',
+              '    };',
+              '  }',
+              '',
+              '  function renderPrizeTierCard(draw, rank) {',
+              '    const tier = prizeTierFromDraw(draw, rank);',
+              '    const hasData = tier.winners > 0 || tier.prize > 0 || tier.totalPrize > 0;',
+              '    const className = rank === 1 ? " first" : rank === 2 ? " second" : "";',
+              '    return `',
+              '      <div class="draw-prize-card${className}">',
+              '        <span>${rank}등</span>',
+              '        <strong>${hasData ? `${formatNumber(tier.winners)}명` : "정보 없음"}</strong>',
+              '        <em>${hasData ? `1게임당 ${formatMoney(tier.prize)}` : "동행복권 결과표 갱신 후 표시"}</em>',
+              '      </div>',
+              '    `;',
+              '  }',
+              '',
+              '  function renderDrawResult(draw = selectedDrawForResult()) {',
+              '    if (!latestDrawResult || !draw) return;',
+              '    latestDrawResult.innerHTML = `',
+              '      <div class="draw-result-card">',
+              '        <div class="draw-result-main">',
+              '          <strong>${draw.draw}회 당첨결과</strong>',
+              '          <span>${draw.date || ""} 추첨</span>',
+              '          <div class="draw-balls">',
+              '            ${draw.numbers.map(renderBall).join("")}',
+              '            <b class="draw-plus">+</b>',
+              '            <span class="bonus-wrap">',
+              '              <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>',
+              '              <small>보너스</small>',
+              '            </span>',
+              '          </div>',
+              '        </div>',
+              '        <div class="draw-prize-grid">',
+              '          ${[1, 2, 3, 4, 5].map((rank) => renderPrizeTierCard(draw, rank)).join("")}',
+              '        </div>',
+              '      </div>',
+              '    `;',
+              '  }',
+            ].join('\n');
+
+            app = replaceOrThrow(app, '\n  function renderStaticSummary() {', `\n${helper}\n\n  function renderStaticSummary() {`, 'renderStaticSummary insertion point');
+          }
+          app = app.replace('    renderLatestDrawResult();', '    renderDrawSelect();\n    renderDrawResult();');
+          if (!app.includes('drawSelect?.addEventListener("change", () => renderDrawResult());')) {
+            app = replaceOrThrow(
+              app,
+              '    renderFirstPaintPanels();\n    afterNextPaint(() => {',
+              '    renderFirstPaintPanels();\n    drawSelect?.addEventListener("change", () => renderDrawResult());\n    afterNextPaint(() => {',
+              'draw select listener',
+            );
+          }
+          writeIfChanged('app.js', app);
+
+          let css = read('styles.css');
+          if (!css.includes('.draw-select-label')) {
+            css = css.replace(
+              '.draw-result-panel {\n  margin-top: 12px;\n}\n\n',
+              '.draw-result-panel {\n  margin-top: 12px;\n}\n\n.draw-select-label {\n  display: grid;\n  gap: 5px;\n  min-width: 150px;\n  margin: 0;\n}\n\n.draw-select-label span {\n  color: var(--muted);\n  font-size: 0.76rem;\n  font-weight: 900;\n}\n\n.draw-select-label select {\n  min-height: 38px;\n  border: 1px solid rgba(24, 169, 153, 0.24);\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.92);\n  color: var(--ink);\n  padding: 0 34px 0 12px;\n  font-weight: 900;\n}\n\n',
+            );
+          }
+          css = css.replace('.draw-prize-grid {\n  display: grid;\n  gap: 10px;\n}', '.draw-prize-grid {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 10px;\n}');
+          if (!css.includes('#latestNumbers .ball')) {
+            css += '\n#latestNumbers {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 5px;\n  align-items: center;\n}\n\n#latestNumbers .ball,\n.draw-balls .ball,\n.ball.range-4 {\n  color: #fff !important;\n  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);\n}\n\n#latestNumbers .ball {\n  width: 30px;\n  min-width: 30px;\n  font-size: 0.82rem;\n  line-height: 1;\n}\n\n@media (max-width: 640px) {\n  .draw-prize-grid {\n    grid-template-columns: 1fr;\n  }\n\n  .draw-select-label {\n    width: 100%;\n  }\n}\n';
+          }
+          writeIfChanged('styles.css', css);
+
+          let sw = read('service-worker.js');
+          sw = sw.replace(/saju-lotto-v\d+/g, 'saju-lotto-v86').replaceAll('feedback-v79', 'feedback-v81').replaceAll('feedback-v80', 'feedback-v81').replaceAll('feedback-v78', 'feedback-v81');
+          writeIfChanged('service-worker.js', sw);
+          NODE
+
       - name: Read current draw number
         id: before
         run: |
@@ -39,6 +188,73 @@ jobs:
 
       - name: Fetch latest draw data
         run: npm run update:data
+
+      - name: Enrich latest prize rows
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const RESULT_URL = 'https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo=';
+          const jsonPath = 'data/lotto-results.json';
+          const jsPath = 'data/lotto-results.js';
+
+          function stripTags(value) {
+            return String(value)
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+
+          function parseMoney(value) {
+            return Number(stripTags(value).replace(/[^\d]/g, '')) || 0;
+          }
+
+          function parseRows(html) {
+            const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
+            const tiers = {};
+            for (const row of rows) {
+              const cells = [...row.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((match) => stripTags(match[1]));
+              const rankIndex = cells.findIndex((cell) => /^[1-5]등/.test(cell));
+              if (rankIndex < 0) continue;
+              const rank = Number(cells[rankIndex].replace(/\D/g, ''));
+              tiers[String(rank)] = {
+                rank,
+                totalPrize: parseMoney(cells[rankIndex + 1] ?? '0'),
+                winners: parseMoney(cells[rankIndex + 2] ?? '0'),
+                prize: parseMoney(cells[rankIndex + 3] ?? '0'),
+                criteria: stripTags(cells[rankIndex + 4] ?? ''),
+                note: stripTags(cells[rankIndex + 5] ?? ''),
+              };
+            }
+            return tiers;
+          }
+
+          const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+          const latest = data.draws[data.draws.length - 1];
+          const response = await fetch(`${RESULT_URL}${latest.draw}`, {
+            headers: {
+              'user-agent': 'Mozilla/5.0 AppleWebKit/537.36 Chrome/125 Safari/537.36',
+              referer: 'https://www.dhlottery.co.kr/lt645/result',
+            },
+          });
+          if (!response.ok) throw new Error(`Prize page failed: ${response.status}`);
+          const tiers = parseRows(await response.text());
+          if (!tiers['2']?.winners) throw new Error('Could not parse second prize row.');
+
+          latest.prizeTiers = tiers;
+          for (const rank of [1, 2, 3, 4, 5]) {
+            const row = tiers[String(rank)];
+            if (!row) continue;
+            const prefix = ['', 'first', 'second', 'third', 'fourth', 'fifth'][rank];
+            latest[`${prefix}Winners`] = row.winners;
+            latest[`${prefix}Prize`] = row.prize;
+            latest[`${prefix}TotalPrize`] = row.totalPrize;
+          }
+          data.source = data.source.includes('prize-row') ? data.source : `${data.source}+prize-row`;
+          fs.writeFileSync(jsonPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+          fs.writeFileSync(jsPath, `window.LOTTO_RESULTS = ${JSON.stringify(data)};\n`, 'utf8');
+          NODE
 
       - name: Check updated draw number
         id: after
@@ -55,14 +271,14 @@ jobs:
       - name: Validate app files
         run: npm run check
 
-      - name: Commit updated lotto data and recall profile
+      - name: Commit updated lotto data and UI
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
+          git add app.js index.html styles.css service-worker.js data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
           if git diff --cached --quiet; then
-            echo "No lotto data or recall profile changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
+            echo "No lotto data, UI, or recall profile changes to commit. Current latest draw is ${{ steps.after.outputs.latest }}."
             exit 0
           fi
-          git commit -m "Update lotto data to draw ${{ steps.after.outputs.latest }}"
+          git commit -m "Update lotto prizes and draw selector to draw ${{ steps.after.outputs.latest }}"
           git push origin HEAD:${{ github.ref_name }}
