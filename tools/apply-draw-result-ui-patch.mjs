@@ -5,6 +5,8 @@ const KR = {
   drawSelect: "\uD68C\uCC28 \uC120\uD0DD",
   drawSelectAria: "\uB2F9\uCCA8\uBC88\uD638 \uD68C\uCC28 \uC120\uD0DD",
 };
+const CACHE_VERSION = "feedback-v89";
+const SW_CACHE_NAME = "saju-lotto-v89";
 
 const writeIfChanged = (file, next) => {
   const before = fs.readFileSync(file, "utf8");
@@ -37,7 +39,7 @@ if (!index.includes('id="drawSelect"')) {
     "draw selector markup",
   );
 }
-index = index.replace(/feedback-v\d+/g, "feedback-v88");
+index = index.replace(/feedback-v\d+/g, CACHE_VERSION);
 writeIfChanged("index.html", index);
 
 let styles = fs.readFileSync("styles.css", "utf8");
@@ -78,12 +80,26 @@ styles = styles.replace(
   gap: 10px;
 }`,
 );
+const readableBallRule = `#latestNumbers .ball,
+.draw-balls .ball,
+.draw-result-main .draw-balls .ball,
+.draw-result-main .draw-balls .bonus-ball {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}`;
+styles = styles.replace(
+  /#latestNumbers \.ball,\n\.draw-balls \.ball(?:,\n\.ball\.range-4)? \{\n[\s\S]*?\n\}/,
+  readableBallRule,
+);
 if (!styles.includes("#latestNumbers .ball,\n.draw-balls .ball")) {
   styles += `
 
 #latestNumbers .ball,
-.draw-balls .ball {
-  color: #fff;
+.draw-balls .ball,
+.draw-result-main .draw-balls .ball,
+.draw-result-main .draw-balls .bonus-ball {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
 }
 `;
 }
@@ -205,5 +221,5 @@ if (!app.includes('drawSelect?.addEventListener("change", () => renderDrawResult
 writeIfChanged("app.js", app);
 
 let sw = fs.readFileSync("service-worker.js", "utf8");
-sw = sw.replace(/saju-lotto-v\d+/g, "saju-lotto-v88").replace(/feedback-v\d+/g, "feedback-v88");
+sw = sw.replace(/saju-lotto-v\d+/g, SW_CACHE_NAME).replace(/feedback-v\d+/g, CACHE_VERSION);
 writeIfChanged("service-worker.js", sw);
