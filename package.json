@@ -13,6 +13,6 @@
     "backtest:recall": "node tools/backtest-candidate-recall.mjs",
     "rank:lotto": "node tools/rank-lotto-universe.mjs",
     "optimize:recall": "node tools/optimize-lotto-recall.mjs",
-    "check": "node --check app.js && node --check service-worker.js && node --check tools/update-lotto-data.mjs && node --check tools/update-pension-data.mjs && node --check tools/validate-data.mjs && node --check tools/serve-static.mjs && node --check tools/learn-from-draw.mjs && node --check tools/backtest-model.mjs && node --check tools/backtest-candidate-recall.mjs && node --check tools/rank-lotto-universe.mjs && node --check tools/optimize-lotto-recall.mjs"
+    "check": "node --check app.js && node --check service-worker.js && node --check tools/apply-draw-result-ui-patch.mjs && node --check tools/update-lotto-data.mjs && node --check tools/update-pension-data.mjs && node --check tools/validate-data.mjs && node --check tools/serve-static.mjs && node --check tools/learn-from-draw.mjs && node --check tools/backtest-model.mjs && node --check tools/backtest-candidate-recall.mjs && node --check tools/rank-lotto-universe.mjs && node --check tools/optimize-lotto-recall.mjs"
   }
 }
