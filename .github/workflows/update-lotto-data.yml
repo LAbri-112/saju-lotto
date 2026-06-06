@@ -28,6 +28,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Apply draw result UI patch
+        run: |
+          node --check tools/apply-draw-result-ui-patch.mjs
+          node tools/apply-draw-result-ui-patch.mjs
+
       - name: Fetch latest draw data
         run: |
           npm run update:data || echo "Latest lotto fetch failed or no new draw exists yet. Keeping existing data."
@@ -165,14 +170,14 @@ jobs:
       - name: Validate app files
         run: npm run check
 
-      - name: Commit updated lotto data
+      - name: Commit updated lotto data and UI
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
+          git add index.html app.js styles.css service-worker.js data/lotto-results.json data/lotto-results.js data/lotto-recall-profile.json data/lotto-recall-profile.js
           if git diff --cached --quiet; then
             echo "No lotto data changes to commit."
           else
-            git commit -m "Update lotto data"
+            git commit -m "Update lotto data and draw result UI"
             git push origin HEAD:${{ github.ref_name }}
           fi
