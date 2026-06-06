@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/update-lotto-data.yml
   schedule:
+    # Trigger repository-side tuning patch after workflow changes.
     # GitHub Actions uses UTC. These run every Saturday at 20:45, 21:10,
     # and 21:30 KST so the app can update soon after the draw result appears.
     - cron: "45 11 * * 6"
