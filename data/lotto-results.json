@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-06T15:49:09.152Z",
+  "generatedAt": "2026-06-06T16:10:48.102Z",
   "source": "fullayer-public-list",
   "sourceUrl": "https://www.fullayer.com/lottowinnumber/fo/lottowinnumberlist3",
   "latestSourceUrl": null,
@@ -18424,7 +18424,62 @@
       ],
       "bonus": 13,
       "firstWinners": 11,
-      "firstPrize": 2674808455
+      "firstPrize": 2674808455,
+      "prizeTiers": {
+        "1": {
+          "rank": 1,
+          "totalPrize": 29422893005,
+          "winners": 11,
+          "prize": 2674808455,
+          "criteria": "6개번호 일치",
+          "note": ""
+        },
+        "2": {
+          "rank": 2,
+          "totalPrize": 4903815560,
+          "winners": 70,
+          "prize": 70054508,
+          "criteria": "5개번호 일치 + 보너스번호 일치",
+          "note": ""
+        },
+        "3": {
+          "rank": 3,
+          "totalPrize": 4903816554,
+          "winners": 3042,
+          "prize": 1612037,
+          "criteria": "5개번호 일치",
+          "note": ""
+        },
+        "4": {
+          "rank": 4,
+          "totalPrize": 7594050000,
+          "winners": 151881,
+          "prize": 50000,
+          "criteria": "4개번호 일치",
+          "note": ""
+        },
+        "5": {
+          "rank": 5,
+          "totalPrize": 12616705000,
+          "winners": 2523341,
+          "prize": 5000,
+          "criteria": "3개번호 일치",
+          "note": ""
+        }
+      },
+      "firstTotalPrize": 29422893005,
+      "secondWinners": 70,
+      "secondPrize": 70054508,
+      "secondTotalPrize": 4903815560,
+      "thirdWinners": 3042,
+      "thirdPrize": 1612037,
+      "thirdTotalPrize": 4903816554,
+      "fourthWinners": 151881,
+      "fourthPrize": 50000,
+      "fourthTotalPrize": 7594050000,
+      "fifthWinners": 2523341,
+      "fifthPrize": 5000,
+      "fifthTotalPrize": 12616705000
     }
   ]
 }
