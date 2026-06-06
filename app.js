@@ -634,6 +634,7 @@
   const dailyFortune = document.querySelector("#dailyFortune");
   const fortuneTabs = document.querySelectorAll(".fortune-tab");
   const latestDrawResult = document.querySelector("#latestDrawResult");
+  const drawSelect = document.querySelector("#drawSelect");
   const candidateStats = document.querySelector("#candidateStats");
   const shuffleCandidates = document.querySelector("#shuffleCandidates");
   const autoSajuStatus = document.querySelector("#autoSajuStatus");
@@ -6043,50 +6044,74 @@
     `;
   }
 
-  function renderLatestDrawResult() {
-    if (!latestDrawResult || !latest) return;
-    const secondReady =
-      latest.secondWinners != null && Number.isFinite(Number(latest.secondWinners));
-    const firstWinners = Number(latest.firstWinners ?? 0);
-    const secondWinners = Number(latest.secondWinners ?? 0);
-    const firstPrize = formatMoney(latest.firstPrize);
-    const secondPrize = secondReady ? formatMoney(latest.secondPrize) : "다음 데이터 갱신 후 표시";
-    const totalSales = Number(latest.totalSales ?? 0);
+  function drawByNumber(drawNo) {
+    const parsed = Number(drawNo);
+    return draws.find((item) => item.draw === parsed) ?? latest;
+  }
 
+  function selectedDrawForResult() {
+    return drawByNumber(drawSelect?.value || latest?.draw);
+  }
+
+  function renderDrawSelect() {
+    if (!drawSelect || !draws.length) return;
+    const currentValue = drawSelect.value || String(latest?.draw ?? "");
+    drawSelect.innerHTML = draws
+      .slice()
+      .reverse()
+      .map((draw) => `<option value="${draw.draw}">${draw.draw}\uD68C</option>`)
+      .join("");
+    drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)
+      ? currentValue
+      : String(latest?.draw ?? "");
+  }
+
+  function prizeTierFromDraw(draw, rank) {
+    const source = draw?.prizeTiers;
+    const tier = Array.isArray(source)
+      ? source.find((row) => Number(row.rank) === rank)
+      : source?.[String(rank)];
+    const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];
+    return {
+      rank,
+      winners: Number(tier?.winners ?? draw?.[`${prefix}Winners`] ?? 0),
+      prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),
+      totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),
+      criteria: tier?.criteria ?? "",
+    };
+  }
+
+  function renderPrizeTierCard(draw, rank) {
+    const tier = prizeTierFromDraw(draw, rank);
+    const hasData = tier.winners > 0 || tier.prize > 0 || tier.totalPrize > 0;
+    const className = rank === 1 ? " first" : rank === 2 ? " second" : "";
+    return `
+      <div class="draw-prize-card${className}">
+        <span>${rank}\uB4F1</span>
+        <strong>${hasData ? `${formatNumber(tier.winners)}\uBA85` : "\uC815\uBCF4 \uC5C6\uC74C"}</strong>
+        <em>${hasData ? `1\uAC8C\uC784\uB2F9 ${formatMoney(tier.prize)}` : "\uB3D9\uD589\uBCF5\uAD8C \uACB0\uACFC \uAC31\uC2E0 \uD6C4 \uD45C\uC2DC"}</em>
+      </div>
+    `;
+  }
+
+  function renderDrawResult(draw = selectedDrawForResult()) {
+    if (!latestDrawResult || !draw) return;
     latestDrawResult.innerHTML = `
       <div class="draw-result-card">
         <div class="draw-result-main">
-          <strong>${latest.draw}회 당첨결과</strong>
-          <span>${latest.date || dataset.latestDate || ""} 추첨</span>
+          <strong>${draw.draw}\uD68C \uB2F9\uCCA8\uACB0\uACFC</strong>
+          <span>${draw.date || ""} \uCD94\uCCA8</span>
           <div class="draw-balls">
-            ${latest.numbers.map(renderBall).join("")}
+            ${draw.numbers.map(renderBall).join("")}
             <b class="draw-plus">+</b>
             <span class="bonus-wrap">
-              <b class="ball bonus-ball ${rangeClass(latest.bonus)}">${latest.bonus}</b>
-              <small>보너스</small>
+              <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>
+              <small>\uBCF4\uB108\uC2A4</small>
             </span>
           </div>
         </div>
         <div class="draw-prize-grid">
-          <div class="draw-prize-card first">
-            <span>1등</span>
-            <strong>${formatNumber(firstWinners)}명</strong>
-            <em>1게임당 ${firstPrize}</em>
-          </div>
-          <div class="draw-prize-card second">
-            <span>2등</span>
-            <strong>${secondReady ? `${formatNumber(secondWinners)}명` : "수집 대기"}</strong>
-            <em>1게임당 ${secondPrize}</em>
-          </div>
-          ${
-            totalSales > 0
-              ? `<div class="draw-prize-card">
-                  <span>총 판매금액</span>
-                  <strong>${formatMoney(totalSales)}</strong>
-                  <em>동행복권 공개값</em>
-                </div>`
-              : ""
-          }
+          ${[1, 2, 3, 4, 5].map((rank) => renderPrizeTierCard(draw, rank)).join("")}
         </div>
       </div>
     `;
@@ -6098,7 +6123,8 @@
     document.querySelector("#latestNumbers").innerHTML = latest.numbers
       .map((number) => `<span class="ball ${rangeClass(number)}">${number}</span>`)
       .join("");
-    renderLatestDrawResult();
+    renderDrawSelect();
+    renderDrawResult();
   }
 
   function renderFastPersonalPanels(saju) {
@@ -6501,6 +6527,8 @@
       if (!pensionState.lastResult?.pool?.length) return;
       renderPensionRecommendations(pensionState.lastResult, { randomize: true });
     });
+
+    drawSelect?.addEventListener("change", () => renderDrawResult());
 
     for (const control of [
       recentWindow,

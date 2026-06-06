@@ -901,6 +901,26 @@ button:focus-visible {
   margin-top: 12px;
 }
 
+.draw-select-label {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.draw-select-label select {
+  min-width: 132px;
+  border: 1px solid rgba(24, 169, 153, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 900;
+  padding: 8px 10px;
+}
+
 .draw-result-card {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
@@ -979,6 +999,7 @@ button:focus-visible {
 
 .draw-prize-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   gap: 10px;
 }
 
@@ -3222,4 +3243,10 @@ button:focus-visible {
     grid-template-columns: 1fr;
     gap: 4px;
   }
+}
+
+
+#latestNumbers .ball,
+.draw-balls .ball {
+  color: #fff;
 }

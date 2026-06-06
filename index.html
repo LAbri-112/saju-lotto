@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v79" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v88" />
   </head>
   <body>
     <main class="app-shell">
@@ -333,7 +333,10 @@
                 <p class="eyebrow">Winning Result</p>
                 <h2 id="draw-title">이번 회차 당첨번호</h2>
               </div>
-              <p>동행복권 공개 데이터를 기준으로 표시합니다</p>
+              <label class="draw-select-label" for="drawSelect">
+                <span>회차 선택</span>
+                <select id="drawSelect" aria-label="당첨번호 회차 선택"></select>
+              </label>
             </div>
             <div id="latestDrawResult" class="latest-draw-result">
               <div class="draw-result-card draw-result-placeholder">
@@ -577,9 +580,9 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v79"></script>
-    <script defer src="data/pension-results.js?v=feedback-v79"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v79"></script>
-    <script defer src="app.js?v=feedback-v79"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v88"></script>
+    <script defer src="data/pension-results.js?v=feedback-v88"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v88"></script>
+    <script defer src="app.js?v=feedback-v88"></script>
   </body>
 </html>
