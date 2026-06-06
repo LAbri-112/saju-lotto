@@ -6078,7 +6078,19 @@
       prize: Number(tier?.prize ?? draw?.[`${prefix}Prize`] ?? 0),
       totalPrize: Number(tier?.totalPrize ?? draw?.[`${prefix}TotalPrize`] ?? 0),
       criteria: tier?.criteria ?? "",
+      note: tier?.note ?? "",
+      purchaseTypes: tier?.purchaseTypes ?? (rank === 1 ? draw?.firstPurchaseTypes : null),
     };
+  }
+
+  function renderFirstPurchaseTypes(tier) {
+    const types = tier?.purchaseTypes;
+    if (!types) return "";
+    const auto = Number(types.auto ?? 0);
+    const manual = Number(types.manual ?? 0);
+    const semiAuto = Number(types.semiAuto ?? types.semi ?? 0);
+    if (!auto && !manual && !semiAuto) return "";
+    return `<small class="draw-purchase-types">\uC790\uB3D9 ${formatNumber(auto)} \u00B7 \uC218\uB3D9 ${formatNumber(manual)} \u00B7 \uBC18\uC790\uB3D9 ${formatNumber(semiAuto)}</small>`;
   }
 
   function renderPrizeTierCard(draw, rank) {
