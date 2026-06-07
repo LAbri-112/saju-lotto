@@ -9,8 +9,7 @@ const resultsPath = resolve(dataDir, "pension-results.json");
 const resultsScriptPath = resolve(dataDir, "pension-results.js");
 
 const OFFICIAL_LATEST_URL = "https://www.dhlottery.co.kr/pt720/result";
-const OFFICIAL_ROUND_URL =
-  "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round=";
+const OFFICIAL_ROUND_URL = "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round=";
 const FIRST_DRAW_DATE = "2020-05-07";
 
 const headers = {
@@ -21,6 +20,21 @@ const headers = {
 
 function wait(ms) {
   return new Promise((resolveWait) => setTimeout(resolveWait, ms));
+}
+
+function decodeHtml(buffer, contentType = "") {
+  const charset = contentType.match(/charset=([^;\s]+)/i)?.[1]?.toLowerCase() ?? "";
+  const preferred = charset.includes("euc") || charset.includes("ks_c_5601") ? "euc-kr" : "utf-8";
+  let text = new TextDecoder(preferred).decode(buffer);
+
+  if (preferred === "utf-8" && text.includes("\uFFFD")) {
+    const korean = new TextDecoder("euc-kr").decode(buffer);
+    const koreanCount = (korean.match(/[\uAC00-\uD7A3]/g) ?? []).length;
+    const utfCount = (text.match(/[\uAC00-\uD7A3]/g) ?? []).length;
+    if (koreanCount > utfCount) text = korean;
+  }
+
+  return text;
 }
 
 async function fetchText(url, options = {}, attempts = 3) {
@@ -37,10 +51,11 @@ async function fetchText(url, options = {}, attempts = 3) {
         throw new Error(`${response.status} ${response.statusText} for ${url}`);
       }
 
-      return await response.text();
+      const buffer = await response.arrayBuffer();
+      return decodeHtml(buffer, response.headers.get("content-type") ?? "");
     } catch (error) {
       lastError = error;
-      if (attempt < attempts) await wait(450 * attempt);
+      if (attempt < attempts) await wait(500 * attempt);
     }
   }
 
@@ -72,10 +87,11 @@ function parseLatestRound(html) {
   const text = stripTags(html);
   const roundMatches = [
     ...html.matchAll(/Round=(\d{1,4})/gi),
-    ...text.matchAll(/(?:제\s*)?(\d{1,4})\s*회/g),
+    ...html.matchAll(/round=(\d{1,4})/gi),
+    ...text.matchAll(/(?:\uC81C\s*)?(\d{1,4})\s*\uD68C/g),
   ]
     .map((match) => Number(match[1]))
-    .filter((round) => round > 0);
+    .filter((round) => round > 0 && round < 10000);
   const latest = Math.max(...roundMatches, 0);
   if (!latest) {
     throw new Error("Could not find latest pension lottery round.");
@@ -84,7 +100,12 @@ function parseLatestRound(html) {
 }
 
 function parseDigitsFromNumberSpans(html) {
-  return [...html.matchAll(/<span[^>]*class=["'][^"']*\bnum\b[^"']*["'][^>]*>\s*(\d)\s*<\/span>/gi)]
+  const matches = [
+    ...html.matchAll(/<span[^>]*class=["'][^"']*(?:\bnum\b|ball|win)[^"']*["'][^>]*>\s*(\d)\s*<\/span>/gi),
+    ...html.matchAll(/<strong[^>]*class=["'][^"']*(?:\bnum\b|ball|win)[^"']*["'][^>]*>\s*(\d)\s*<\/strong>/gi),
+  ];
+
+  return matches
     .map((match) => Number(match[1]))
     .filter((digit) => digit >= 0 && digit <= 9);
 }
@@ -98,11 +119,13 @@ function digitsFromLooseText(value) {
 
 function parsePensionNumbersFromText(text) {
   const firstMatch =
-    text.match(/1등\s*(?:1등\s*)?번호기준\s*([1-5])\s*조\s*((?:\d\s*){6})\s*7자리/) ||
-    text.match(/([1-5])\s*조\s*((?:\d\s*){6})\s*7자리\s*일치/);
+    text.match(/\u0031\uB4F1\s*(?:\u0031\uB4F1\s*)?\uBC88\uD638\uAE30\uC900\s*([1-5])\s*\uC870\s*((?:\d\s*){6})\s*\u0037\uC790\uB9AC/) ||
+    text.match(/([1-5])\s*\uC870\s*((?:\d\s*){6})\s*\u0037\uC790\uB9AC\s*\uC77C\uCE58/) ||
+    text.match(/([1-5])\s*\uC870\s*((?:\d\s*){6})/);
   const bonusMatch =
-    text.match(/보너스\s*(?:보너스\s*)?번호기준\s*((?:\d\s*){6})\s*6자리/) ||
-    text.match(/보너스[^0-9]*((?:\d\s*){6})\s*6자리\s*일치/);
+    text.match(/\uBCF4\uB108\uC2A4\s*(?:\uBCF4\uB108\uC2A4\s*)?\uBC88\uD638\uAE30\uC900\s*((?:\d\s*){6})\s*\u0036\uC790\uB9AC/) ||
+    text.match(/\uBCF4\uB108\uC2A4[^\d]*((?:\d\s*){6})\s*\u0036\uC790\uB9AC\s*\uC77C\uCE58/) ||
+    text.match(/\uBCF4\uB108\uC2A4[^\d]*((?:\d\s*){6})/);
 
   return {
     group: firstMatch ? Number(firstMatch[1]) : null,
@@ -121,19 +144,20 @@ function parsePensionPrizeRows(html) {
     );
     if (!cells.length) continue;
 
-    const rankCell = cells.find((cell) => /(?:[1-7]등|보너스)/.test(cell));
+    const rankCell = cells.find((cell) => /(?:[1-7]\uB4F1|\uBCF4\uB108\uC2A4)/.test(cell));
     if (!rankCell) continue;
 
-    const rank = /보너스/.test(rankCell)
+    const rank = /\uBCF4\uB108\uC2A4/.test(rankCell)
       ? "bonus"
       : String(Number(rankCell.replace(/\D/g, "")));
-    const winnersCell = cells.find((cell) => /(?:매|명)/.test(cell) && /\d/.test(cell)) ?? "";
-    const prizeCell = cells.find((cell) => /원/.test(cell) && /\d/.test(cell)) ?? "";
+    const prizeCell =
+      cells.find((cell) => /(?:\uC6D0|\uB9CC\uC6D0|\uCC9C\uC6D0|\uBC31\uB9CC\uC6D0|\uC2ED\uB9CC\uC6D0)/.test(cell) && /\d/.test(cell)) ?? "";
+    const winnerCells = cells.filter((cell) => /(?:\uB9E4|\uBA85)/.test(cell) && /\d/.test(cell));
 
     prizes[rank] = {
       label: rankCell,
-      condition: cells.find((cell) => /일치/.test(cell)) ?? "",
-      winners: parseMoney(winnersCell),
+      condition: cells.find((cell) => /\uC77C\uCE58/.test(cell)) ?? "",
+      winners: winnerCells.reduce((sum, cell) => sum + parseMoney(cell), 0),
       prize: parseMoney(prizeCell),
       raw: cells,
     };
@@ -144,20 +168,19 @@ function parsePensionPrizeRows(html) {
 
 function parsePensionRound(html, round) {
   const text = stripTags(html);
-  const digitsFromSpans = parseDigitsFromNumberSpans(html);
+  const spanDigits = parseDigitsFromNumberSpans(html);
   const textNumbers = parsePensionNumbersFromText(text);
   const group =
     textNumbers.group ||
-    Number(text.match(/([1-5])\s*조/)?.[1]) ||
-    Number(text.match(/조\s*([1-5])/)?.[1]) ||
+    Number(text.match(/([1-5])\s*\uC870/)?.[1]) ||
+    Number(text.match(/\uC870\s*([1-5])/)?.[1]) ||
     null;
   const date =
-    text.match(/(\d{4})[.\-년\s]+(\d{1,2})[.\-월\s]+(\d{1,2})/)?.slice(1, 4)
+    text.match(/(\d{4})[.\-\s\uB144]+(\d{1,2})[.\-\s\uC6D4]+(\d{1,2})/)?.slice(1, 4)
       ?.map((part, index) => (index === 0 ? part : String(Number(part)).padStart(2, "0")))
       ?.join("-") || inferDrawDate(round);
-  const digits = digitsFromSpans.length >= 6 ? digitsFromSpans.slice(0, 6) : textNumbers.digits;
-  const bonusDigits =
-    digitsFromSpans.length >= 12 ? digitsFromSpans.slice(6, 12) : textNumbers.bonusDigits;
+  const digits = spanDigits.length >= 6 ? spanDigits.slice(0, 6) : textNumbers.digits;
+  const bonusDigits = spanDigits.length >= 12 ? spanDigits.slice(6, 12) : textNumbers.bonusDigits;
 
   if (!group || digits.length !== 6 || digits.some((digit) => digit < 0 || digit > 9)) {
     throw new Error(`Could not parse pension result for round ${round}.`);
@@ -249,6 +272,13 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error.stack ?? error.message}\n`);
+  process.stderr.write(
+    [
+      "Failed to update pension lottery data.",
+      "Check network access to https://www.dhlottery.co.kr/pt720/result and the round pages.",
+      error.stack ?? error.message,
+    ].join("\n"),
+  );
+  process.stderr.write("\n");
   process.exit(1);
 });
