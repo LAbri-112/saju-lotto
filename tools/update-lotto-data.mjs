@@ -10,6 +10,10 @@ const resultsScriptPath = resolve(dataDir, "lotto-results.js");
 
 const OFFICIAL_API =
   "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=";
+const OFFICIAL_PORTAL_API =
+  "https://www.dhlottery.co.kr/lt645/selectPstLt645InfoNew.do";
+const OFFICIAL_PORTAL_LEGACY_API =
+  "https://www.dhlottery.co.kr/lt645/selectPstLt645Info.do";
 const OFFICIAL_MAIN = "https://www.dhlottery.co.kr/common.do?method=main";
 const OFFICIAL_RESULT = "https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo=";
 const FULLAYER_URL =
@@ -20,7 +24,53 @@ const RECENT_PRIZE_ROW_ENRICH_COUNT = Number(
 const PRIZE_ROW_BACKFILL_BATCH_SIZE = Number(
   process.env.LOTTO_PRIZE_BACKFILL_BATCH_SIZE ?? 10000,
 );
+const PRIZE_ROW_FETCH_CONCURRENCY = Number(
+  process.env.LOTTO_PRIZE_ROW_FETCH_CONCURRENCY ?? 6,
+);
 const VERIFIED_PRIZE_ROWS = {
+  1226: {
+    1: {
+      rank: 1,
+      totalPrize: 28152301130,
+      winners: 10,
+      prize: 2815230113,
+      criteria: "6개번호 일치",
+      note: "",
+      purchaseTypes: { auto: 8, manual: 2, semiAuto: 0 },
+    },
+    2: {
+      rank: 2,
+      totalPrize: 4692050250,
+      winners: 75,
+      prize: 62560670,
+      criteria: "5개번호 일치 + 보너스번호 일치",
+      note: "",
+    },
+    3: {
+      rank: 3,
+      totalPrize: 4692052928,
+      winners: 3557,
+      prize: 1319104,
+      criteria: "5개번호 일치",
+      note: "",
+    },
+    4: {
+      rank: 4,
+      totalPrize: 8576250000,
+      winners: 171525,
+      prize: 50000,
+      criteria: "4개번호 일치",
+      note: "",
+    },
+    5: {
+      rank: 5,
+      totalPrize: 14017320000,
+      winners: 2803464,
+      prize: 5000,
+      criteria: "3개번호 일치",
+      note: "",
+    },
+  },
   1227: {
     1: {
       rank: 1,
@@ -85,7 +135,171 @@ async function fetchText(url, options = {}) {
   return response.text();
 }
 
+function toPlainNumber(value) {
+  return Number(String(value ?? "").replace(/[^\d.-]/g, "")) || 0;
+}
+
+function pickNumber(source, keys) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value != null && value !== "") return toPlainNumber(value);
+  }
+  return 0;
+}
+
+function normalizeOfficialDate(value) {
+  const text = String(value ?? "").trim();
+  if (/^\d{8}$/.test(text)) {
+    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+  }
+  return text;
+}
+
+function findPortalRows(value, depth = 0) {
+  if (!value || depth > 4) return [];
+  if (Array.isArray(value)) {
+    if (
+      value.some(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          ("ltEpsd" in item || "drwNo" in item || "tm1WnNo" in item),
+      )
+    ) {
+      return value;
+    }
+    return value.flatMap((item) => findPortalRows(item, depth + 1));
+  }
+  if (typeof value === "object") {
+    if ("ltEpsd" in value || "drwNo" in value || "tm1WnNo" in value) {
+      return [value];
+    }
+    return Object.values(value).flatMap((item) => findPortalRows(item, depth + 1));
+  }
+  return [];
+}
+
+function buildPrizeTiersFromPortalRow(row) {
+  const criteria = {
+    1: "6개번호 일치",
+    2: "5개번호 일치 + 보너스번호 일치",
+    3: "5개번호 일치",
+    4: "4개번호 일치",
+    5: "3개번호 일치",
+  };
+  const tiers = {};
+
+  for (const rank of [1, 2, 3, 4, 5]) {
+    const winners = pickNumber(row, [
+      `rnk${rank}WnNope`,
+      `rank${rank}Winners`,
+      `${["", "first", "second", "third", "fourth", "fifth"][rank]}PrzwnerCo`,
+      `${["", "first", "second", "third", "fourth", "fifth"][rank]}Winners`,
+    ]);
+    const prize = pickNumber(row, [
+      `rnk${rank}WnAmt`,
+      `rank${rank}Prize`,
+      `${["", "first", "second", "third", "fourth", "fifth"][rank]}Winamnt`,
+      `${["", "first", "second", "third", "fourth", "fifth"][rank]}Prize`,
+    ]);
+    const totalPrize =
+      pickNumber(row, [
+        `rnk${rank}SumWnAmt`,
+        `rank${rank}TotalPrize`,
+        `${["", "first", "second", "third", "fourth", "fifth"][rank]}Accumamnt`,
+        `${["", "first", "second", "third", "fourth", "fifth"][rank]}TotalPrize`,
+      ]) || winners * prize;
+
+    if (!winners && !prize && !totalPrize) continue;
+
+    tiers[rank] = {
+      rank,
+      totalPrize,
+      winners,
+      prize,
+      criteria: criteria[rank],
+      note: "",
+      purchaseTypes: null,
+    };
+  }
+
+  const auto = pickNumber(row, ["winType1", "autoWinners", "auto"]);
+  const manual = pickNumber(row, ["winType2", "manualWinners", "manual"]);
+  const semiAuto = pickNumber(row, ["winType3", "semiAutoWinners", "semiAuto"]);
+  if (tiers[1] && (auto || manual || semiAuto)) {
+    tiers[1].purchaseTypes = { auto, manual, semiAuto };
+  }
+
+  return tiers;
+}
+
+async function fetchOfficialPortalDraw(drawNo) {
+  const endpoints = [
+    [
+      OFFICIAL_PORTAL_API,
+      {
+        srchDir: "center",
+        srchLtEpsd: String(drawNo),
+        srchCursorLtEpsd: String(drawNo),
+      },
+    ],
+    [OFFICIAL_PORTAL_LEGACY_API, { srchLtEpsd: String(drawNo) }],
+  ];
+
+  for (const [baseUrl, params] of endpoints) {
+    const url = `${baseUrl}?${new URLSearchParams(params)}`;
+    const text = await fetchText(url, {
+      headers: {
+        accept: "application/json,text/plain,*/*",
+        referer: "https://www.dhlottery.co.kr/lt645/result",
+        "x-requested-with": "XMLHttpRequest",
+      },
+    });
+
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) continue;
+
+    const payload = JSON.parse(trimmed);
+    const rows = findPortalRows(payload);
+    const row =
+      rows.find((item) => pickNumber(item, ["ltEpsd", "drwNo", "draw"]) === drawNo) ??
+      rows[0];
+    if (!row) continue;
+
+    const numbers = [1, 2, 3, 4, 5, 6].map((index) =>
+      pickNumber(row, [`tm${index}WnNo`, `drwtNo${index}`, `winNo${index}`]),
+    );
+    const bonus = pickNumber(row, ["bnsWnNo", "bnusNo", "bonus"]);
+    if (numbers.some((number) => !number) || !bonus) continue;
+
+    const prizeTiers = buildPrizeTiersFromPortalRow(row);
+    const draw = {
+      draw: pickNumber(row, ["ltEpsd", "drwNo", "draw"]) || drawNo,
+      date: normalizeOfficialDate(row.ltRflYmd ?? row.drwNoDate ?? row.drawDate),
+      numbers,
+      bonus,
+      totalSales: pickNumber(row, ["rlvtEpsdSumNtslAmt", "totSellamnt", "totalSales"]),
+      firstWinners: prizeTiers[1]?.winners ?? 0,
+      firstPrize: prizeTiers[1]?.prize ?? 0,
+      firstTotalPrize: prizeTiers[1]?.totalPrize ?? 0,
+      prizeTiers,
+    };
+
+    applyPrizeRows(draw, prizeTiers);
+    return draw;
+  }
+
+  return null;
+}
+
 async function fetchOfficialDraw(drawNo) {
+  try {
+    const detailed = await fetchOfficialPortalDraw(drawNo);
+    if (detailed) return detailed;
+  } catch {
+    // Fall back to the older JSON endpoint when the new result endpoint is delayed.
+  }
+
   const text = await fetchText(`${OFFICIAL_API}${drawNo}`, {
     headers: {
       referer: "https://www.dhlottery.co.kr/gameResult.do?method=byWin",
@@ -127,10 +341,20 @@ async function fetchOfficialDraw(drawNo) {
 
 async function enrichOfficialPrizeRows(draw) {
   try {
+    const detailed = await fetchOfficialPortalDraw(draw.draw);
+    if (detailed?.prizeTiers && hasCompletePrizeRows(detailed)) {
+      Object.assign(draw, mergeDraw(draw, detailed));
+      return draw;
+    }
+  } catch (error) {
+    process.stderr.write(`Portal prize rows failed for draw ${draw.draw}: ${error.message}\n`);
+  }
+
+  try {
     const prizeRows = await fetchOfficialPrizeRows(draw.draw);
     applyPrizeRows(draw, prizeRows);
-  } catch {
-    // The JSON endpoint is enough for first-prize data; prize rows are a nice-to-have.
+  } catch (error) {
+    process.stderr.write(`HTML prize rows failed for draw ${draw.draw}: ${error.message}\n`);
   }
   if (!hasCompletePrizeRows(draw) && VERIFIED_PRIZE_ROWS[draw.draw]) {
     applyPrizeRows(draw, VERIFIED_PRIZE_ROWS[draw.draw]);
@@ -201,9 +425,20 @@ async function enrichMissingPrizeRows(draws) {
     addDraw(draw);
   }
 
-  for (const draw of selected) {
-    await enrichOfficialPrizeRows(draw);
-  }
+  await enrichPrizeRowsInBatches(selected);
+}
+
+async function enrichPrizeRowsInBatches(draws) {
+  const concurrency = Math.max(1, PRIZE_ROW_FETCH_CONCURRENCY);
+  const workers = Array.from({ length: concurrency }, async (_, workerIndex) => {
+    for (let index = workerIndex; index < draws.length; index += concurrency) {
+      await enrichOfficialPrizeRows(draws[index]);
+      if ((index + 1) % 100 === 0 || index === draws.length - 1) {
+        process.stdout.write(`prize rows ${index + 1}/${draws.length}\n`);
+      }
+    }
+  });
+  await Promise.all(workers);
 }
 
 async function fetchOfficialLatestDraw() {
