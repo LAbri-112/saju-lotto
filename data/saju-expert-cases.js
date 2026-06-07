@@ -1,0 +1,19 @@
+window.SAJU_EXPERT_CASES = {
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-08",
+  "sourceBasis": "licensed_or_own_created_cases_only",
+  "sourceHint": "전문가 사례는 직접 작성했거나 사용 허락을 받은 익명 사례만 넣습니다.",
+  "license": {
+    "type": "own_created_schema",
+    "source": "directly_written",
+    "allowedUse": ["schema", "evaluation"],
+    "notes": "사례 데이터 자체는 비워 둡니다. 실제 사례를 넣을 때는 개별 license와 anonymized 필드가 필요합니다."
+  },
+  "caseSchema": {
+    "required": ["id", "anonymized", "license", "input", "analysis", "counselingSummary"],
+    "privacyRule": "이름, 연락처, 주소, 민감한 개인정보를 저장하지 않습니다."
+  },
+  "rules": [],
+  "cases": [],
+  "evalCases": []
+};
