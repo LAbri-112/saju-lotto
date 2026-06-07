@@ -1,0 +1,70 @@
+name: Update pension lottery data
+
+on:
+  schedule:
+    # GitHub Actions uses UTC. These run every Thursday at 19:20, 19:45,
+    # and 20:20 KST so the app can update soon after the pension draw appears.
+    - cron: "20 10 * * 4"
+    - cron: "45 10 * * 4"
+    - cron: "20 11 * * 4"
+    # Safety retry on Friday at 09:30 KST.
+    - cron: "30 0 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-pension-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply pension result UI patch
+        run: |
+          node --check tools/apply-pension-result-ui-patch.mjs
+          node tools/apply-pension-result-ui-patch.mjs
+
+      - name: Read current pension round
+        id: before
+        run: |
+          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/pension-results.json','utf8')).latestRound || 0)")
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch latest pension data
+        run: npm run update:pension
+
+      - name: Check updated pension round
+        id: after
+        run: |
+          latest=$(node -e "const fs=require('node:fs'); console.log(JSON.parse(fs.readFileSync('data/pension-results.json','utf8')).latestRound || 0)")
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+
+      - name: Validate lottery data
+        run: npm run validate:data -- pension
+
+      - name: Validate app files
+        run: npm run check
+
+      - name: Commit updated pension data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html app.js styles.css service-worker.js data/pension-results.json data/pension-results.js
+          if git diff --cached --quiet; then
+            echo "No pension data or UI changes to commit."
+          else
+            git commit -m "Update pension data and result UI"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
