@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-08",
+  "sourceBasis": "classical_and_public_reference_registry",
+  "sourceHint": "사주 해석 규칙을 만들 때 참고 가능한 고전, 공공자료, 연구자료의 출처와 사용 원칙을 기록합니다.",
+  "license": {
+    "type": "own_created_metadata",
+    "source": "directly_written",
+    "allowedUse": ["source_registry", "rule_reference", "documentation"],
+    "notes": "출처 목록과 사용 원칙은 직접 작성했습니다. 현대 번역문, 주석, 강의 문장을 복사하지 않습니다."
+  },
+  "sources": [
+    {
+      "id": "yeon-hae-ja-pyeong",
+      "title": "연해자평",
+      "category": "classical_text",
+      "sourceBasis": "classical_text_reference",
+      "license": {
+        "type": "public_domain_or_classical_reference",
+        "source": "classical_text_reference",
+        "allowedUse": ["rule_reference"],
+        "notes": "고전 원문은 참고하되 앱의 해석 문장은 직접 재작성해야 합니다."
+      }
+    },
+    {
+      "id": "ja-pyeong-jin-jeon",
+      "title": "자평진전",
+      "category": "classical_text",
+      "sourceBasis": "classical_text_reference",
+      "license": {
+        "type": "public_domain_or_classical_reference",
+        "source": "classical_text_reference",
+        "allowedUse": ["rule_reference"],
+        "notes": "격국과 용신 판단의 참고 후보입니다. 현대 주석은 무단 복사하지 않습니다."
+      }
+    },
+    {
+      "id": "sam-myeong-tong-hoe",
+      "title": "삼명통회",
+      "category": "classical_text",
+      "sourceBasis": "classical_text_reference",
+      "license": {
+        "type": "public_domain_or_classical_reference",
+        "source": "classical_text_reference",
+        "allowedUse": ["rule_reference"],
+        "notes": "고전 원문 참고용입니다. 앱 문장은 자체 규칙으로 재작성합니다."
+      }
+    },
+    {
+      "id": "jeok-cheon-su",
+      "title": "적천수",
+      "category": "classical_text",
+      "sourceBasis": "classical_text_reference",
+      "license": {
+        "type": "public_domain_or_classical_reference",
+        "source": "classical_text_reference",
+        "allowedUse": ["rule_reference"],
+        "notes": "원국 균형, 통근, 조후 해석의 참고 후보입니다."
+      }
+    },
+    {
+      "id": "gung-tong-bo-gam",
+      "title": "궁통보감",
+      "category": "classical_text",
+      "sourceBasis": "classical_text_reference",
+      "license": {
+        "type": "public_domain_or_classical_reference",
+        "source": "classical_text_reference",
+        "allowedUse": ["rule_reference"],
+        "notes": "조후와 계절 판단의 참고 후보입니다. 현대 번역문은 별도 허락 없이 포함하지 않습니다."
+      }
+    },
+    {
+      "id": "kasi-special-day-api",
+      "title": "한국천문연구원 특일 정보 API",
+      "category": "public_data",
+      "sourceBasis": "https://www.data.go.kr/data/15012690/openapi.do",
+      "license": {
+        "type": "public_data_portal",
+        "source": "data.go.kr",
+        "allowedUse": ["calendar_validation", "solar_terms"],
+        "notes": "공공데이터포털 이용허락범위를 확인하고 사용합니다."
+      }
+    },
+    {
+      "id": "bazi-character-simulation-benchmark",
+      "title": "BaZi-Based Character Simulation Benchmark",
+      "category": "research_reference",
+      "sourceBasis": "https://arxiv.org/abs/2510.23337",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "arxiv",
+        "allowedUse": ["readme_reference", "method_review"],
+        "notes": "데이터셋 라이선스와 공개 여부를 확인하기 전까지 프로젝트 데이터에 포함하지 않습니다."
+      }
+    }
+  ],
+  "rules": [],
+  "cases": [],
+  "evalCases": []
+}
