@@ -2792,6 +2792,99 @@ button:focus-visible {
   font-size: 0.74rem;
 }
 
+
+
+.pension-latest-result {
+  margin-bottom: 12px;
+}
+
+.pension-latest-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.42fr);
+  gap: 12px;
+  align-items: stretch;
+  border: 1px solid rgba(24, 169, 153, 0.24);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.82));
+  padding: 14px;
+}
+
+.pension-latest-card.empty {
+  grid-template-columns: 1fr;
+}
+
+.pension-result-main span,
+.pension-result-bonus span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.pension-result-main strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.pension-result-main p,
+.pension-result-bonus p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.pension-result-line,
+.pension-result-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.pension-result-line {
+  margin-top: 12px;
+}
+
+.pension-result-group,
+.pension-result-digit {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 950;
+}
+
+.pension-result-group {
+  min-width: 48px;
+  min-height: 34px;
+  background: linear-gradient(135deg, var(--teal), #4f8df0);
+}
+
+.pension-result-digit {
+  width: 32px;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #5b8def, #7ba7ff);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pension-result-bonus {
+  border: 1px solid rgba(243, 170, 47, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 248, 237, 0.86);
+  padding: 12px;
+}
+
+.pension-result-bonus .pension-result-number {
+  margin-top: 10px;
+}
+
+.pension-result-bonus.muted {
+  background: rgba(248, 250, 252, 0.86);
+}
+
 .pension-card {
   border: 1px solid rgba(91, 141, 239, 0.2);
   border-radius: 8px;
@@ -3376,4 +3469,11 @@ button:focus-visible {
 .draw-result-main .draw-balls .bonus-ball {
   color: #fff !important;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+
+
+@media (max-width: 980px) {
+  .pension-latest-card {
+    grid-template-columns: 1fr;
+  }
 }

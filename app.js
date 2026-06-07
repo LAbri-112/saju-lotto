@@ -4228,6 +4228,71 @@
     `;
   }
 
+
+  function ensurePensionLatestResultPanel() {
+    let panel = document.querySelector("#pensionLatestResult");
+    if (panel) return panel;
+    const anchor = document.querySelector(".pension-area .candidate-toolbar");
+    if (!anchor) return null;
+    panel = document.createElement("div");
+    panel.id = "pensionLatestResult";
+    panel.className = "pension-latest-result";
+    anchor.before(panel);
+    return panel;
+  }
+
+  function renderPensionResultDigits(digits) {
+    return digits.map((digit) => `<span class="pension-result-digit">${digit}</span>`).join("");
+  }
+
+  function renderPensionLatestResult() {
+    const panel = ensurePensionLatestResultPanel();
+    if (!panel) return;
+    const draw = latestPension ? normalizePensionDraw(latestPension) : null;
+
+    if (!draw?.round || !draw.digits?.length) {
+      panel.innerHTML = `
+        <div class="pension-latest-card empty">
+          <div>
+            <span>WINNING RESULT</span>
+            <strong>\uC5F0\uAE08\uBCF5\uAD8C \uB2F9\uCCA8\uBC88\uD638 \uC900\uBE44 \uC911</strong>
+            <p>\uB3D9\uD589\uBCF5\uAD8C \uACB0\uACFC\uAC00 \uAC31\uC2E0\uB418\uBA74 \uC790\uB3D9\uC73C\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const bonusMarkup = draw.bonusDigits?.length
+      ? `
+        <div class="pension-result-bonus">
+          <span>\uBCF4\uB108\uC2A4</span>
+          <div class="pension-result-number">${renderPensionResultDigits(draw.bonusDigits)}</div>
+        </div>
+      `
+      : `
+        <div class="pension-result-bonus muted">
+          <span>\uBCF4\uB108\uC2A4</span>
+          <p>\uACF5\uC2DD \uB370\uC774\uD130 \uAC31\uC2E0 \uB300\uAE30</p>
+        </div>
+      `;
+
+    panel.innerHTML = `
+      <div class="pension-latest-card">
+        <div class="pension-result-main">
+          <span>WINNING RESULT</span>
+          <strong>${formatNumber(draw.round)}\uD68C \uC5F0\uAE08\uBCF5\uAD8C \uB2F9\uCCA8\uBC88\uD638</strong>
+          <p>${draw.date ?? ""} \uCD94\uCCA8</p>
+          <div class="pension-result-line">
+            <b class="pension-result-group">${draw.group}\uC870</b>
+            <div class="pension-result-number">${renderPensionResultDigits(draw.digits)}</div>
+          </div>
+        </div>
+        ${bonusMarkup}
+      </div>
+    `;
+  }
+
   function renderPensionStats(result, shownCount = result?.selectedCount ?? 0) {
     if (!pensionStats || !result) return;
     const dataLabel = result.stats?.count
@@ -4286,6 +4351,7 @@
     const items = options.randomize
       ? pickRandomCandidates(result.pool, target, pensionState.generation)
       : result.items;
+    renderPensionLatestResult();
     renderPensionStats(result, items.length);
     renderPensionPrizeGuide();
 
