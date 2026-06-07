@@ -2813,8 +2813,8 @@ button:focus-visible {
   grid-template-columns: 1fr;
 }
 
-.pension-result-main span,
-.pension-result-bonus span {
+.pension-result-main > span,
+.pension-result-bonus > span {
   display: block;
   color: var(--muted);
   font-size: 0.72rem;
@@ -2841,7 +2841,7 @@ button:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
 }
 
 .pension-result-line {
@@ -2853,14 +2853,17 @@ button:focus-visible {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #fff;
+  color: #fff !important;
   font-weight: 950;
+  line-height: 1;
+  text-align: center;
 }
 
 .pension-result-group {
-  min-width: 48px;
-  min-height: 34px;
+  min-width: 56px;
+  min-height: 42px;
   background: linear-gradient(135deg, var(--teal), #4f8df0);
+  font-size: 1.02rem;
 }
 
 .pension-result-digit {

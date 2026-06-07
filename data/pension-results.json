@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-07T13:09:36.958Z",
+  "generatedAt": "2026-06-07T14:25:04.803Z",
   "source": "dhlottery-official-html",
   "sourceUrl": "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round={round}",
   "latestSourceUrl": "https://www.dhlottery.co.kr/pt720/result",
@@ -7633,10 +7633,17 @@
         "group": 5,
         "number": "401384"
       },
-      "bonusDigits": [],
-      "bonusNumber": "",
+      "bonusDigits": [
+        9,
+        8,
+        1,
+        4,
+        6,
+        2
+      ],
+      "bonusNumber": "981462",
       "bonus": {
-        "number": ""
+        "number": "981462"
       },
       "prizes": {}
     }
