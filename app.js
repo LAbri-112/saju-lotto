@@ -745,6 +745,46 @@
     return `${formatNumber(amount)}원`;
   }
 
+  const prizeTaxFreeLimit = 2000000;
+  const prizeTaxHighLimit = 300000000;
+  const prizeTaxBaseRate = 0.22;
+  const prizeTaxHighRate = 0.33;
+
+  function estimateNetPrize(amount, options = {}) {
+    const gross = Number(amount);
+    if (!Number.isFinite(gross) || gross <= 0) {
+      return { gross: 0, tax: 0, net: 0 };
+    }
+
+    if (!options.recurring && gross <= prizeTaxFreeLimit) {
+      return { gross, tax: 0, net: gross };
+    }
+
+    const taxable = options.recurring ? gross : Math.max(0, gross - prizeTaxFreeLimit);
+    const baseTaxable = Math.min(taxable, prizeTaxHighLimit);
+    const highTaxable = Math.max(0, taxable - prizeTaxHighLimit);
+    const tax = Math.floor(baseTaxable * prizeTaxBaseRate + highTaxable * prizeTaxHighRate);
+    return { gross, tax, net: Math.max(0, gross - tax) };
+  }
+
+  function formatPrizeNetLine(amount, options = {}) {
+    const estimate = estimateNetPrize(amount, options);
+    if (!estimate.gross) return "";
+    return `<small class="net-prize-line">세후 예상 ${formatMoney(estimate.net)}</small>`;
+  }
+
+  function compactWon(amount) {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) return "0원";
+    if (value >= 100000000) {
+      const eok = Math.floor(value / 100000000);
+      const man = Math.floor((value % 100000000) / 10000);
+      return man ? `${formatNumber(eok)}억 ${formatNumber(man)}만원` : `${formatNumber(eok)}억원`;
+    }
+    if (value >= 10000) return `${formatNumber(Math.floor(value / 10000))}만원`;
+    return `${formatNumber(value)}원`;
+  }
+
   function formatDay(date) {
     return new Intl.DateTimeFormat("ko-KR", {
       weekday: "short",
@@ -4132,6 +4172,62 @@
     };
   }
 
+
+  const pensionPrizeRows = [
+    { rank: "1등", condition: "조 + 6자리 일치", grossText: "월 700만원 x 20년", payment: 7000000, months: 240 },
+    { rank: "2등", condition: "6자리 일치", grossText: "월 100만원 x 10년", payment: 1000000, months: 120 },
+    { rank: "3등", condition: "끝 5자리 일치", grossText: "100만원", payment: 1000000, months: 1 },
+    { rank: "4등", condition: "끝 4자리 일치", grossText: "10만원", payment: 100000, months: 1 },
+    { rank: "5등", condition: "끝 3자리 일치", grossText: "5만원", payment: 50000, months: 1 },
+    { rank: "6등", condition: "끝 2자리 일치", grossText: "5천원", payment: 5000, months: 1 },
+    { rank: "7등", condition: "끝 1자리 일치", grossText: "1천원", payment: 1000, months: 1 },
+    { rank: "보너스", condition: "보너스 6자리 일치", grossText: "월 100만원 x 10년", payment: 1000000, months: 120 },
+  ];
+
+  function ensurePensionPrizeGuide() {
+    let guide = document.querySelector("#pensionPrizeGuide");
+    if (guide) return guide;
+    if (!pensionRecommendations) return null;
+    guide = document.createElement("div");
+    guide.id = "pensionPrizeGuide";
+    guide.className = "pension-prize-guide";
+    pensionRecommendations.before(guide);
+    return guide;
+  }
+
+  function renderPensionPrizeGuide() {
+    const guide = ensurePensionPrizeGuide();
+    if (!guide) return;
+    const roundLabel = latestPension?.round ? `${formatNumber(latestPension.round)}회 기준` : "당첨금 기준";
+    guide.innerHTML = `
+      <div class="pension-prize-head">
+        <div>
+          <span>PRIZE GUIDE</span>
+          <strong>연금복권 당첨금과 세후 예상</strong>
+        </div>
+        <em>${roundLabel}</em>
+      </div>
+      <div class="pension-prize-grid">
+        ${pensionPrizeRows
+          .map((row) => {
+            const recurring = row.months > 1;
+            const net = estimateNetPrize(row.payment, { recurring });
+            const totalNet = net.net * row.months;
+            return `
+              <div class="pension-prize-card">
+                <span>${row.rank}</span>
+                <strong>${row.grossText}</strong>
+                <em>${row.condition}</em>
+                <small>${recurring ? `세후 약 월 ${compactWon(net.net)}` : `세후 예상 ${compactWon(net.net)}`}</small>
+                ${recurring ? `<small>세후 총 ${compactWon(totalNet)}</small>` : ""}
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
   function renderPensionStats(result, shownCount = result?.selectedCount ?? 0) {
     if (!pensionStats || !result) return;
     const dataLabel = result.stats?.count
@@ -4191,6 +4287,7 @@
       ? pickRandomCandidates(result.pool, target, pensionState.generation)
       : result.items;
     renderPensionStats(result, items.length);
+    renderPensionPrizeGuide();
 
     if (pensionShuffle) {
       pensionShuffle.disabled = !result.pool?.length;
