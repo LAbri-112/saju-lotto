@@ -5651,7 +5651,7 @@
     `;
 
     const generation = lottoState.generation;
-    lottoState.previousAuditTimer = window.setTimeout(() => {
+    lottoState.previousAuditTimer = window.setTimeout(() => runWhenIdle(() => {
       if (generation !== lottoState.generation) return;
       const replay = replayBestCandidateForDraw(draw, currentReplaySetting());
       const best = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
@@ -5687,7 +5687,7 @@
           </div>
         </div>
       `;
-    }, 80);
+    }, 1800), 1200);
   }
 
   function periodDate(period) {
@@ -6151,6 +6151,44 @@
     renderFastPersonalPanels(buildSajuProfile());
   }
 
+  function renderRecommendationWarmup() {
+    if (lottoState.lastResult) return;
+    const target = clamp(Number(setCount.value) || 5, 1, 10);
+    const summary = document.querySelector("#scoreSummary");
+    const container = document.querySelector("#recommendations");
+
+    if (summary) {
+      summary.textContent = "추천 후보를 준비하고 있습니다. 화면을 먼저 띄운 뒤 계산합니다.";
+    }
+
+    if (candidateStats) {
+      candidateStats.innerHTML = `
+        <div class="candidate-hero-stat">
+          <span>추천 준비</span>
+          <strong>잠시만요</strong>
+          <em>당첨번호 데이터와 개인 설정을 맞추는 중입니다</em>
+        </div>
+      `;
+    }
+
+    if (container) {
+      container.innerHTML = Array.from({ length: target }, (_, index) => `
+        <article class="recommendation-card is-loading">
+          <div class="card-head">
+            <div>
+              <strong>${index + 1}번 조합</strong>
+              <div class="card-meta">계산 대기</div>
+            </div>
+            <span class="score-pill">...</span>
+          </div>
+          <div class="ball-line">
+            ${Array.from({ length: 6 }, () => '<span class="ball is-placeholder"></span>').join("")}
+          </div>
+        </article>
+      `).join("");
+    }
+  }
+
   function refresh(options = {}) {
     if (!draws.length) {
       document.querySelector("#scoreSummary").textContent =
@@ -6404,9 +6442,13 @@
 
   function scheduleDeferredPersonalReplay(delay = 720) {
     window.clearTimeout(lottoState.deferredPortfolioTimer);
+    const generation = lottoState.generation;
     lottoState.deferredPortfolioTimer = window.setTimeout(() => {
       lottoState.deferredPortfolioTimer = null;
-      renderCandidateAuditSummary(null, null);
+      runWhenIdle(() => {
+        if (generation !== lottoState.generation) return;
+        renderCandidateAuditSummary(null, null);
+      }, 1800);
     }, delay);
   }
 
@@ -6417,6 +6459,27 @@
       return;
     }
     run();
+  }
+
+  function runWhenIdle(callback, timeout = 1400) {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(callback, { timeout });
+      return;
+    }
+    window.setTimeout(callback, 0);
+  }
+
+  function scheduleInitialLottoRefresh(delay = 520) {
+    window.clearTimeout(lottoState.startupAutoTimer);
+    lottoState.startupAutoTimer = window.setTimeout(() => {
+      lottoState.startupAutoTimer = null;
+      const setting = applyAutoSajuSettings();
+      if (setting) saveProfile();
+      runWhenIdle(() => {
+        refresh({ skipPortfolio: true });
+        scheduleDeferredPersonalReplay(1800);
+      }, 1800);
+    }, delay);
   }
 
   function scheduleStartupAutoSettings(delay = 1100) {
@@ -6477,9 +6540,8 @@
     renderStaticSummary();
     renderFirstPaintPanels();
     afterNextPaint(() => {
-      refresh({ skipPortfolio: true });
-      scheduleDeferredPersonalReplay(900);
-      scheduleStartupAutoSettings();
+      renderRecommendationWarmup();
+      scheduleInitialLottoRefresh();
     });
 
     form.addEventListener("submit", (event) => {
