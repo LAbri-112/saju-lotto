@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Apply draw result UI and performance patches
+      - name: Apply draw result UI patch
         run: |
           node --check tools/apply-draw-result-ui-patch.mjs
           node tools/apply-draw-result-ui-patch.mjs
@@ -36,6 +36,8 @@ jobs:
           node tools/apply-performance-patch.mjs
           node --check tools/apply-prize-net-patch.mjs
           node tools/apply-prize-net-patch.mjs
+          node --check tools/apply-pension-result-ui-patch.mjs
+          node tools/apply-pension-result-ui-patch.mjs
 
       - name: Fetch latest draw data
         run: npm run update:data
