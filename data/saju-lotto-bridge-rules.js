@@ -1,0 +1,47 @@
+window.SAJU_LOTTO_BRIDGE_RULES = {
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-08",
+  "sourceBasis": "own_created_lotto_bridge_rules",
+  "sourceHint": "사주 해석을 로또 후보 점수의 soft score로 연결하기 위한 직접 작성 규칙입니다.",
+  "license": {
+    "type": "own_created",
+    "source": "directly_written",
+    "allowedUse": ["app", "evaluation", "lotto_bridge"],
+    "notes": "전통 명리학에 로또 번호와 오행을 직접 연결하는 표준은 없으므로 자체 보조 규칙으로만 사용합니다."
+  },
+  "rules": [
+    {
+      "id": "soft-score-only-v1",
+      "category": "lotto_bridge",
+      "sourceBasis": "directly_written",
+      "weightingPrinciple": "통계 기반 후보 점수를 중심으로 두고 사주 보정은 후보 순서를 부드럽게 조정하는 보조값으로만 사용합니다.",
+      "allowedWording": ["개인 성향에 맞게 보정", "사주 흐름을 참고", "통계 후보를 우선"],
+      "forbiddenWording": ["사주가 당첨을 보장", "반드시 1등", "고확률 확정"],
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "lotto_bridge"],
+        "notes": "과장 표현을 막기 위한 연결 규칙입니다."
+      }
+    },
+    {
+      "id": "element-number-mapping-v1",
+      "category": "number_mapping",
+      "sourceBasis": "directly_written",
+      "mapping": {
+        "rangeWeight": 0.5,
+        "lastDigitWeight": 0.32,
+        "cycleWeight": 0.18
+      },
+      "notes": "번호-오행 연결은 전통 표준이 아니라 앱의 설명형 힌트입니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "lotto_bridge"],
+        "notes": "앱 자체 규칙입니다."
+      }
+    }
+  ],
+  "cases": [],
+  "evalCases": []
+};
