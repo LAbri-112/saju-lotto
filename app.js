@@ -676,7 +676,7 @@
     cache: new Map(),
   };
   const profileStorageKey = "saju-lotto-profile-v1";
-  const pensionProfileStorageKey = "saju-lotto-pension-profile-v1";
+  const pensionProfileStorageKey = "saju-lotto-pension-profile-v2";
   const lunarFormatter = (() => {
     try {
       return new Intl.DateTimeFormat("ko-KR-u-ca-chinese", {
@@ -1085,7 +1085,7 @@
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
       personalWeight: pensionPersonalWeight?.value ?? "0",
-      mode: pensionMode?.value ?? "diversified",
+      mode: pensionMode?.value ?? "set",
       savedAt: new Date().toISOString(),
     };
 
@@ -1111,7 +1111,7 @@
     );
     selectValueIfAvailable(
       pensionMode,
-      profile.version >= 2 ? profile.mode : "diversified",
+      profile.version >= 2 ? profile.mode : "set",
     );
     return true;
   }
@@ -3710,8 +3710,8 @@
   }
 
   function resolvePensionMode() {
-    const value = pensionMode?.value ?? "diversified";
-    return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "diversified";
+    const value = pensionMode?.value ?? "set";
+    return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "set";
   }
 
   function resolvePensionPersonalWeight(luckyDigits, stats) {
@@ -4269,15 +4269,15 @@
   function pensionRecommendationReason(item, mode) {
     const base = `끝 3자리는 ${item.meta.tail}, 숫자 합은 ${item.meta.sum}, 반복은 최대 ${item.meta.maxRepeat}회입니다.`;
     if (mode === "set") {
-      return `${base} 같은 6자리 번호를 조만 바꿔 보는 세트형 배치입니다.`;
+      return `${base} 같은 6자리 번호를 1~5조로 깔아 1등이 맞으면 2등 4장까지 함께 노리는 세트형입니다.`;
     }
     if (mode === "mixed") {
-      return `${base} 세트형과 자리 분산형을 함께 섞은 배치입니다.`;
+      return `${base} 일부는 세트형으로 크게 노리고, 일부는 다른 끝자리를 넓게 보는 혼합형입니다.`;
     }
     if (mode === "random") {
       return `${base} 통계 기준 후보군 안에서 무작위로 뽑은 배치입니다.`;
     }
-    return `${base} 각 자리와 끝자리가 한쪽으로 너무 몰리지 않게 정리한 배치입니다.`;
+    return `${base} 서로 다른 조와 번호를 넓게 펼쳐 작은 등수 접점을 늘리는 분산형입니다.`;
   }
 
   function renderPensionRecommendations(result, options = {}) {

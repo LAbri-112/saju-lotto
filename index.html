@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v91" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v92" />
   </head>
   <body>
     <main class="app-shell">
@@ -501,11 +501,11 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="pensionMode">추천 방식</label>
-                <button class="help-button" type="button" data-help="자리 분산형은 끝자리와 각 자리 숫자가 너무 몰리지 않게 고릅니다. 세트형은 같은 6자리 번호를 여러 조로 나눠 보여줍니다. 혼합형은 두 방식을 섞고, 완전 랜덤은 통계 점수 안에서 무작위로 배치합니다. 모든 번호의 실제 추첨 확률은 같습니다.">?</button>
+                <button class="help-button" type="button" data-help="세트형은 같은 6자리 번호를 1~5조로 사는 방식입니다. 1등 번호가 맞으면 1등 1장과 2등 4장이 같이 따라붙어 가장 큰 당첨금 흐름을 노립니다. 자리 분산형은 서로 다른 번호를 넓게 펼쳐 작은 등수 접점을 늘리는 방식이고, 혼합형은 세트형과 분산형을 섞습니다. 온라인과 판매점에서 같은 번호를 나눠 사는 느낌으로 볼 수 있습니다.">?</button>
               </div>
               <select id="pensionMode" name="pensionMode">
-                <option value="diversified" selected>자리 분산형</option>
-                <option value="set">세트형</option>
+                <option value="set" selected>세트형</option>
+                <option value="diversified">자리 분산형</option>
                 <option value="mixed">혼합형</option>
                 <option value="random">완전 랜덤</option>
               </select>
@@ -580,9 +580,9 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v91"></script>
-    <script defer src="data/pension-results.js?v=feedback-v91"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v91"></script>
-    <script defer src="app.js?v=feedback-v91"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v92"></script>
+    <script defer src="data/pension-results.js?v=feedback-v92"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v92"></script>
+    <script defer src="app.js?v=feedback-v92"></script>
   </body>
 </html>
