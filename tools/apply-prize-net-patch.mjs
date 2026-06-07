@@ -13,6 +13,13 @@ async function writeIfChanged(path, before, after) {
 function patchApp(source) {
   let text = source;
 
+  text = text
+    .replaceAll('const pensionProfileStorageKey = "saju-lotto-pension-profile-v1";', 'const pensionProfileStorageKey = "saju-lotto-pension-profile-v2";')
+    .replaceAll('mode: pensionMode?.value ?? "diversified"', 'mode: pensionMode?.value ?? "set"')
+    .replaceAll('profile.version >= 2 ? profile.mode : "diversified"', 'profile.version >= 2 ? profile.mode : "set"')
+    .replaceAll('const value = pensionMode?.value ?? "diversified";', 'const value = pensionMode?.value ?? "set";')
+    .replaceAll('return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "diversified";', 'return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "set";');
+
   if (!text.includes("function estimateNetPrize(")) {
     const taxInsertion = `
 
@@ -135,7 +142,41 @@ function patchApp(source) {
     );
   }
 
+  text = text
+    .replaceAll(
+      "같은 6자리 번호를 조만 바꿔 보는 세트형 배치입니다.",
+      "같은 6자리 번호를 1~5조로 깔아 1등이 맞으면 2등 4장까지 함께 노리는 세트형입니다.",
+    )
+    .replaceAll(
+      "세트형과 자리 분산형을 함께 섞은 배치입니다.",
+      "일부는 세트형으로 크게 노리고, 일부는 다른 끝자리를 넓게 보는 혼합형입니다.",
+    )
+    .replaceAll(
+      "각 자리와 끝자리가 한쪽으로 너무 몰리지 않게 정리한 배치입니다.",
+      "서로 다른 조와 번호를 넓게 펼쳐 작은 등수 접점을 늘리는 분산형입니다.",
+    );
+
   return text;
+}
+
+function patchIndex(source) {
+  let text = source;
+  const help =
+    "세트형은 같은 6자리 번호를 1~5조로 사는 방식입니다. 1등 번호가 맞으면 1등 1장과 2등 4장이 같이 따라붙어 가장 큰 당첨금 흐름을 노립니다. 자리 분산형은 서로 다른 번호를 넓게 펼쳐 작은 등수 접점을 늘리는 방식이고, 혼합형은 세트형과 분산형을 섞습니다. 온라인과 판매점에서 같은 번호를 나눠 사는 느낌으로 볼 수 있습니다.";
+  text = text.replace(
+    /(<label for="pensionMode">추천 방식<\/label>\s*<button class="help-button" type="button" data-help=")[^"]*(">)/,
+    `$1${help}$2`,
+  );
+  text = text.replace(
+    /<select id="pensionMode" name="pensionMode">[\s\S]*?<\/select>/,
+    `<select id="pensionMode" name="pensionMode">
+                <option value="set" selected>세트형</option>
+                <option value="diversified">자리 분산형</option>
+                <option value="mixed">혼합형</option>
+                <option value="random">완전 랜덤</option>
+              </select>`,
+  );
+  return patchCacheVersion(text);
 }
 
 function patchStyles(source) {
@@ -259,17 +300,19 @@ function patchStyles(source) {
 
 function patchCacheVersion(source) {
   return source
-    .replaceAll("feedback-v89", "feedback-v91")
-    .replaceAll("feedback-v90", "feedback-v91")
-    .replaceAll("saju-lotto-v89", "saju-lotto-v91")
-    .replaceAll("saju-lotto-v90", "saju-lotto-v91");
+    .replaceAll("feedback-v91", "feedback-v92")
+    .replaceAll("feedback-v90", "feedback-v92")
+    .replaceAll("feedback-v89", "feedback-v92")
+    .replaceAll("saju-lotto-v91", "saju-lotto-v92")
+    .replaceAll("saju-lotto-v90", "saju-lotto-v92")
+    .replaceAll("saju-lotto-v89", "saju-lotto-v92");
 }
 
 async function main() {
   const files = [
     ["app.js", patchApp],
     ["styles.css", patchStyles],
-    ["index.html", patchCacheVersion],
+    ["index.html", patchIndex],
     ["service-worker.js", patchCacheVersion],
   ];
 
