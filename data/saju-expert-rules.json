@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-08",
+  "sourceBasis": "own_created_expert_style_rules",
+  "sourceHint": "전문 역술가 상담형 문체를 만들기 위한 직접 작성 규칙입니다.",
+  "license": {
+    "type": "own_created",
+    "source": "directly_written",
+    "allowedUse": ["app", "evaluation", "rule_engine"],
+    "notes": "현대 저작물 문장을 복사하지 않고 직접 작성한 규칙입니다."
+  },
+  "rules": [
+    {
+      "id": "report-structure-v1",
+      "category": "report_structure",
+      "sourceBasis": "directly_written",
+      "tone": ["calm", "consultative", "evidence_first"],
+      "sections": [
+        "원국 구조 요약",
+        "일간 상태",
+        "오행 균형",
+        "용신/희신 방향",
+        "현재 운 흐름",
+        "재물운/선택운",
+        "로또 추천에 반영된 부분",
+        "주의 문구"
+      ],
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "rule_engine"],
+        "notes": "상담형 리포트 구성 규칙입니다."
+      }
+    },
+    {
+      "id": "tone-guardrails-v1",
+      "category": "tone_guardrail",
+      "sourceBasis": "directly_written",
+      "forbiddenExpressions": ["무조건 망한다", "반드시 대박난다", "100% 당첨", "필연적으로 실패"],
+      "preferredExpressions": ["이 앱의 해석 기준에서는", "경향이 있습니다", "강하게 작용할 수 있습니다", "주의해서 볼 필요가 있습니다"],
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "rule_engine"],
+        "notes": "공포 조장과 과장 표현을 줄이기 위한 문체 규칙입니다."
+      }
+    },
+    {
+      "id": "wealth-choice-balance-v1",
+      "category": "wealth_and_choice",
+      "sourceBasis": "directly_written",
+      "template": "재물운은 한 가지 오행만으로 판단하지 않고, 일간의 힘과 재성의 위치, 생조 흐름, 현재 운의 보조 여부를 함께 봅니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "rule_engine"],
+        "notes": "재물운 해석의 균형 원칙입니다."
+      }
+    },
+    {
+      "id": "lotto-soft-score-v1",
+      "category": "lotto_bridge",
+      "sourceBasis": "directly_written",
+      "template": "로또 추천에서 사주는 당첨을 단정하는 값이 아니라 통계 후보를 개인 성향에 맞게 부드럽게 조정하는 보조 점수로만 사용합니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "rule_engine", "lotto_bridge"],
+        "notes": "사주-로또 연결의 안전한 표현 규칙입니다."
+      }
+    }
+  ],
+  "cases": [],
+  "evalCases": []
+}
