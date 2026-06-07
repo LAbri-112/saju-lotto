@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,8 +9,10 @@ const resultsPath = resolve(dataDir, "pension-results.json");
 const resultsScriptPath = resolve(dataDir, "pension-results.js");
 
 const OFFICIAL_LATEST_URL = "https://www.dhlottery.co.kr/pt720/result";
-const OFFICIAL_ROUND_URL = "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round=";
+const OFFICIAL_ROUND_URL = "https://www.dhlottery.co.kr/gameResult.do?method=win720";
 const FIRST_DRAW_DATE = "2020-05-07";
+const FIRST_DRAW_RESULT_TIME = "2020-05-07T19:10:00+09:00";
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const headers = {
   "user-agent":
@@ -81,6 +83,21 @@ function inferDrawDate(round) {
   const date = new Date(`${FIRST_DRAW_DATE}T00:00:00+09:00`);
   date.setDate(date.getDate() + (round - 1) * 7);
   return date.toISOString().slice(0, 10);
+}
+
+function inferLatestRoundFromKst(now = new Date()) {
+  const firstResultTime = new Date(FIRST_DRAW_RESULT_TIME).getTime();
+  const elapsed = now.getTime() - firstResultTime;
+  if (elapsed < 0) return 0;
+  return Math.floor(elapsed / WEEK_MS) + 1;
+}
+
+async function readExistingPayload() {
+  try {
+    return JSON.parse(await readFile(resultsPath, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 function parseLatestRound(html) {
@@ -206,23 +223,88 @@ function parsePensionRound(html, round) {
 }
 
 async function fetchPensionRound(round) {
-  const html = await fetchText(`${OFFICIAL_ROUND_URL}${round}`, {
-    headers: {
-      referer: OFFICIAL_LATEST_URL,
-    },
-  });
-  return parsePensionRound(html, round);
+  const body = new URLSearchParams({ Round: String(round) });
+  const attempts = [
+    () =>
+      fetchText(OFFICIAL_ROUND_URL, {
+        method: "POST",
+        body,
+        headers: {
+          referer: OFFICIAL_LATEST_URL,
+          "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        },
+      }),
+    () =>
+      fetchText(`${OFFICIAL_ROUND_URL}&Round=${round}`, {
+        headers: {
+          referer: OFFICIAL_LATEST_URL,
+        },
+      }),
+  ];
+
+  let lastError = null;
+  for (const fetcher of attempts) {
+    try {
+      const html = await fetcher();
+      return parsePensionRound(html, round);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
+async function resolveLatestRound(existingPayload) {
+  let latestRound = Number(existingPayload?.latestRound) || 0;
+
+  try {
+    const latestHtml = await fetchText(OFFICIAL_LATEST_URL, {
+      headers: { referer: "https://www.dhlottery.co.kr/" },
+    });
+    latestRound = Math.max(latestRound, parseLatestRound(latestHtml));
+  } catch (error) {
+    process.stdout.write(
+      `Could not read latest pension round from the result page. Falling back to date/existing data: ${
+        error.message ?? error
+      }\n`,
+    );
+  }
+
+  latestRound = Math.max(latestRound, inferLatestRoundFromKst());
+  if (!latestRound) {
+    throw new Error("Could not determine the latest pension lottery round.");
+  }
+
+  return latestRound;
 }
 
 async function fetchPensionDataset() {
-  const latestHtml = await fetchText(OFFICIAL_LATEST_URL, {
-    headers: { referer: "https://www.dhlottery.co.kr/" },
-  });
-  const latestRound = parseLatestRound(latestHtml);
+  const existingPayload = await readExistingPayload();
+  const existingDraws = Array.isArray(existingPayload?.draws) ? existingPayload.draws : [];
+  const existingByRound = new Map(existingDraws.map((draw) => [Number(draw.round), draw]));
+  const latestRound = await resolveLatestRound(existingPayload);
   const draws = [];
 
   for (let round = 1; round <= latestRound; round += 1) {
-    draws.push(await fetchPensionRound(round));
+    const existingDraw = existingByRound.get(round);
+    if (existingDraw) {
+      draws.push(existingDraw);
+      continue;
+    }
+
+    try {
+      draws.push(await fetchPensionRound(round));
+    } catch (error) {
+      if (round > (Number(existingPayload?.latestRound) || 0) && draws.length) {
+        process.stdout.write(
+          `Pension round ${round} is not available yet. Keeping ${draws.length} existing rounds.\n`,
+        );
+        break;
+      }
+      throw error;
+    }
+
     if (round % 25 === 0) {
       process.stdout.write(`pension ${round}/${latestRound}\n`);
     }
@@ -230,7 +312,7 @@ async function fetchPensionDataset() {
 
   return {
     source: "dhlottery-official-html",
-    sourceUrl: `${OFFICIAL_ROUND_URL}{round}`,
+    sourceUrl: `${OFFICIAL_ROUND_URL}&Round={round}`,
     latestSourceUrl: OFFICIAL_LATEST_URL,
     draws,
   };
