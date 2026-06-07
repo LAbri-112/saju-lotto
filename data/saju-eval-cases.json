@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-08",
+  "sourceBasis": "own_created_evaluation_cases",
+  "sourceHint": "만세력 계산과 상담형 문체를 검증하기 위한 익명 평가셋입니다.",
+  "license": {
+    "type": "own_created",
+    "source": "directly_written",
+    "allowedUse": ["evaluation", "calendar_validation"],
+    "notes": "개인정보가 아닌 합성 평가 케이스만 기본 포함합니다."
+  },
+  "rules": [],
+  "cases": [],
+  "evalCases": [
+    {
+      "id": "synthetic-jasi-boundary-smoke",
+      "anonymized": true,
+      "sourceBasis": "directly_written",
+      "purpose": "자시 경계와 야자시/조자시 선택지가 앱을 깨뜨리지 않는지 확인합니다.",
+      "input": {
+        "calendar": "solar",
+        "birthDate": "1990-01-01",
+        "birthTime": "23:45",
+        "gender": "unknown",
+        "birthPlace": "seoul",
+        "midnightRule": "traditional"
+      },
+      "expected": {
+        "mustHave": ["yearPillar", "monthPillar", "dayPillar", "hourPillar"],
+        "notes": "정답 값은 공식 역법 검증표와 전문가 검토 후 채웁니다."
+      },
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["evaluation"],
+        "notes": "합성 평가 케이스입니다."
+      }
+    }
+  ]
+}
