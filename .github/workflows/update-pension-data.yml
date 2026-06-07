@@ -45,6 +45,11 @@ jobs:
       - name: Fetch latest pension data
         run: npm run update:pension
 
+      - name: Fix pension display and bonus fallback
+        run: |
+          node --check tools/fix-pension-display-hotfix.mjs
+          node tools/fix-pension-display-hotfix.mjs
+
       - name: Check updated pension round
         id: after
         run: |
