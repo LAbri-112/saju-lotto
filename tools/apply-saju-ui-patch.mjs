@@ -163,8 +163,35 @@ async function patchPackage() {
   await write("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
+async function patchReadme() {
+  let readme = await read("README.md");
+  if (readme.includes("## 사주 자료 사용 원칙")) {
+    return;
+  }
+
+  const section = `## 사주 자료 사용 원칙
+
+이 프로젝트의 사주 해석 데이터는 저작권과 개인정보를 침해하지 않는 방식으로 구축합니다.
+
+- 고전 원문은 참고할 수 있지만, 현대 번역문과 주석은 저작권을 확인하지 않고 복사하지 않습니다.
+- 현대 책, 유료 강의, 블로그 글은 참고만 하고 앱의 규칙 문장은 직접 재작성합니다.
+- 전문가 사례는 직접 작성했거나 사용 허락을 받은 익명 사례만 넣고, \`license\`와 \`anonymized\` 필드를 반드시 둡니다.
+- 공공누리, 공유마당, 공공데이터 자료는 \`license.type\`, \`source\`, \`allowedUse\`를 기록합니다.
+- 개인정보는 저장하지 않고, 평가셋은 익명 또는 합성 사례를 우선 사용합니다.
+- 사주 해석은 학파별 차이가 있을 수 있으므로 단정적 표현보다 “이 앱의 해석 기준에서는”, “경향이 있습니다”처럼 신중하게 표현합니다.
+- 로또 추천에서 사주 보정은 당첨을 단정하는 값이 아니라 통계 후보를 개인화하는 \`soft score\`로만 사용합니다.
+
+참고 후보로 [BaZi-Based Character Simulation Benchmark](https://arxiv.org/abs/2510.23337) 논문을 기록하지만, 데이터셋 라이선스와 공개 여부를 확인하기 전까지 프로젝트 데이터에는 포함하지 않습니다.
+
+`;
+
+  readme = readme.replace(/^(# .+\n)/, `$1\n${section}`);
+  await write("README.md", readme);
+}
+
 await patchApp();
 await patchIndex();
 await patchServiceWorker();
 await patchPackage();
+await patchReadme();
 console.log("Saju UI patch applied.");
