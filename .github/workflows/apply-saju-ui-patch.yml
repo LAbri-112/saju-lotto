@@ -1,0 +1,51 @@
+name: Apply saju UI patch
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - tools/apply-saju-ui-patch.mjs
+      - data/saju-professional-report.js
+      - .github/workflows/apply-saju-ui-patch.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-saju-ui-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply saju UI patch
+        run: node tools/apply-saju-ui-patch.mjs
+
+      - name: Validate app files
+        run: |
+          npm run check
+          npm run validate:saju
+          npm run validate:saju-calendar
+
+      - name: Commit updated app files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js index.html service-worker.js package.json
+          if git diff --cached --quiet; then
+            echo "No app patch changes to commit."
+          else
+            git commit -m "Apply saju expert UI patch"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
