@@ -2,6 +2,14 @@
   const dataset = window.LOTTO_RESULTS;
   const pensionDataset = window.PENSION_RESULTS ?? { draws: [], count: 0, latestRound: 0 };
   const recallProfile = window.LOTTO_RECALL_PROFILE ?? null;
+  const sajuReferenceData = {
+    solarTerms: window.SAJU_SOLAR_TERMS ?? { terms: [] },
+    classicalSources: window.SAJU_CLASSICAL_SOURCES ?? { sources: [] },
+    expertRules: window.SAJU_EXPERT_RULES ?? { rules: [] },
+    expertCases: window.SAJU_EXPERT_CASES ?? { cases: [] },
+    evalCases: window.SAJU_EVAL_CASES ?? { evalCases: [] },
+    lottoBridgeRules: window.SAJU_LOTTO_BRIDGE_RULES ?? { rules: [] },
+  };
   const draws = dataset?.draws ?? [];
   const pensionDraws = pensionDataset?.draws ?? [];
   const latest = draws.at(-1);
@@ -834,9 +842,38 @@
     return Date.UTC(year, month - 1, day, hour, minute);
   }
 
+  function officialSolarTermBoundary(term, year) {
+    const terms = Array.isArray(sajuReferenceData.solarTerms?.terms) ? sajuReferenceData.solarTerms.terms : [];
+    if (!terms.length) return null;
+    const entry = terms.find((item) => Number(item.year) === Number(year) && (item.key === term.key || Math.abs(Number(item.longitude) - Number(term.longitude)) < 0.001));
+    if (!entry) return null;
+    const yearValue = Number(entry.year);
+    const monthValue = Number(entry.month);
+    const dayValue = Number(entry.day);
+    const hourValue = Number.isFinite(Number(entry.hour)) ? Number(entry.hour) : 0;
+    const minuteValue = Number.isFinite(Number(entry.minute)) ? Number(entry.minute) : 0;
+    if (![yearValue, monthValue, dayValue].every(Number.isFinite)) return null;
+    const localTs = localTimestamp(yearValue, monthValue, dayValue, hourValue, minuteValue);
+    return {
+      ...term,
+      label: entry.label || term.label,
+      source: entry.source || "KASI_SPECIAL_DAY_API",
+      precision: entry.hour == null || entry.minute == null ? "official-date" : "official-time",
+      localParts: { year: yearValue, month: monthValue, day: dayValue, hour: hourValue, minute: minuteValue },
+      localTs,
+      utcDate: new Date(localTs - 9 * 60 * 60000),
+    };
+  }
+
   function solarTermBoundary(term, year) {
     const key = `${year}:${term.key}`;
     if (solarTermCache.has(key)) return solarTermCache.get(key);
+
+    const official = officialSolarTermBoundary(term, year);
+    if (official) {
+      solarTermCache.set(key, official);
+      return official;
+    }
 
     let low = Date.UTC(year, term.approxMonth - 1, term.approxDay - 4, 0, 0);
     let high = Date.UTC(year, term.approxMonth - 1, term.approxDay + 4, 23, 59);
@@ -6407,7 +6444,11 @@
       renderCandidateAuditSummary(stats, saju);
     }
     renderElementBars(saju);
-    renderSajuReading(saju);
+    if (typeof window.renderProfessionalSajuReading === "function") {
+      window.renderProfessionalSajuReading(saju);
+    } else {
+      renderSajuReading(saju);
+    }
     renderMappingReading(saju);
     renderPreviousDrawAudit();
     renderHotCold(stats, scores);

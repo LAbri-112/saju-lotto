@@ -1,19 +1,26 @@
-const CACHE_NAME = "saju-lotto-v94";
+const CACHE_NAME = "saju-lotto-v95";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v94",
-  "./app.js?v=feedback-v94",
+  "./styles.css?v=feedback-v95",
+  "./app.js?v=feedback-v95",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v94",
-  "./data/pension-results.js?v=feedback-v94",
-  "./data/lotto-recall-profile.js?v=feedback-v94"
+  "./data/lotto-results.js?v=feedback-v95",
+  "./data/pension-results.js?v=feedback-v95",
+  "./data/lotto-recall-profile.js?v=feedback-v95",
+  "./data/solar-terms.js?v=feedback-v95",
+  "./data/saju-classical-sources.js?v=feedback-v95",
+  "./data/saju-expert-rules.js?v=feedback-v95",
+  "./data/saju-expert-cases.js?v=feedback-v95",
+  "./data/saju-eval-cases.js?v=feedback-v95",
+  "./data/saju-lotto-bridge-rules.js?v=feedback-v95",
+  "./data/saju-professional-report.js?v=feedback-v95"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then((cache) => Promise.all(APP_SHELL.map((asset) => cache.add(asset).catch(() => null))))
   );
   self.skipWaiting();
 });
