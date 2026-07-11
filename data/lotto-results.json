@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-11T12:40:22.591Z",
+  "generatedAt": "2026-07-11T13:50:27.795Z",
   "source": "fullayer-public-list",
   "sourceUrl": "https://www.fullayer.com/lottowinnumber/fo/lottowinnumberlist3",
   "latestSourceUrl": null,
@@ -10276,67 +10276,8 @@
       "bonus": 9,
       "firstWinners": 3,
       "firstPrize": 3797838200,
-      "secondWinners": 38,
-      "secondPrize": 49971556,
-      "totalSales": 48913832000,
-      "firstTotalPrize": 11393514600,
-      "prizeTiers": {
-        "1": {
-          "rank": 1,
-          "totalPrize": 11393514600,
-          "winners": 3,
-          "prize": 3797838200,
-          "criteria": "6개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "2": {
-          "rank": 2,
-          "totalPrize": 1898919128,
-          "winners": 38,
-          "prize": 49971556,
-          "criteria": "5개번호 일치 + 보너스번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "3": {
-          "rank": 3,
-          "totalPrize": 1898919176,
-          "winners": 1217,
-          "prize": 1560328,
-          "criteria": "5개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "4": {
-          "rank": 4,
-          "totalPrize": 3797867280,
-          "winners": 63120,
-          "prize": 60169,
-          "criteria": "4개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "5": {
-          "rank": 5,
-          "totalPrize": 5467725000,
-          "winners": 1093545,
-          "prize": 5000,
-          "criteria": "3개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        }
-      },
-      "secondTotalPrize": 1898919128,
-      "thirdWinners": 1217,
-      "thirdPrize": 1560328,
-      "thirdTotalPrize": 1898919176,
-      "fourthWinners": 63120,
-      "fourthPrize": 60169,
-      "fourthTotalPrize": 3797867280,
-      "fifthWinners": 1093545,
-      "fifthPrize": 5000,
-      "fifthTotalPrize": 5467725000
+      "secondWinners": null,
+      "secondPrize": null
     },
     {
       "draw": 146,
@@ -40299,76 +40240,8 @@
       "bonus": 12,
       "firstWinners": 3,
       "firstPrize": 4589624750,
-      "secondWinners": 54,
-      "secondPrize": 42496526,
-      "totalSales": 29158774000,
-      "firstTotalPrize": 13768874250,
-      "prizeTiers": {
-        "1": {
-          "rank": 1,
-          "totalPrize": 13768874250,
-          "winners": 3,
-          "prize": 4589624750,
-          "criteria": "6개번호 일치",
-          "note": "",
-          "purchaseTypes": {
-            "auto": 2,
-            "manual": 1,
-            "semiAuto": 0
-          }
-        },
-        "2": {
-          "rank": 2,
-          "totalPrize": 2294812375,
-          "winners": 54,
-          "prize": 42496526,
-          "criteria": "5개번호 일치 + 보너스번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "3": {
-          "rank": 3,
-          "totalPrize": 2294812375,
-          "winners": 1626,
-          "prize": 1411324,
-          "criteria": "5개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "4": {
-          "rank": 4,
-          "totalPrize": 4113500000,
-          "winners": 82270,
-          "prize": 50000,
-          "criteria": "4개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "5": {
-          "rank": 5,
-          "totalPrize": 6686775000,
-          "winners": 1337355,
-          "prize": 5000,
-          "criteria": "3개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        }
-      },
-      "firstPurchaseTypes": {
-        "auto": 2,
-        "manual": 1,
-        "semiAuto": 0
-      },
-      "secondTotalPrize": 2294812375,
-      "thirdWinners": 1626,
-      "thirdPrize": 1411324,
-      "thirdTotalPrize": 2294812375,
-      "fourthWinners": 82270,
-      "fourthPrize": 50000,
-      "fourthTotalPrize": 4113500000,
-      "fifthWinners": 1337355,
-      "fifthPrize": 5000,
-      "fifthTotalPrize": 6686775000
+      "secondWinners": null,
+      "secondPrize": null
     },
     {
       "draw": 514,
@@ -81694,76 +81567,8 @@
       "bonus": 39,
       "firstWinners": 22,
       "firstPrize": 1246819620,
-      "secondWinners": 109,
-      "secondPrize": 41941945,
-      "totalSales": 59314405500,
-      "firstTotalPrize": 27430031640,
-      "prizeTiers": {
-        "1": {
-          "rank": 1,
-          "totalPrize": 27430031640,
-          "winners": 22,
-          "prize": 1246819620,
-          "criteria": "6개번호 일치",
-          "note": "",
-          "purchaseTypes": {
-            "auto": 7,
-            "manual": 14,
-            "semiAuto": 1
-          }
-        },
-        "2": {
-          "rank": 2,
-          "totalPrize": 4571672005,
-          "winners": 109,
-          "prize": 41941945,
-          "criteria": "5개번호 일치 + 보너스번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "3": {
-          "rank": 3,
-          "totalPrize": 4571672364,
-          "winners": 4018,
-          "prize": 1137798,
-          "criteria": "5개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "4": {
-          "rank": 4,
-          "totalPrize": 9002600000,
-          "winners": 180052,
-          "prize": 50000,
-          "criteria": "4개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "5": {
-          "rank": 5,
-          "totalPrize": 13738430000,
-          "winners": 2747686,
-          "prize": 5000,
-          "criteria": "3개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        }
-      },
-      "firstPurchaseTypes": {
-        "auto": 7,
-        "manual": 14,
-        "semiAuto": 1
-      },
-      "secondTotalPrize": 4571672005,
-      "thirdWinners": 4018,
-      "thirdPrize": 1137798,
-      "thirdTotalPrize": 4571672364,
-      "fourthWinners": 180052,
-      "fourthPrize": 50000,
-      "fourthTotalPrize": 9002600000,
-      "fifthWinners": 2747686,
-      "fifthPrize": 5000,
-      "fifthTotalPrize": 13738430000
+      "secondWinners": null,
+      "secondPrize": null
     },
     {
       "draw": 1001,
@@ -82034,76 +81839,8 @@
       "bonus": 18,
       "firstWinners": 10,
       "firstPrize": 2576251913,
-      "secondWinners": 68,
-      "secondPrize": 63143430,
-      "totalSales": 53056235500,
-      "firstTotalPrize": 25762519130,
-      "prizeTiers": {
-        "1": {
-          "rank": 1,
-          "totalPrize": 25762519130,
-          "winners": 10,
-          "prize": 2576251913,
-          "criteria": "6개번호 일치",
-          "note": "",
-          "purchaseTypes": {
-            "auto": 9,
-            "manual": 1,
-            "semiAuto": 0
-          }
-        },
-        "2": {
-          "rank": 2,
-          "totalPrize": 4293753240,
-          "winners": 68,
-          "prize": 63143430,
-          "criteria": "5개번호 일치 + 보너스번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "3": {
-          "rank": 3,
-          "totalPrize": 4293754255,
-          "winners": 2785,
-          "prize": 1541743,
-          "criteria": "5개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "4": {
-          "rank": 4,
-          "totalPrize": 7002350000,
-          "winners": 140047,
-          "prize": 50000,
-          "criteria": "4개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "5": {
-          "rank": 5,
-          "totalPrize": 11703860000,
-          "winners": 2340772,
-          "prize": 5000,
-          "criteria": "3개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        }
-      },
-      "firstPurchaseTypes": {
-        "auto": 9,
-        "manual": 1,
-        "semiAuto": 0
-      },
-      "secondTotalPrize": 4293753240,
-      "thirdWinners": 2785,
-      "thirdPrize": 1541743,
-      "thirdTotalPrize": 4293754255,
-      "fourthWinners": 140047,
-      "fourthPrize": 50000,
-      "fourthTotalPrize": 7002350000,
-      "fifthWinners": 2340772,
-      "fifthPrize": 5000,
-      "fifthTotalPrize": 11703860000
+      "secondWinners": null,
+      "secondPrize": null
     },
     {
       "draw": 1005,
@@ -97793,76 +97530,8 @@
       "bonus": 2,
       "firstWinners": 18,
       "firstPrize": 1536334355,
-      "secondWinners": 132,
-      "secondPrize": 34916690,
-      "totalSales": 60636404500,
-      "firstTotalPrize": 27654018390,
-      "prizeTiers": {
-        "1": {
-          "rank": 1,
-          "totalPrize": 27654018390,
-          "winners": 18,
-          "prize": 1536334355,
-          "criteria": "6개번호 일치",
-          "note": "",
-          "purchaseTypes": {
-            "auto": 9,
-            "manual": 8,
-            "semiAuto": 1
-          }
-        },
-        "2": {
-          "rank": 2,
-          "totalPrize": 4609003080,
-          "winners": 132,
-          "prize": 34916690,
-          "criteria": "5개번호 일치 + 보너스번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "3": {
-          "rank": 3,
-          "totalPrize": 4609004463,
-          "winners": 3649,
-          "prize": 1263087,
-          "criteria": "5개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "4": {
-          "rank": 4,
-          "totalPrize": 9237900000,
-          "winners": 184758,
-          "prize": 50000,
-          "criteria": "4개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        },
-        "5": {
-          "rank": 5,
-          "totalPrize": 14526480000,
-          "winners": 2905296,
-          "prize": 5000,
-          "criteria": "3개번호 일치",
-          "note": "",
-          "purchaseTypes": null
-        }
-      },
-      "firstPurchaseTypes": {
-        "auto": 9,
-        "manual": 8,
-        "semiAuto": 1
-      },
-      "secondTotalPrize": 4609003080,
-      "thirdWinners": 3649,
-      "thirdPrize": 1263087,
-      "thirdTotalPrize": 4609004463,
-      "fourthWinners": 184758,
-      "fourthPrize": 50000,
-      "fourthTotalPrize": 9237900000,
-      "fifthWinners": 2905296,
-      "fifthPrize": 5000,
-      "fifthTotalPrize": 14526480000
+      "secondWinners": null,
+      "secondPrize": null
     },
     {
       "draw": 1192,
