@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-05T04:43:18.960Z",
-  "basisLatestDraw": 1231,
-  "basisLatestDate": "2026-07-04",
-  "sourceDrawCount": 1231,
-  "evaluatedDraws": 1211,
+  "generatedAt": "2026-07-11T12:45:11.213Z",
+  "basisLatestDraw": 1232,
+  "basisLatestDate": "2026-07-11",
+  "sourceDrawCount": 1232,
+  "evaluatedDraws": 1212,
   "minPrior": 20,
   "goal": "Use all historical draws in reverse to favor compact candidate pools whose patterns resemble where past winning numbers actually appeared.",
   "coreCandidatePolicy": {
@@ -19,10 +19,10 @@
     "practicalMaxFrontierLimit": 30
   },
   "backfitSummary": {
-    "evaluatedDraws": 1211,
+    "evaluatedDraws": 1212,
     "exactDraws": 201,
     "exactRate": 16.6,
-    "diagnosticOnlyDraws": 681,
+    "diagnosticOnlyDraws": 682,
     "recommendedSetting": {
       "mode": "balance",
       "weight": 0,
@@ -30,7 +30,7 @@
       "frontierLimit": 29,
       "candidateCount": 475020,
       "count": 9,
-      "recentScore": 7.530346820809248,
+      "recentScore": 7.528960396039603,
       "rate": 0.7,
       "efficiency": 0.007
     },
@@ -42,7 +42,7 @@
         "frontierLimit": 29,
         "candidateCount": 475020,
         "count": 9,
-        "recentScore": 7.530346820809248,
+        "recentScore": 7.528960396039603,
         "rate": 0.7,
         "efficiency": 0.007
       },
@@ -53,7 +53,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 7,
-        "recentScore": 5.791329479768786,
+        "recentScore": 5.790305280528052,
         "rate": 0.6,
         "efficiency": 0.006
       },
@@ -64,7 +64,7 @@
         "frontierLimit": 27,
         "candidateCount": 296010,
         "count": 6,
-        "recentScore": 4.611849710982659,
+        "recentScore": 4.611262376237624,
         "rate": 0.5,
         "efficiency": 0.005
       },
@@ -75,7 +75,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 6,
-        "recentScore": 5.062138728323698,
+        "recentScore": 5.061179867986798,
         "rate": 0.5,
         "efficiency": 0.005
       },
@@ -86,7 +86,7 @@
         "frontierLimit": 25,
         "candidateCount": 177100,
         "count": 5,
-        "recentScore": 4.024277456647399,
+        "recentScore": 4.023638613861387,
         "rate": 0.4,
         "efficiency": 0.004
       },
@@ -97,7 +97,7 @@
         "frontierLimit": 28,
         "candidateCount": 376740,
         "count": 5,
-        "recentScore": 3.796531791907514,
+        "recentScore": 3.7960808580858085,
         "rate": 0.4,
         "efficiency": 0.004
       },
@@ -108,7 +108,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 5,
-        "recentScore": 3.973121387283237,
+        "recentScore": 3.972524752475248,
         "rate": 0.4,
         "efficiency": 0.004
       },
@@ -119,7 +119,7 @@
         "frontierLimit": 18,
         "candidateCount": 18564,
         "count": 4,
-        "recentScore": 3.508092485549133,
+        "recentScore": 3.5073432343234323,
         "rate": 0.3,
         "efficiency": 0.003
       },
@@ -130,7 +130,7 @@
         "frontierLimit": 26,
         "candidateCount": 230230,
         "count": 4,
-        "recentScore": 3.3121387283236996,
+        "recentScore": 3.3115511551155117,
         "rate": 0.3,
         "efficiency": 0.003
       },
@@ -141,7 +141,7 @@
         "frontierLimit": 27,
         "candidateCount": 296010,
         "count": 4,
-        "recentScore": 2.9280346820809253,
+        "recentScore": 2.9277640264026403,
         "rate": 0.3,
         "efficiency": 0.003
       },
@@ -152,7 +152,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 4,
-        "recentScore": 2.9893063583815027,
+        "recentScore": 2.9889851485148515,
         "rate": 0.3,
         "efficiency": 0.003
       },
@@ -163,7 +163,7 @@
         "frontierLimit": 18,
         "candidateCount": 18564,
         "count": 3,
-        "recentScore": 2.719942196531792,
+        "recentScore": 2.7193069306930693,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -174,7 +174,7 @@
         "frontierLimit": 25,
         "candidateCount": 177100,
         "count": 3,
-        "recentScore": 2.6315028901734103,
+        "recentScore": 2.630940594059406,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -185,7 +185,7 @@
         "frontierLimit": 25,
         "candidateCount": 177100,
         "count": 3,
-        "recentScore": 2.531791907514451,
+        "recentScore": 2.5313118811881186,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -196,7 +196,7 @@
         "frontierLimit": 26,
         "candidateCount": 230230,
         "count": 3,
-        "recentScore": 2.620809248554913,
+        "recentScore": 2.620255775577558,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -207,7 +207,7 @@
         "frontierLimit": 27,
         "candidateCount": 296010,
         "count": 3,
-        "recentScore": 2.3395953757225434,
+        "recentScore": 2.3392739273927394,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -218,7 +218,7 @@
         "frontierLimit": 28,
         "candidateCount": 376740,
         "count": 3,
-        "recentScore": 2.5196531791907515,
+        "recentScore": 2.5191831683168315,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -229,7 +229,7 @@
         "frontierLimit": 28,
         "candidateCount": 376740,
         "count": 3,
-        "recentScore": 2.273121387283237,
+        "recentScore": 2.2728547854785477,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -240,7 +240,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 3,
-        "recentScore": 2.9263005780346822,
+        "recentScore": 2.9254950495049505,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -251,7 +251,7 @@
         "frontierLimit": 30,
         "candidateCount": 593775,
         "count": 3,
-        "recentScore": 2.4234104046242773,
+        "recentScore": 2.4230198019801983,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -262,7 +262,7 @@
         "frontierLimit": 18,
         "candidateCount": 18564,
         "count": 2,
-        "recentScore": 1.6942196531791907,
+        "recentScore": 1.693894389438944,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -273,7 +273,7 @@
         "frontierLimit": 19,
         "candidateCount": 27132,
         "count": 2,
-        "recentScore": 1.6098265895953758,
+        "recentScore": 1.6095709570957095,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -284,7 +284,7 @@
         "frontierLimit": 20,
         "candidateCount": 38760,
         "count": 2,
-        "recentScore": 1.680635838150289,
+        "recentScore": 1.680321782178218,
         "rate": 0.2,
         "efficiency": 0.002
       },
@@ -295,7 +295,7 @@
         "frontierLimit": 22,
         "candidateCount": 74613,
         "count": 2,
-        "recentScore": 1.7468208092485549,
+        "recentScore": 1.7464521452145214,
         "rate": 0.2,
         "efficiency": 0.002
       }
@@ -363,7 +363,7 @@
       {
         "value": "0",
         "count": 129,
-        "rate": 10.7
+        "rate": 10.6
       },
       {
         "value": "40",
@@ -450,6 +450,20 @@
     ],
     "recentRecords": [
       {
+        "draw": 1232,
+        "date": "2026-07-11",
+        "exact": false,
+        "bestSetting": null,
+        "diagnosticSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "200",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 1
+        }
+      },
+      {
         "draw": 1231,
         "date": "2026-07-04",
         "exact": false,
@@ -460,7 +474,7 @@
           "window": "1000",
           "frontierLimit": 32,
           "candidateCount": 906192,
-          "recentScore": 1
+          "recentScore": 0.9997112211221122
         }
       },
       {
@@ -481,7 +495,7 @@
           "window": "100",
           "frontierLimit": 40,
           "candidateCount": 3838380,
-          "recentScore": 0.999421965317919
+          "recentScore": 0.9991336633663366
         }
       },
       {
@@ -495,7 +509,7 @@
           "window": "20",
           "frontierLimit": 35,
           "candidateCount": 1623160,
-          "recentScore": 0.9991329479768787
+          "recentScore": 0.9988448844884488
         }
       },
       {
@@ -515,7 +529,7 @@
           "window": "20",
           "frontierLimit": 25,
           "candidateCount": 177100,
-          "recentScore": 0.9985549132947977
+          "recentScore": 0.9982673267326733
         },
         "diagnosticSetting": null
       },
@@ -536,7 +550,7 @@
           "window": "20",
           "frontierLimit": 23,
           "candidateCount": 100947,
-          "recentScore": 0.9979768786127168
+          "recentScore": 0.9976897689768978
         },
         "diagnosticSetting": null
       },
@@ -551,7 +565,7 @@
           "window": "200",
           "frontierLimit": 35,
           "candidateCount": 1623160,
-          "recentScore": 0.9976878612716763
+          "recentScore": 0.99740099009901
         }
       },
       {
@@ -572,15 +586,8 @@
           "window": "100",
           "frontierLimit": 32,
           "candidateCount": 906192,
-          "recentScore": 0.9971098265895953
+          "recentScore": 0.9968234323432343
         }
-      },
-      {
-        "draw": 1220,
-        "date": "2026-04-18",
-        "exact": false,
-        "bestSetting": null,
-        "diagnosticSetting": null
       }
     ]
   },
@@ -595,7 +602,7 @@
         "90": 66,
         "100": 78,
         "110": 118,
-        "120": 137,
+        "120": 138,
         "130": 166,
         "140": 144,
         "150": 117,
@@ -608,7 +615,7 @@
         "220": 3,
         "230": 1
       },
-      "total": 1211,
+      "total": 1212,
       "max": 166,
       "preferred": [
         {
@@ -623,8 +630,8 @@
         },
         {
           "value": "120",
-          "count": 137,
-          "rate": 11.3
+          "count": 138,
+          "rate": 11.4
         },
         {
           "value": "160",
@@ -647,19 +654,19 @@
       "counts": {
         "0": 17,
         "1": 81,
-        "2": 268,
+        "2": 269,
         "3": 410,
         "4": 321,
         "5": 96,
         "6": 18
       },
-      "total": 1211,
+      "total": 1212,
       "max": 410,
       "preferred": [
         {
           "value": "3",
           "count": 410,
-          "rate": 33.9
+          "rate": 33.8
         },
         {
           "value": "4",
@@ -668,8 +675,8 @@
         },
         {
           "value": "2",
-          "count": 268,
-          "rate": 22.1
+          "count": 269,
+          "rate": 22.2
         },
         {
           "value": "5",
@@ -694,11 +701,11 @@
         "1": 107,
         "2": 305,
         "3": 399,
-        "4": 273,
+        "4": 274,
         "5": 94,
         "6": 16
       },
-      "total": 1211,
+      "total": 1212,
       "max": 399,
       "preferred": [
         {
@@ -713,8 +720,8 @@
         },
         {
           "value": "4",
-          "count": 273,
-          "rate": 22.5
+          "count": 274,
+          "rate": 22.6
         },
         {
           "value": "1",
@@ -736,22 +743,22 @@
     "sectorCoverage": {
       "counts": {
         "2": 44,
-        "3": 388,
+        "3": 389,
         "4": 639,
         "5": 140
       },
-      "total": 1211,
+      "total": 1212,
       "max": 639,
       "preferred": [
         {
           "value": "4",
           "count": 639,
-          "rate": 52.8
+          "rate": 52.7
         },
         {
           "value": "3",
-          "count": 388,
-          "rate": 32
+          "count": 389,
+          "rate": 32.1
         },
         {
           "value": "5",
@@ -769,15 +776,15 @@
       "counts": {
         "3": 48,
         "4": 315,
-        "5": 581,
+        "5": 582,
         "6": 267
       },
-      "total": 1211,
-      "max": 581,
+      "total": 1212,
+      "max": 582,
       "preferred": [
         {
           "value": "5",
-          "count": 581,
+          "count": 582,
           "rate": 48
         },
         {
@@ -802,19 +809,19 @@
         "5": 2,
         "10": 10,
         "15": 45,
-        "20": 98,
+        "20": 99,
         "25": 210,
         "30": 309,
         "35": 318,
         "40": 219
       },
-      "total": 1211,
+      "total": 1212,
       "max": 318,
       "preferred": [
         {
           "value": "35",
           "count": 318,
-          "rate": 26.3
+          "rate": 26.2
         },
         {
           "value": "30",
@@ -833,8 +840,8 @@
         },
         {
           "value": "20",
-          "count": 98,
-          "rate": 8.1
+          "count": 99,
+          "rate": 8.2
         },
         {
           "value": "15",
@@ -845,23 +852,23 @@
     },
     "consecutive": {
       "counts": {
-        "0": 585,
+        "0": 586,
         "1": 478,
         "2": 127,
         "3": 21
       },
-      "total": 1211,
-      "max": 585,
+      "total": 1212,
+      "max": 586,
       "preferred": [
         {
           "value": "0",
-          "count": 585,
+          "count": 586,
           "rate": 48.3
         },
         {
           "value": "1",
           "count": 478,
-          "rate": 39.5
+          "rate": 39.4
         },
         {
           "value": "2",
@@ -877,13 +884,13 @@
     },
     "repeatPrevious": {
       "counts": {
-        "0": 469,
+        "0": 470,
         "1": 514,
         "2": 202,
         "3": 24,
         "4": 2
       },
-      "total": 1211,
+      "total": 1212,
       "max": 514,
       "preferred": [
         {
@@ -893,8 +900,8 @@
         },
         {
           "value": "0",
-          "count": 469,
-          "rate": 38.7
+          "count": 470,
+          "rate": 38.8
         },
         {
           "value": "2",
@@ -922,7 +929,7 @@
     },
     {
       "window": "20",
-      "count": 208,
+      "count": 209,
       "rate": 17.2
     },
     {
@@ -938,7 +945,7 @@
     {
       "window": "50",
       "count": 169,
-      "rate": 14
+      "rate": 13.9
     },
     {
       "window": "700",
@@ -953,7 +960,7 @@
     {
       "window": "all",
       "count": 43,
-      "rate": 3.6
+      "rate": 3.5
     }
   ],
   "frontierHitWindowCounts": [
@@ -1001,6 +1008,81 @@
   "frontierHitRate": 5.4,
   "recentRecords": [
     {
+      "draw": 1232,
+      "date": "2026-07-11",
+      "bestWindow": "20",
+      "bestShapeScore": 0.772,
+      "exactInFrontier": false,
+      "frontierNumberCount": 25,
+      "frontierCandidateCount": 177100,
+      "backfit": {
+        "exact": false,
+        "bestSetting": null,
+        "exactSettings": [],
+        "diagnosticExact": true,
+        "diagnosticSetting": {
+          "mode": "balance",
+          "weight": 0,
+          "window": "200",
+          "frontierLimit": 40,
+          "candidateCount": 3838380,
+          "recentScore": 1
+        }
+      },
+      "windowDetails": [
+        {
+          "window": "20",
+          "exactInFrontier": false,
+          "shapeScore": 0.772
+        },
+        {
+          "window": "50",
+          "exactInFrontier": false,
+          "shapeScore": 0.7009
+        },
+        {
+          "window": "100",
+          "exactInFrontier": false,
+          "shapeScore": 0.69
+        },
+        {
+          "window": "200",
+          "exactInFrontier": false,
+          "shapeScore": 0.7251
+        },
+        {
+          "window": "500",
+          "exactInFrontier": false,
+          "shapeScore": 0.7258
+        },
+        {
+          "window": "700",
+          "exactInFrontier": false,
+          "shapeScore": 0.7153
+        },
+        {
+          "window": "1000",
+          "exactInFrontier": false,
+          "shapeScore": 0.7263
+        },
+        {
+          "window": "all",
+          "exactInFrontier": false,
+          "shapeScore": 0.7256
+        }
+      ],
+      "snapshot": {
+        "sumBand": 120,
+        "odd": 2,
+        "low": 4,
+        "sectorCoverage": 3,
+        "tailDiversity": 5,
+        "spreadBand": 20,
+        "consecutive": 0,
+        "repeatPrevious": 0
+      }
+    },
+    {
       "draw": 1231,
       "date": "2026-07-04",
       "bestWindow": "200",
@@ -1019,7 +1101,7 @@
           "window": "1000",
           "frontierLimit": 32,
           "candidateCount": 906192,
-          "recentScore": 1
+          "recentScore": 0.9997112211221122
         }
       },
       "windowDetails": [
@@ -1162,7 +1244,7 @@
           "window": "100",
           "frontierLimit": 40,
           "candidateCount": 3838380,
-          "recentScore": 0.999421965317919
+          "recentScore": 0.9991336633663366
         }
       },
       "windowDetails": [
@@ -1237,7 +1319,7 @@
           "window": "20",
           "frontierLimit": 35,
           "candidateCount": 1623160,
-          "recentScore": 0.9991329479768787
+          "recentScore": 0.9988448844884488
         }
       },
       "windowDetails": [
@@ -1377,7 +1459,7 @@
           "window": "20",
           "frontierLimit": 25,
           "candidateCount": 177100,
-          "recentScore": 0.9985549132947977
+          "recentScore": 0.9982673267326733
         },
         "exactSettings": [
           {
@@ -1386,7 +1468,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "climate",
@@ -1394,7 +1476,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "wealth",
@@ -1402,7 +1484,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "balance",
@@ -1410,7 +1492,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "climate",
@@ -1418,7 +1500,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "balance",
@@ -1426,7 +1508,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "climate",
@@ -1434,7 +1516,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "balance",
@@ -1442,7 +1524,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           },
           {
             "mode": "climate",
@@ -1450,7 +1532,7 @@
             "window": "20",
             "frontierLimit": 25,
             "candidateCount": 177100,
-            "recentScore": 0.9985549132947977
+            "recentScore": 0.9982673267326733
           }
         ],
         "diagnosticExact": false,
@@ -1593,7 +1675,7 @@
           "window": "20",
           "frontierLimit": 23,
           "candidateCount": 100947,
-          "recentScore": 0.9979768786127168
+          "recentScore": 0.9976897689768978
         },
         "exactSettings": [
           {
@@ -1602,7 +1684,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "climate",
@@ -1610,7 +1692,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "wealth",
@@ -1618,7 +1700,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "balance",
@@ -1626,7 +1708,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "wealth",
@@ -1634,7 +1716,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "balance",
@@ -1642,7 +1724,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "wealth",
@@ -1650,7 +1732,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "balance",
@@ -1658,7 +1740,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           },
           {
             "mode": "wealth",
@@ -1666,7 +1748,7 @@
             "window": "20",
             "frontierLimit": 23,
             "candidateCount": 100947,
-            "recentScore": 0.9979768786127168
+            "recentScore": 0.9976897689768978
           }
         ],
         "diagnosticExact": false,
@@ -1744,7 +1826,7 @@
           "window": "200",
           "frontierLimit": 35,
           "candidateCount": 1623160,
-          "recentScore": 0.9976878612716763
+          "recentScore": 0.99740099009901
         }
       },
       "windowDetails": [
@@ -1887,7 +1969,7 @@
           "window": "100",
           "frontierLimit": 32,
           "candidateCount": 906192,
-          "recentScore": 0.9971098265895953
+          "recentScore": 0.9968234323432343
         }
       },
       "windowDetails": [
@@ -1941,74 +2023,6 @@
         "spreadBand": 30,
         "consecutive": 0,
         "repeatPrevious": 1
-      }
-    },
-    {
-      "draw": 1220,
-      "date": "2026-04-18",
-      "bestWindow": "20",
-      "bestShapeScore": 0.8052,
-      "exactInFrontier": false,
-      "frontierNumberCount": 25,
-      "frontierCandidateCount": 177100,
-      "backfit": {
-        "exact": false,
-        "bestSetting": null,
-        "exactSettings": [],
-        "diagnosticExact": false,
-        "diagnosticSetting": null
-      },
-      "windowDetails": [
-        {
-          "window": "20",
-          "exactInFrontier": false,
-          "shapeScore": 0.8052
-        },
-        {
-          "window": "50",
-          "exactInFrontier": false,
-          "shapeScore": 0.7972
-        },
-        {
-          "window": "100",
-          "exactInFrontier": false,
-          "shapeScore": 0.7255
-        },
-        {
-          "window": "200",
-          "exactInFrontier": false,
-          "shapeScore": 0.7765
-        },
-        {
-          "window": "500",
-          "exactInFrontier": false,
-          "shapeScore": 0.7726
-        },
-        {
-          "window": "700",
-          "exactInFrontier": false,
-          "shapeScore": 0.7714
-        },
-        {
-          "window": "1000",
-          "exactInFrontier": false,
-          "shapeScore": 0.7687
-        },
-        {
-          "window": "all",
-          "exactInFrontier": false,
-          "shapeScore": 0.7703
-        }
-      ],
-      "snapshot": {
-        "sumBand": 150,
-        "odd": 2,
-        "low": 2,
-        "sectorCoverage": 4,
-        "tailDiversity": 5,
-        "spreadBand": 40,
-        "consecutive": 0,
-        "repeatPrevious": 2
       }
     }
   ]
