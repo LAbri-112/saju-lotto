@@ -57,7 +57,8 @@ jobs:
 
       - name: Rebuild recall optimization profile
         run: |
-          npm run optimize:recall || echo "Recall optimization skipped. Keeping the current profile."
+          npm run optimize:recall
+          npm run validate:recall
 
       - name: Validate app files
         run: npm run check

@@ -1,26 +1,28 @@
-const CACHE_NAME = "saju-lotto-v94";
+const CACHE_NAME = "saju-lotto-v102";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v94",
-  "./app.js?v=feedback-v94",
+  "./styles.css?v=feedback-v102",
+  "./app.js?v=feedback-v102",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v94",
-  "./data/pension-results.js?v=feedback-v94",
-  "./data/lotto-recall-profile.js?v=feedback-v94",
-  "./data/solar-terms.js?v=feedback-v94",
-  "./data/saju-classical-sources.js?v=feedback-v94",
-  "./data/saju-expert-rules.js?v=feedback-v94",
-  "./data/saju-expert-cases.js?v=feedback-v94",
-  "./data/saju-eval-cases.js?v=feedback-v94",
-  "./data/saju-lotto-bridge-rules.js?v=feedback-v94",
-  "./data/saju-professional-report.js?v=feedback-v94"
+  "./data/lotto-results.js?v=feedback-v102",
+  "./data/pension-results.js?v=feedback-v102",
+  "./data/lotto-recall-profile.js?v=feedback-v102",
+  "./data/solar-terms.js?v=feedback-v102",
+  "./data/saju-classical-sources.js?v=feedback-v102",
+  "./data/saju-expert-rules.js?v=feedback-v102",
+  "./data/saju-expert-cases.js?v=feedback-v102",
+  "./data/saju-eval-cases.js?v=feedback-v102",
+  "./data/saju-lotto-bridge-rules.js?v=feedback-v102",
+  "./data/saju-professional-report.js?v=feedback-v102"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => Promise.all(APP_SHELL.map((asset) => cache.add(asset).catch(() => null))))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(APP_SHELL.map((asset) => cache.add(asset).catch(() => null)))
+    )
   );
   self.skipWaiting();
 });
@@ -64,7 +66,20 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith("/data/pension-results.js") ||
     url.pathname.endsWith("/data/pension-results.json") ||
     url.pathname.endsWith("/data/lotto-recall-profile.js") ||
-    url.pathname.endsWith("/data/lotto-recall-profile.json");
+    url.pathname.endsWith("/data/lotto-recall-profile.json") ||
+    url.pathname.endsWith("/data/solar-terms.js") ||
+    url.pathname.endsWith("/data/solar-terms.json") ||
+    url.pathname.endsWith("/data/saju-classical-sources.js") ||
+    url.pathname.endsWith("/data/saju-classical-sources.json") ||
+    url.pathname.endsWith("/data/saju-expert-rules.js") ||
+    url.pathname.endsWith("/data/saju-expert-rules.json") ||
+    url.pathname.endsWith("/data/saju-expert-cases.js") ||
+    url.pathname.endsWith("/data/saju-expert-cases.json") ||
+    url.pathname.endsWith("/data/saju-eval-cases.js") ||
+    url.pathname.endsWith("/data/saju-eval-cases.json") ||
+    url.pathname.endsWith("/data/saju-lotto-bridge-rules.js") ||
+    url.pathname.endsWith("/data/saju-lotto-bridge-rules.json") ||
+    url.pathname.endsWith("/data/saju-professional-report.js");
 
   if (isDataRequest) {
     event.respondWith(
@@ -86,3 +101,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
