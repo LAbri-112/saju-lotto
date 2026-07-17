@@ -3,16 +3,38 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const WINDOW_VALUES = ["20", "50", "100", "200", "500", "700", "1000", "all"];
-const BACKFIT_MODES = ["balance", "wealth", "climate"];
-const BACKFIT_WEIGHTS = [0, 20, 40, 60, 80, 100];
 const LOTTO_UNIVERSE_SIZE = 8145060;
-const PRACTICAL_FRONTIER_LIMIT_MAX = 30;
-const BACKFIT_FRONTIER_LIMITS = [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];
-const DIAGNOSTIC_FRONTIER_LIMITS = [32, 35, 40];
+const PRACTICAL_LIMITS = Array.from({ length: 8 }, (_, index) => index + 18);
+const ALL_FRONTIER_LIMITS = Array.from({ length: 40 }, (_, index) => index + 6);
+const TARGET_COVERAGES = [0.5, 0.7, 0.8, 0.9, 0.95, 0.99, 1];
+const EXPERT_NAMES = [
+  "balanced",
+  "recent20",
+  "recent50",
+  "recent200",
+  "longTerm",
+  "decayed",
+  "reentry",
+  "transition",
+  "overdue",
+];
 
 function clamp(value, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value));
+}
+
+function round(value, digits = 3) {
+  const scale = 10 ** digits;
+  return Math.round(value * scale) / scale;
+}
+
+function combinationCount(size, pick = 6) {
+  if (size < pick) return 0;
+  let result = 1;
+  for (let index = 1; index <= pick; index += 1) {
+    result = (result * (size - pick + index)) / index;
+  }
+  return Math.round(result);
 }
 
 function addCount(target, key, value) {
@@ -37,83 +59,30 @@ function patternSnapshot(numbers, previousNumbers = null) {
   const sum = sorted.reduce((total, number) => total + number, 0);
   const odd = sorted.filter((number) => number % 2 === 1).length;
   const low = sorted.filter((number) => number <= 22).length;
-  const maxGroup = [0, 0, 0, 0, 0];
+  const groups = [0, 0, 0, 0, 0];
 
   for (const number of sorted) {
-    maxGroup[Math.min(4, Math.floor((number - 1) / 10))] += 1;
+    groups[Math.min(4, Math.floor((number - 1) / 10))] += 1;
   }
 
-  const consecutive = sorted.filter((number, index) => index > 0 && number === sorted[index - 1] + 1).length;
-  const sectorCoverage = maxGroup.filter((count) => count > 0).length;
-  const tailDiversity = new Set(sorted.map((number) => number % 10)).size;
+  const consecutive = sorted.filter(
+    (number, index) => index > 0 && number === sorted[index - 1] + 1,
+  ).length;
   const spread = sorted.at(-1) - sorted[0];
-  const repeatPrevious = previousNumbers ? sorted.filter((number) => previousNumbers.has(number)).length : 0;
+  const repeatPrevious = previousNumbers
+    ? sorted.filter((number) => previousNumbers.has(number)).length
+    : 0;
 
   return {
-    sum,
+    sumBand: Math.floor(sum / 10) * 10,
     odd,
     low,
-    consecutive,
-    sectorCoverage,
-    tailDiversity,
-    spread,
-    repeatPrevious,
-    sumBand: Math.floor(sum / 10) * 10,
+    sectorCoverage: groups.filter((count) => count > 0).length,
+    tailDiversity: new Set(sorted.map((number) => number % 10)).size,
     spreadBand: Math.floor(spread / 5) * 5,
     consecutiveBand: Math.min(3, consecutive),
     repeatBand: Math.min(4, repeatPrevious),
   };
-}
-
-function buildPatternModel(sourceDraws) {
-  const shape = emptyShape();
-  let previousNumbers = null;
-
-  for (const draw of sourceDraws) {
-    const snapshot = patternSnapshot(draw.numbers, previousNumbers);
-    addCount(shape, "sumBand", snapshot.sumBand);
-    addCount(shape, "odd", snapshot.odd);
-    addCount(shape, "low", snapshot.low);
-    addCount(shape, "sectorCoverage", snapshot.sectorCoverage);
-    addCount(shape, "tailDiversity", snapshot.tailDiversity);
-    addCount(shape, "spreadBand", snapshot.spreadBand);
-    addCount(shape, "consecutive", snapshot.consecutiveBand);
-    addCount(shape, "repeatPrevious", snapshot.repeatBand);
-    previousNumbers = new Set(draw.numbers);
-  }
-
-  return Object.fromEntries(
-    Object.entries(shape).map(([key, counts]) => {
-      const values = Object.values(counts);
-      return [
-        key,
-        {
-          counts,
-          max: Math.max(...values, 1),
-          total: values.reduce((sum, value) => sum + value, 0),
-        },
-      ];
-    }),
-  );
-}
-
-function fit(model, key, value) {
-  const bucket = model[key];
-  const count = bucket?.counts?.[value] ?? 0;
-  return clamp((count + 1) / ((bucket?.max ?? 1) + 1), 0.08, 1);
-}
-
-function scoreWinningShape(snapshot, model) {
-  return (
-    fit(model, "sumBand", snapshot.sumBand) * 0.18 +
-    fit(model, "odd", snapshot.odd) * 0.12 +
-    fit(model, "low", snapshot.low) * 0.12 +
-    fit(model, "sectorCoverage", snapshot.sectorCoverage) * 0.15 +
-    fit(model, "tailDiversity", snapshot.tailDiversity) * 0.13 +
-    fit(model, "spreadBand", snapshot.spreadBand) * 0.15 +
-    fit(model, "repeatPrevious", snapshot.repeatBand) * 0.1 +
-    fit(model, "consecutive", snapshot.consecutiveBand) * 0.05
-  );
 }
 
 function summarizeShape(shape) {
@@ -128,233 +97,268 @@ function summarizeShape(shape) {
         .map(([value, count]) => ({
           value,
           count,
-          rate: total ? Math.round((count / total) * 1000) / 10 : 0,
+          rate: total ? round((count / total) * 100, 1) : 0,
         }));
-
       return [key, { counts, total, max, preferred }];
     }),
   );
 }
 
-function windowSize(value, sourceCount) {
-  if (value === "all") return Math.max(1, sourceCount);
-  return Math.min(Number(value), sourceCount);
-}
-
-function combinationCount(size, pick = 6) {
-  if (size < pick) return 0;
-  let result = 1;
-  for (let index = 1; index <= pick; index += 1) {
-    result = (result * (size - pick + index)) / index;
+function buildFrequencyPrefix(draws) {
+  const prefix = [Array(46).fill(0)];
+  for (const draw of draws) {
+    const next = prefix.at(-1).slice();
+    for (const number of draw.numbers) next[number] += 1;
+    prefix.push(next);
   }
-  return Math.round(result);
+  return prefix;
 }
 
-function rankedNumbersBy(source, ranker) {
-  return Array.from({ length: 45 }, (_, index) => index + 1)
-    .sort((a, b) => ranker(b) - ranker(a) || a - b)
-    .filter((number) => source[number] !== null);
-}
-
-function appendUniqueNumber(target, number, limit) {
-  if (!number || target.includes(number) || target.length >= limit) return;
-  target.push(number);
-}
-
-function buildReverseFrontier(priorDraws, value, limit = 25, setting = {}) {
-  const trendDraws = priorDraws.slice(-windowSize(value, priorDraws.length));
-  const longFrequency = Array(46).fill(0);
-  const trendFrequency = Array(46).fill(0);
-  const lastSeen = Array(46).fill(0);
-  const latestDrawNo = priorDraws.at(-1)?.draw ?? 0;
-  const latestNumbers = new Set(priorDraws.at(-1)?.numbers ?? []);
-  const numberSignal = Array(46).fill(null);
-
-  for (const draw of priorDraws) {
-    for (const number of draw.numbers ?? []) {
-      longFrequency[number] += 1;
-      lastSeen[number] = draw.draw;
-    }
-  }
-
-  for (const draw of trendDraws) {
-    for (const number of draw.numbers ?? []) {
-      trendFrequency[number] += 1;
-    }
-  }
-
-  const maxTrend = Math.max(...trendFrequency, 1);
-  const maxLong = Math.max(...longFrequency, 1);
-
+function frequencyFromPrefix(prefix, end, window) {
+  const start = window === "all" ? 0 : Math.max(0, end - Number(window));
+  const result = Array(46).fill(0);
   for (let number = 1; number <= 45; number += 1) {
-    const trendFit = (trendFrequency[number] + 1) / (maxTrend + 1);
-    const longFit = (longFrequency[number] + 1) / (maxLong + 1);
-    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : Math.max(30, trendDraws.length);
-    const gapFit = clamp(Math.log1p(gap) / 7);
-    const repeatFit = latestNumbers.has(number) ? 0.62 : 1;
-    numberSignal[number] = trendFit * 0.42 + longFit * 0.3 + gapFit * 0.2 + repeatFit * 0.08;
+    result[number] = prefix[end][number] - prefix[start][number];
   }
+  return result;
+}
 
-  const reentryScore = (number) => {
-    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : 99;
-    const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
-    return (
-      reentryZone * 2 +
-      ((longFrequency[number] ?? 0) / maxLong) * 0.3 +
-      ((trendFrequency[number] ?? 0) / maxTrend) * 0.15
-    );
-  };
-  const lowReentryScore = (number) => {
-    const gap = lastSeen[number] ? latestDrawNo - lastSeen[number] : 99;
-    const reentryZone = gap >= 3 && gap <= 8 ? 1 : gap >= 2 && gap <= 12 ? 0.72 : 0;
-    return reentryZone * 2 + ((longFrequency[number] ?? 0) / maxLong) * 0.2 + (number <= 22 ? 0.45 : 0);
-  };
-  const bySignal = rankedNumbersBy(numberSignal, (number) => numberSignal[number]);
-  const byLowReentry = rankedNumbersBy(numberSignal, (number) => lowReentryScore(number));
-  const byReentry = rankedNumbersBy(numberSignal, (number) => reentryScore(number));
-  const byLong = rankedNumbersBy(numberSignal, (number) => longFrequency[number] ?? 0);
-  const byRecent = rankedNumbersBy(numberSignal, (number) => trendFrequency[number] ?? 0);
-  const byCold = rankedNumbersBy(numberSignal, (number) => {
-    const seen = lastSeen[number] ?? 0;
-    return seen ? latestDrawNo - seen : 999;
-  });
-  const frontier = [];
-  const mode = setting.mode ?? "balance";
-  const weight = Number(setting.weight ?? 60);
-  let lanes = [bySignal, byLowReentry, byReentry, byLong, byRecent, byCold];
-
-  if (weight <= 20) {
-    lanes = [bySignal, byLong, byRecent, byCold, byReentry, byLowReentry];
-  } else if (mode === "wealth" && weight >= 50) {
-    lanes = [byLong, byRecent, bySignal, byReentry, byLowReentry, byCold];
-  } else if (mode === "climate" && weight >= 50) {
-    lanes = [byLowReentry, byCold, bySignal, byReentry, byLong, byRecent];
-  } else if (weight >= 80) {
-    lanes = [byLowReentry, byReentry, bySignal, byLong, byRecent, byCold];
+function normalized(values, invert = false) {
+  const source = values.slice(1);
+  const min = Math.min(...source);
+  const max = Math.max(...source);
+  const span = Math.max(1e-9, max - min);
+  const result = Array(46).fill(0);
+  for (let number = 1; number <= 45; number += 1) {
+    const value = (values[number] - min) / span;
+    result[number] = invert ? 1 - value : value;
   }
-
-  for (let index = 0; frontier.length < limit && index < 45; index += 1) {
-    for (const lane of lanes) {
-      appendUniqueNumber(frontier, lane[index], limit);
-    }
-  }
-
-  return frontier.sort((a, b) => a - b);
+  return result;
 }
 
-function round(value, digits = 3) {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
-}
-
-function settingKey(setting) {
-  return [
-    setting.mode,
-    setting.weight,
-    setting.window,
-    setting.frontierLimit,
-  ].join("|");
-}
-
-function addSettingCount(map, setting) {
-  const key = settingKey(setting);
-  const current = map.get(key) ?? {
-    mode: setting.mode,
-    weight: setting.weight,
-    window: setting.window,
-    frontierLimit: setting.frontierLimit,
-    candidateCount: setting.candidateCount,
-    count: 0,
-    recentScore: 0,
-  };
-  current.count += 1;
-  current.recentScore += setting.recentScore ?? 1;
-  map.set(key, current);
-}
-
-function addFlatCount(map, key) {
-  map.set(String(key), (map.get(String(key)) ?? 0) + 1);
-}
-
-function summarizeFlatCounts(map, total) {
-  return [...map.entries()]
-    .map(([value, count]) => ({
-      value,
-      count,
-      rate: total ? round((count / total) * 100, 1) : 0,
-    }))
-    .sort((a, b) => b.count - a.count || String(a.value).localeCompare(String(b.value)));
-}
-
-function summarizeSettingCounts(map, total) {
-  return [...map.values()]
-    .map((item) => ({
-      ...item,
-      rate: total ? round((item.count / total) * 100, 1) : 0,
-      efficiency: round((item.count / Math.max(1, total)) / Math.max(1, item.candidateCount / LOTTO_UNIVERSE_SIZE), 3),
-    }))
-    .sort((a, b) => {
-      const practicalA = a.frontierLimit <= 30 ? 1 : 0;
-      const practicalB = b.frontierLimit <= 30 ? 1 : 0;
-      return (
-        practicalB - practicalA ||
-        b.count - a.count ||
-        a.candidateCount - b.candidateCount ||
-        b.recentScore - a.recentScore
-      );
-    });
-}
-
-function compareBackfitSetting(a, b) {
-  return (
-    a.frontierLimit - b.frontierLimit ||
-    a.candidateCount - b.candidateCount ||
-    a.weight - b.weight ||
-    String(a.window).localeCompare(String(b.window)) ||
-    String(a.mode).localeCompare(String(b.mode))
+function orderFromScores(scores) {
+  return Array.from({ length: 45 }, (_, index) => index + 1).sort(
+    (a, b) => scores[b] - scores[a] || a - b,
   );
 }
 
-function findBackfitSetting(draw, priorDraws, recencyWeight = 1) {
-  const scanLimits = (limits) => {
-    const exactSettings = [];
+function rankScores(order) {
+  const result = Array(46).fill(0);
+  order.forEach((number, index) => {
+    result[number] = 1 - index / 44;
+  });
+  return result;
+}
 
-    for (const frontierLimit of limits) {
-      for (const window of WINDOW_VALUES) {
-        for (const mode of BACKFIT_MODES) {
-          for (const weight of BACKFIT_WEIGHTS) {
-            const frontier = buildReverseFrontier(priorDraws, window, frontierLimit, { mode, weight });
-            const frontierSet = new Set(frontier);
-            const exact = draw.numbers.every((number) => frontierSet.has(number));
-            if (!exact) continue;
+function createPredictionState(draws, minPrior) {
+  const transition = Array.from({ length: 46 }, () => Array(46).fill(0));
+  const transitionSources = Array(46).fill(0);
+  const lastSeen = Array(46).fill(0);
+  const decayed = Array(46).fill(0);
 
-            exactSettings.push({
-              mode,
-              weight,
-              window,
-              frontierLimit,
-              candidateCount: combinationCount(frontierLimit, 6),
-              recentScore: recencyWeight,
-            });
-          }
-        }
-      }
-      if (exactSettings.length) break;
+  for (let index = 0; index < minPrior; index += 1) {
+    const draw = draws[index];
+    for (let number = 1; number <= 45; number += 1) decayed[number] *= 0.965;
+    for (const number of draw.numbers) {
+      decayed[number] += 1;
+      lastSeen[number] = draw.draw;
     }
+    if (index > 0) {
+      for (const source of draws[index - 1].numbers) {
+        transitionSources[source] += 1;
+        for (const target of draw.numbers) transition[source][target] += 1;
+      }
+    }
+  }
 
-    exactSettings.sort(compareBackfitSetting);
-    return exactSettings;
+  return { transition, transitionSources, lastSeen, decayed };
+}
+
+function updatePredictionState(state, draw, previousDraw) {
+  for (let number = 1; number <= 45; number += 1) state.decayed[number] *= 0.965;
+  for (const number of draw.numbers) {
+    state.decayed[number] += 1;
+    state.lastSeen[number] = draw.draw;
+  }
+  if (!previousDraw) return;
+  for (const source of previousDraw.numbers) {
+    state.transitionSources[source] += 1;
+    for (const target of draw.numbers) state.transition[source][target] += 1;
+  }
+}
+
+function buildExpertOrders({ draws, index, prefix, state }) {
+  const latestDraw = draws[index - 1] ?? null;
+  const latestDrawNo = latestDraw?.draw ?? 0;
+  const longFrequency = frequencyFromPrefix(prefix, index, "all");
+  const recent20 = frequencyFromPrefix(prefix, index, 20);
+  const recent50 = frequencyFromPrefix(prefix, index, 50);
+  const recent200 = frequencyFromPrefix(prefix, index, 200);
+  const longFit = normalized(longFrequency);
+  const fit20 = normalized(recent20);
+  const fit50 = normalized(recent50);
+  const fit200 = normalized(recent200);
+  const decayFit = normalized(state.decayed);
+  const gaps = Array(46).fill(0);
+  const reentry = Array(46).fill(0);
+  const transition = Array(46).fill(0);
+
+  for (let number = 1; number <= 45; number += 1) {
+    const gap = state.lastSeen[number]
+      ? Math.max(0, latestDrawNo - state.lastSeen[number])
+      : Math.max(12, index);
+    gaps[number] = gap;
+    reentry[number] = Math.exp(-Math.abs(gap - 5) / 4) * 0.72 + longFit[number] * 0.28;
+
+    if (latestDraw) {
+      transition[number] = latestDraw.numbers.reduce((sum, source) => {
+        const denominator = Math.max(1, state.transitionSources[source]);
+        return sum + state.transition[source][number] / denominator;
+      }, 0) / latestDraw.numbers.length;
+    }
+  }
+
+  const gapFit = normalized(gaps);
+  const transitionFit = normalized(transition);
+  const balanced = Array(46).fill(0);
+  for (let number = 1; number <= 45; number += 1) {
+    balanced[number] =
+      fit20[number] * 0.16 +
+      fit50[number] * 0.18 +
+      fit200[number] * 0.14 +
+      longFit[number] * 0.12 +
+      decayFit[number] * 0.14 +
+      reentry[number] * 0.12 +
+      transitionFit[number] * 0.09 +
+      gapFit[number] * 0.05;
+  }
+
+  const scoreSets = {
+    balanced,
+    recent20: fit20,
+    recent50: fit50,
+    recent200: fit200,
+    longTerm: longFit,
+    decayed: decayFit,
+    reentry,
+    transition: transitionFit,
+    overdue: gapFit,
   };
 
-  const exactSettings = scanLimits(BACKFIT_FRONTIER_LIMITS);
-  const diagnosticSettings = exactSettings.length ? [] : scanLimits(DIAGNOSTIC_FRONTIER_LIMITS);
+  return Object.fromEntries(
+    Object.entries(scoreSets).map(([name, scores]) => [name, orderFromScores(scores)]),
+  );
+}
+
+function buildEnsembleOrder(expertOrders, expertWeights) {
+  const scores = Array(46).fill(0);
+  let totalWeight = 0;
+
+  for (const name of EXPERT_NAMES) {
+    const weight = expertWeights[name] ?? 1;
+    const ranks = rankScores(expertOrders[name]);
+    totalWeight += weight;
+    for (let number = 1; number <= 45; number += 1) scores[number] += ranks[number] * weight;
+  }
+
+  for (let number = 1; number <= 45; number += 1) scores[number] /= Math.max(1e-9, totalWeight);
+  return orderFromScores(scores);
+}
+
+function rankMap(order) {
+  const ranks = Array(46).fill(45);
+  order.forEach((number, index) => {
+    ranks[number] = index + 1;
+  });
+  return ranks;
+}
+
+function updateExpertWeights(expertWeights, expertOrders, winningNumbers, eta = 0.32) {
+  const next = {};
+  let total = 0;
+  for (const name of EXPERT_NAMES) {
+    const ranks = rankMap(expertOrders[name]);
+    const loss = winningNumbers.reduce((sum, number) => sum + (ranks[number] - 1) / 44, 0) / 6;
+    next[name] = (expertWeights[name] ?? 1) * Math.exp(-eta * loss);
+    total += next[name];
+  }
+  for (const name of EXPERT_NAMES) next[name] = (next[name] / Math.max(1e-9, total)) * EXPERT_NAMES.length;
+  return next;
+}
+
+function createExpertHistory() {
+  return Object.fromEntries(
+    EXPERT_NAMES.map((name) => [name, { observations: 0, exactAt29: 0, rankSum: 0 }]),
+  );
+}
+
+function chooseOnlineExpert(history) {
+  const randomPrior = combinationCount(29, 6) / LOTTO_UNIVERSE_SIZE;
+  return EXPERT_NAMES.slice().sort((a, b) => {
+    const left = history[a];
+    const right = history[b];
+    const leftRate = (left.exactAt29 + randomPrior * 20) / (left.observations + 20);
+    const rightRate = (right.exactAt29 + randomPrior * 20) / (right.observations + 20);
+    const leftRank = left.observations ? left.rankSum / left.observations : 23;
+    const rightRank = right.observations ? right.rankSum / right.observations : 23;
+    return rightRate - leftRate || leftRank - rightRank || a.localeCompare(b);
+  })[0];
+}
+
+function chooseRollingExpert(records, lookback = 300) {
+  if (records.length < 40) return "balanced";
+  return expertPerformance(records.slice(-lookback))[0]?.expert ?? "balanced";
+}
+
+function updateExpertHistory(history, expertRequiredLimits, expertAverageRanks) {
+  for (const name of EXPERT_NAMES) {
+    history[name].observations += 1;
+    history[name].rankSum += expertAverageRanks[name];
+    if (expertRequiredLimits[name] <= 29) history[name].exactAt29 += 1;
+  }
+}
+
+function coverageRow(records, limit) {
+  const exactDraws = records.filter((record) => record.requiredFrontierLimit <= limit).length;
+  const rate = records.length ? exactDraws / records.length : 0;
+  const candidateCount = combinationCount(limit, 6);
+  const randomExpectedRate = candidateCount / LOTTO_UNIVERSE_SIZE;
   return {
-    exact: exactSettings.length > 0,
-    bestSetting: exactSettings[0] ?? null,
-    exactSettings: exactSettings.slice(0, 12),
-    diagnosticExact: diagnosticSettings.length > 0,
-    diagnosticSetting: diagnosticSettings[0] ?? null,
+    frontierLimit: limit,
+    candidateCount,
+    exactDraws,
+    exactRate: round(rate * 100, 2),
+    randomExpectedRate: round(randomExpectedRate * 100, 3),
+    lift: randomExpectedRate ? round(rate / randomExpectedRate, 3) : 0,
   };
+}
+
+function choosePracticalRow(rows, recordCount) {
+  const bestHits = Math.max(...rows.map((row) => row.exactDraws), 0);
+  const toleratedMisses = Math.max(1, Math.round(recordCount * 0.0025));
+  return rows.find((row) => row.exactDraws >= bestHits - toleratedMisses) ?? rows.at(-1);
+}
+
+function targetCoverageRows(rows) {
+  return TARGET_COVERAGES.map((target) => {
+    const row = rows.find((item) => item.exactRate + 1e-9 >= target * 100) ?? rows.at(-1);
+    return { targetRate: target * 100, ...row };
+  });
+}
+
+function expertPerformance(records) {
+  return EXPERT_NAMES.map((name) => {
+    const averageWinningRank = records.length
+      ? records.reduce((sum, record) => sum + record.expertAverageRanks[name], 0) / records.length
+      : 45;
+    const exactAt29 = records.filter((record) => record.expertRequiredLimits[name] <= 29).length;
+    return {
+      expert: name,
+      averageWinningRank: round(averageWinningRank, 3),
+      exactAt29,
+      exactAt29Rate: records.length ? round((exactAt29 / records.length) * 100, 2) : 0,
+    };
+  }).sort((a, b) => b.exactAt29Rate - a.exactAt29Rate || a.averageWinningRank - b.averageWinningRank);
 }
 
 async function main() {
@@ -366,168 +370,153 @@ async function main() {
       return [key, value];
     }),
   );
-  const minPrior = Number(args.minPrior ?? 20);
+  const minPrior = clamp(Number(args.minPrior ?? 0), 0, Math.max(0, draws.length - 1));
+  const prefix = buildFrequencyPrefix(draws);
+  const state = createPredictionState(draws, minPrior);
   const shape = emptyShape();
-  const windowWins = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
-  const frontierHits = Object.fromEntries(WINDOW_VALUES.map((value) => [value, 0]));
-  const backfitSettingCounts = new Map();
-  const backfitWindowCounts = new Map();
-  const backfitModeCounts = new Map();
-  const backfitWeightCounts = new Map();
-  const backfitLimitCounts = new Map();
   const records = [];
+  let expertWeights = Object.fromEntries(EXPERT_NAMES.map((name) => [name, 1]));
+  const expertHistory = createExpertHistory();
 
   for (let index = minPrior; index < draws.length; index += 1) {
     const draw = draws[index];
-    const priorDraws = draws.slice(0, index);
-    const recencyWeight = 0.65 + 0.35 * ((index - minPrior + 1) / Math.max(1, draws.length - minPrior));
-    const previousNumbers = new Set(priorDraws.at(-1)?.numbers ?? []);
-    const winningSnapshot = patternSnapshot(draw.numbers, previousNumbers);
+    const previousDraw = draws[index - 1] ?? null;
+    const expertOrders = buildExpertOrders({ draws, index, prefix, state });
+    const selectedExpert = chooseRollingExpert(records);
+    const selectedOrder = expertOrders[selectedExpert];
+    const ranks = rankMap(selectedOrder);
+    const requiredFrontierLimit = Math.max(...draw.numbers.map((number) => ranks[number]));
+    const expertRequiredLimits = {};
+    const expertAverageRanks = {};
 
-    addCount(shape, "sumBand", winningSnapshot.sumBand);
-    addCount(shape, "odd", winningSnapshot.odd);
-    addCount(shape, "low", winningSnapshot.low);
-    addCount(shape, "sectorCoverage", winningSnapshot.sectorCoverage);
-    addCount(shape, "tailDiversity", winningSnapshot.tailDiversity);
-    addCount(shape, "spreadBand", winningSnapshot.spreadBand);
-    addCount(shape, "consecutive", winningSnapshot.consecutiveBand);
-    addCount(shape, "repeatPrevious", winningSnapshot.repeatBand);
-
-    let bestWindow = null;
-    let bestScore = -Infinity;
-    let bestFrontierHit = false;
-    let bestFrontier = [];
-    const windowDetails = [];
-    for (const value of WINDOW_VALUES) {
-      const model = buildPatternModel(priorDraws.slice(-windowSize(value, priorDraws.length)));
-      const shapeScore = scoreWinningShape(winningSnapshot, model);
-      const frontier = buildReverseFrontier(priorDraws, value);
-      const frontierSet = new Set(frontier);
-      const exactInFrontier = draw.numbers.every((number) => frontierSet.has(number));
-      const score = shapeScore + (exactInFrontier ? 1 : 0);
-      windowDetails.push({
-        window: value,
-        exactInFrontier,
-        shapeScore: round(shapeScore, 4),
-      });
-      if (exactInFrontier) frontierHits[value] += 1;
-      if (score > bestScore) {
-        bestScore = score;
-        bestWindow = value;
-        bestFrontierHit = exactInFrontier;
-        bestFrontier = frontier;
-      }
-    }
-    const backfit = findBackfitSetting(draw, priorDraws, recencyWeight);
-
-    if (backfit.bestSetting) {
-      addSettingCount(backfitSettingCounts, backfit.bestSetting);
-      addFlatCount(backfitWindowCounts, backfit.bestSetting.window);
-      addFlatCount(backfitModeCounts, backfit.bestSetting.mode);
-      addFlatCount(backfitWeightCounts, backfit.bestSetting.weight);
-      addFlatCount(backfitLimitCounts, backfit.bestSetting.frontierLimit);
+    for (const name of EXPERT_NAMES) {
+      const expertRanks = rankMap(expertOrders[name]);
+      const winningRanks = draw.numbers.map((number) => expertRanks[number]);
+      expertRequiredLimits[name] = Math.max(...winningRanks);
+      expertAverageRanks[name] = winningRanks.reduce((sum, rank) => sum + rank, 0) / 6;
     }
 
-    windowWins[bestWindow] += 1;
+    const snapshot = patternSnapshot(draw.numbers, previousDraw ? new Set(previousDraw.numbers) : null);
+    addCount(shape, "sumBand", snapshot.sumBand);
+    addCount(shape, "odd", snapshot.odd);
+    addCount(shape, "low", snapshot.low);
+    addCount(shape, "sectorCoverage", snapshot.sectorCoverage);
+    addCount(shape, "tailDiversity", snapshot.tailDiversity);
+    addCount(shape, "spreadBand", snapshot.spreadBand);
+    addCount(shape, "consecutive", snapshot.consecutiveBand);
+    addCount(shape, "repeatPrevious", snapshot.repeatBand);
+
     records.push({
       draw: draw.draw,
       date: draw.date,
-      bestWindow,
-      bestShapeScore: round(bestScore - (bestFrontierHit ? 1 : 0), 4),
-      exactInFrontier: bestFrontierHit,
-      frontierNumberCount: bestFrontier.length,
-      frontierCandidateCount: combinationCount(bestFrontier.length, 6),
-      backfit,
-      windowDetails,
-      snapshot: {
-        sumBand: winningSnapshot.sumBand,
-        odd: winningSnapshot.odd,
-        low: winningSnapshot.low,
-        sectorCoverage: winningSnapshot.sectorCoverage,
-        tailDiversity: winningSnapshot.tailDiversity,
-        spreadBand: winningSnapshot.spreadBand,
-        consecutive: winningSnapshot.consecutiveBand,
-        repeatPrevious: winningSnapshot.repeatBand,
-      },
+      selectedExpert,
+      requiredFrontierLimit,
+      winningRanks: draw.numbers.map((number) => ranks[number]).sort((a, b) => a - b),
+      expertRequiredLimits,
+      expertAverageRanks,
     });
+
+    expertWeights = updateExpertWeights(expertWeights, expertOrders, draw.numbers);
+    updateExpertHistory(expertHistory, expertRequiredLimits, expertAverageRanks);
+    updatePredictionState(state, draw, previousDraw);
   }
 
-  const backfitExactRecords = records.filter((record) => record.backfit?.bestSetting);
-  const diagnosticOnlyRecords = records.filter(
-    (record) => !record.backfit?.bestSetting && record.backfit?.diagnosticSetting,
-  );
-  const backfitSettings = summarizeSettingCounts(backfitSettingCounts, records.length);
-  const recommendedBackfitSetting =
-    backfitSettings.find((setting) => setting.frontierLimit <= 30) ??
-    backfitSettings[0] ??
-    {
-      mode: "balance",
-      weight: 60,
-      window: "20",
-      frontierLimit: 25,
-      candidateCount: combinationCount(25, 6),
-      count: 0,
-      rate: 0,
-    };
+  const allCoverageRows = ALL_FRONTIER_LIMITS.map((limit) => coverageRow(records, limit));
+  const practicalRows = PRACTICAL_LIMITS.map((limit) => coverageRow(records, limit));
+  const recommended = choosePracticalRow(practicalRows, records.length);
+  const strictLimit = Math.max(...records.map((record) => record.requiredFrontierLimit), 6);
+  const strictRow = coverageRow(records, strictLimit);
+  const splitIndex = Math.max(1, Math.floor(records.length * 0.7));
+  const trainingRecords = records.slice(0, splitIndex);
+  const validationRecords = records.slice(splitIndex);
+  const trainingRows = PRACTICAL_LIMITS.map((limit) => coverageRow(trainingRecords, limit));
+  const trainingChoice = choosePracticalRow(trainingRows, trainingRecords.length);
+  const validationRow = coverageRow(validationRecords, trainingChoice.frontierLimit);
+  const nextExpertOrders = buildExpertOrders({ draws, index: draws.length, prefix, state });
+  const performance = expertPerformance(records);
+  const trainingExpertPerformance = expertPerformance(trainingRecords);
+  const validationExpertPerformance = expertPerformance(validationRecords);
+  const bestExpert = chooseRollingExpert(records);
+  const nextDrawNumberOrder = nextExpertOrders[bestExpert] ?? buildEnsembleOrder(nextExpertOrders, expertWeights);
+  const recommendedWindow = {
+    recent20: "20",
+    recent50: "50",
+    recent200: "200",
+    longTerm: "all",
+    decayed: "50",
+  }[bestExpert] ?? "50";
 
   const profile = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     basisLatestDraw: dataset.latestDraw,
     basisLatestDate: dataset.latestDate,
     sourceDrawCount: draws.length,
     evaluatedDraws: records.length,
     minPrior,
-    goal:
-      "Use all historical draws in reverse to favor compact candidate pools whose patterns resemble where past winning numbers actually appeared.",
+    goal: "Maximize walk-forward winning-combination recall first, then minimize the candidate count without using future draw data.",
     coreCandidatePolicy: {
       minK: 420,
       mode: "adaptive",
-      objective: "prefer settings that historically placed the actual winning numbers inside the generated candidate frontier, then shrink the final display to the strongest picks.",
+      objective: "Rank candidates with prior draws only; saju is a soft personalization score and never a historical recall label.",
     },
     candidateFrontier: {
-      numberCount: Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)),
-      candidateCount: combinationCount(Math.min(30, Math.max(25, recommendedBackfitSetting.frontierLimit ?? 25)), 6),
-      objective: "reverse-test every draw against 20/50/100/200/500/700/1000/all windows and count only compact practical frontiers, excluding the full 8,145,060-combination universe from recall success.",
-      practicalMaxFrontierLimit: PRACTICAL_FRONTIER_LIMIT_MAX,
+      numberCount: recommended.frontierLimit,
+      candidateCount: recommended.candidateCount,
+      practicalMaxFrontierLimit: PRACTICAL_LIMITS.at(-1),
+      objective: "Smallest practical number frontier within the measured recall tolerance of the best practical frontier.",
     },
-    backfitSummary: {
+    walkForwardPolicy: {
+      noFutureLeakage: true,
+      usedForRecommendations: true,
       evaluatedDraws: records.length,
-      exactDraws: backfitExactRecords.length,
-      exactRate: records.length ? round((backfitExactRecords.length / records.length) * 100, 1) : 0,
-      diagnosticOnlyDraws: diagnosticOnlyRecords.length,
-      recommendedSetting: recommendedBackfitSetting,
-      settingCounts: backfitSettings.slice(0, 24),
-      windowCounts: summarizeFlatCounts(backfitWindowCounts, records.length),
-      modeCounts: summarizeFlatCounts(backfitModeCounts, records.length),
-      weightCounts: summarizeFlatCounts(backfitWeightCounts, records.length),
-      frontierLimitCounts: summarizeFlatCounts(backfitLimitCounts, records.length),
-      recentRecords: records.slice(-12).reverse().map((record) => ({
+      recommendedWindow,
+      practicalRecommendation: recommended,
+      holdoutValidation: {
+        trainingDraws: trainingRecords.length,
+        validationDraws: validationRecords.length,
+        frontierLimitChosenOnTrainingOnly: trainingChoice.frontierLimit,
+        candidateCount: trainingChoice.candidateCount,
+        exactDraws: validationRow.exactDraws,
+        exactRate: validationRow.exactRate,
+        randomExpectedRate: validationRow.randomExpectedRate,
+        lift: validationRow.lift,
+      },
+      strictHistoricalCoverage: {
+        ...strictRow,
+        note: "This is the minimum number-frontier size that contains every evaluated historical winner under the fixed prior-only ranking. It is diagnostic, not a future guarantee.",
+      },
+      targetCoverageFrontiers: targetCoverageRows(allCoverageRows),
+      practicalCoverage: practicalRows,
+      expertPerformance: performance,
+      trainingExpertPerformance,
+      validationExpertPerformance,
+      selectedExpertForNextDraw: bestExpert,
+      finalExpertWeights: Object.fromEntries(
+        Object.entries(expertWeights).map(([name, value]) => [name, round(value, 5)]),
+      ),
+      nextDrawNumberOrder,
+      recentRecords: records.slice(-20).reverse().map((record) => ({
         draw: record.draw,
         date: record.date,
-        exact: Boolean(record.backfit?.bestSetting),
-        bestSetting: record.backfit?.bestSetting ?? null,
-        diagnosticSetting: record.backfit?.diagnosticSetting ?? null,
+        selectedExpert: record.selectedExpert,
+        requiredFrontierLimit: record.requiredFrontierLimit,
+        winningRanks: record.winningRanks,
       })),
     },
+    backfitSummary: {
+      diagnosticOnly: true,
+      usedForRecommendations: false,
+      recommendedSetting: null,
+      note: "Per-draw hindsight settings are intentionally excluded from automatic recommendations.",
+    },
     winningShape: summarizeShape(shape),
-    bestWindowCounts: Object.entries(windowWins)
-      .map(([window, count]) => ({
-        window,
-        count,
-        rate: records.length ? round((count / records.length) * 100, 1) : 0,
-      }))
-      .sort((a, b) => b.count - a.count || String(a.window).localeCompare(String(b.window))),
-    frontierHitWindowCounts: Object.entries(frontierHits)
-      .map(([window, count]) => ({
-        window,
-        count,
-        rate: records.length ? round((count / records.length) * 100, 1) : 0,
-      }))
-      .sort((a, b) => b.count - a.count || String(a.window).localeCompare(String(b.window))),
-    frontierHitRate: records.length
-      ? round((records.filter((record) => record.exactInFrontier).length / records.length) * 100, 1)
-      : 0,
+    frontierHitWindowCounts: performance.slice(0, 6).map((item) => ({
+      window: item.expert,
+      count: item.exactAt29,
+      rate: item.exactAt29Rate,
+    })),
+    frontierHitRate: recommended.exactRate,
     recentRecords: records.slice(-12).reverse(),
   };
 
@@ -536,18 +525,14 @@ async function main() {
   await writeFile(jsonPath, `${JSON.stringify(profile, null, 2)}\n`, "utf8");
   await writeFile(jsPath, `window.LOTTO_RECALL_PROFILE = ${JSON.stringify(profile)};\n`, "utf8");
 
-  console.log(
-    JSON.stringify(
-      {
-        wrote: ["data/lotto-recall-profile.json", "data/lotto-recall-profile.js"],
-        basisLatestDraw: profile.basisLatestDraw,
-        evaluatedDraws: profile.evaluatedDraws,
-        topWindows: profile.bestWindowCounts.slice(0, 4),
-      },
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify({
+    wrote: ["data/lotto-recall-profile.json", "data/lotto-recall-profile.js"],
+    basisLatestDraw: profile.basisLatestDraw,
+    evaluatedDraws: profile.evaluatedDraws,
+    practicalRecommendation: profile.walkForwardPolicy.practicalRecommendation,
+    holdoutValidation: profile.walkForwardPolicy.holdoutValidation,
+    strictHistoricalCoverage: profile.walkForwardPolicy.strictHistoricalCoverage,
+  }, null, 2));
 }
 
 main().catch((error) => {

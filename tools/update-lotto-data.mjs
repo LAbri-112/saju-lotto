@@ -658,13 +658,46 @@ async function fetchFullayerPage(page) {
   return html;
 }
 
-async function fetchFullayerDataset() {
+async function fetchFullayerDataset(existingPayload = null) {
   const firstPage = await fetchFullayerPage(1);
+  const firstPageDraws = parseFullayerRows(firstPage);
+  const existingDraws = existingPayload?.draws ?? [];
+  const latestFallbackDraw = Math.max(...firstPageDraws.map((draw) => draw.draw), 0);
+
+  if (isSequentialDrawList(existingDraws) && existingDraws.length && latestFallbackDraw) {
+    const lastStoredDraw = existingDraws.at(-1).draw;
+    const firstPageMap = new Map(firstPageDraws.map((draw) => [draw.draw, draw]));
+    const hasEveryNewDraw = Array.from(
+      { length: Math.max(0, latestFallbackDraw - lastStoredDraw) },
+      (_, index) => lastStoredDraw + index + 1,
+    ).every((drawNo) => firstPageMap.has(drawNo));
+
+    if (latestFallbackDraw >= lastStoredDraw && hasEveryNewDraw) {
+      const draws = existingDraws.map((draw) => ({ ...draw }));
+      const indexByDraw = new Map(draws.map((draw, index) => [draw.draw, index]));
+      for (const fresh of firstPageDraws) {
+        const index = indexByDraw.get(fresh.draw);
+        if (index == null) {
+          draws.push(fresh);
+        } else {
+          draws[index] = mergeDraw(draws[index], fresh);
+        }
+      }
+      draws.sort((a, b) => a.draw - b.draw);
+      await enrichMissingPrizeRows(draws);
+      return {
+        source: "fullayer-public-list-incremental",
+        sourceUrl: FULLAYER_URL,
+        draws,
+      };
+    }
+  }
+
   const total = Number(
     firstPage.match(/Total\s*<span>([\d,]+)<\/span>/i)?.[1]?.replace(/,/g, ""),
   );
   const pageCount = Math.ceil((total || 0) / 20);
-  const draws = parseFullayerRows(firstPage);
+  const draws = firstPageDraws;
 
   for (let page = 2; page <= pageCount; page += 1) {
     const html = await fetchFullayerPage(page);
@@ -728,7 +761,7 @@ async function main() {
   } catch (error) {
     process.stderr.write(`Official fetch failed: ${error.message}\n`);
     try {
-      dataset = await fetchFullayerDataset();
+      dataset = await fetchFullayerDataset(existingPayload);
     } catch (fallbackError) {
       if (!existingPayload?.draws?.length) throw fallbackError;
       process.stderr.write(

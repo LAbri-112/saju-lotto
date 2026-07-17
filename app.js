@@ -778,7 +778,8 @@
   function formatPrizeNetLine(amount, options = {}) {
     const estimate = estimateNetPrize(amount, options);
     if (!estimate.gross) return "";
-    return `<small class="net-prize-line">세후 예상 ${formatMoney(estimate.net)}</small>`;
+    const label = estimate.tax > 0 ? "세후 예상" : "세후 예상";
+    return `<small class="net-prize-line">${label} ${formatMoney(estimate.net)}</small>`;
   }
 
   function compactWon(amount) {
@@ -843,23 +844,39 @@
   }
 
   function officialSolarTermBoundary(term, year) {
-    const terms = Array.isArray(sajuReferenceData.solarTerms?.terms) ? sajuReferenceData.solarTerms.terms : [];
-    if (!terms.length) return null;
-    const entry = terms.find((item) => Number(item.year) === Number(year) && (item.key === term.key || Math.abs(Number(item.longitude) - Number(term.longitude)) < 0.001));
+    const officialTerms = Array.isArray(sajuReferenceData.solarTerms?.terms)
+      ? sajuReferenceData.solarTerms.terms
+      : [];
+    if (!officialTerms.length) return null;
+
+    const entry = officialTerms.find((item) => {
+      const sameYear = Number(item.year) === Number(year);
+      const sameLongitude = Math.abs(Number(item.longitude) - Number(term.longitude)) < 0.001;
+      const sameKey = item.key === term.key;
+      return sameYear && (sameLongitude || sameKey);
+    });
     if (!entry) return null;
-    const yearValue = Number(entry.year);
-    const monthValue = Number(entry.month);
-    const dayValue = Number(entry.day);
-    const hourValue = Number.isFinite(Number(entry.hour)) ? Number(entry.hour) : 0;
-    const minuteValue = Number.isFinite(Number(entry.minute)) ? Number(entry.minute) : 0;
-    if (![yearValue, monthValue, dayValue].every(Number.isFinite)) return null;
-    const localTs = localTimestamp(yearValue, monthValue, dayValue, hourValue, minuteValue);
+
+    const yearPart = Number(entry.year);
+    const monthPart = Number(entry.month);
+    const dayPart = Number(entry.day);
+    const hourPart = Number.isFinite(Number(entry.hour)) ? Number(entry.hour) : 0;
+    const minutePart = Number.isFinite(Number(entry.minute)) ? Number(entry.minute) : 0;
+    if (![yearPart, monthPart, dayPart, hourPart, minutePart].every(Number.isFinite)) return null;
+
+    const localTs = localTimestamp(yearPart, monthPart, dayPart, hourPart, minutePart);
     return {
       ...term,
       label: entry.label || term.label,
       source: entry.source || "KASI_SPECIAL_DAY_API",
       precision: entry.hour == null || entry.minute == null ? "official-date" : "official-time",
-      localParts: { year: yearValue, month: monthValue, day: dayValue, hour: hourValue, minute: minuteValue },
+      localParts: {
+        year: yearPart,
+        month: monthPart,
+        day: dayPart,
+        hour: hourPart,
+        minute: minutePart,
+      },
       localTs,
       utcDate: new Date(localTs - 9 * 60 * 60000),
     };
@@ -1199,7 +1216,7 @@
 
   function getCachedLearningProfile(saju) {
     const key = ["learning", birthStateKey(interpretationMode.value), recentWindow.value].join("|");
-    return boundedCacheGet(lottoState.learningProfileCache, key, () => buildLearningProfile(saju), 10);
+    return boundedCacheGet(lottoState.learningProfileCache, key, buildObjectiveLearningProfile, 10);
   }
 
   function getCachedPersonalPortfolio() {
@@ -2877,6 +2894,112 @@
     return Math.round(clamp(practical, 0, 1) * 1000) / 10;
   }
 
+  function buildObjectiveLearningProfile() {
+    const selectedWindow = currentWindowInfo(draws.length);
+    const currentStats = buildStats(selectedWindow.size);
+    const records = [];
+    let previousNumbers = null;
+
+    for (const draw of draws) {
+      if (!Array.isArray(draw?.numbers) || draw.numbers.length !== 6) continue;
+      const numbers = draw.numbers.slice().sort((a, b) => a - b);
+      const snapshot = patternSnapshot(numbers, previousNumbers);
+      const score = distributionFitScore(currentStats, snapshot);
+      const bucketStart = scoreBucketStart(score);
+      records.push({
+        draw: draw.draw,
+        date: draw.date,
+        numbers,
+        score,
+        signalScore: score,
+        gateScore: score,
+        band: scoreBand(score),
+        bucketStart,
+        bucketLabel: scoreBucketLabel(score),
+      });
+      previousNumbers = new Set(numbers);
+    }
+
+    if (!records.length) {
+      return {
+        total: 0,
+        targetScore: 84.5,
+        targetTolerance: 2.5,
+        targetSpread: 14,
+        topBucketLabel: "80~89.9",
+        bucketPreference: {},
+        bucketSummary: [],
+        records: [],
+        coverageFloor: 72,
+        historicalCoverage: { floor: 72, minScore: 72, total: 0, included: 0, rate: 0 },
+        thresholdStats: { atLeast80: 0, atLeast85: 0, atLeast90: 0 },
+      };
+    }
+
+    const sortedScores = records.map((record) => record.score).sort((a, b) => a - b);
+    const percentile = (ratio) => {
+      const index = Math.min(sortedScores.length - 1, Math.max(0, Math.floor((sortedScores.length - 1) * ratio)));
+      return sortedScores[index];
+    };
+    const coverageFloor = Math.round(clamp(percentile(0.1), 60, 86) * 2) / 2;
+    const targetScore = Math.round(clamp(percentile(0.5), 76, 88) * 10) / 10;
+    const bucketMap = new Map();
+
+    for (const record of records) {
+      const bucket = bucketMap.get(record.bucketStart) ?? {
+        start: record.bucketStart,
+        label: record.bucketLabel,
+        count: 0,
+        scoreTotal: 0,
+      };
+      bucket.count += 1;
+      bucket.scoreTotal += record.score;
+      bucketMap.set(record.bucketStart, bucket);
+    }
+
+    const buckets = [...bucketMap.values()]
+      .map((bucket) => ({
+        ...bucket,
+        averageScore: bucket.scoreTotal / bucket.count,
+      }))
+      .sort((a, b) => b.count - a.count || b.start - a.start);
+    const topBucket = buckets[0];
+    const topCount = Math.max(1, topBucket?.count ?? 1);
+    const bucketPreference = Object.fromEntries(
+      buckets.map((bucket) => [bucket.start, Math.round((bucket.count / topCount) * 100) / 100]),
+    );
+    const included = records.filter((record) => record.score >= coverageFloor).length;
+
+    return {
+      total: records.length,
+      targetScore,
+      targetTolerance: 3,
+      targetSpread: 16,
+      topBucketStart: topBucket?.start,
+      topBucketLabel: topBucket?.label ?? "80~89.9",
+      coverageFloor,
+      historicalCoverage: {
+        floor: coverageFloor,
+        minScore: sortedScores[0],
+        total: records.length,
+        included,
+        rate: Math.round((included / records.length) * 1000) / 10,
+      },
+      bucketPreference,
+      bucketSummary: buckets.slice(0, 5).map((bucket) => ({
+        label: bucket.label,
+        count: bucket.count,
+        averageScore: Math.round(bucket.averageScore * 10) / 10,
+      })),
+      records: records.slice(-8).reverse(),
+      thresholdStats: {
+        atLeast80: records.filter((record) => record.score >= 80).length,
+        atLeast85: records.filter((record) => record.score >= 85).length,
+        atLeast90: records.filter((record) => record.score >= 90).length,
+      },
+    };
+  }
+
   function buildLearningProfile(saju) {
     const selectedWindow = currentWindowInfo(draws.length);
     const startIndex = Math.min(30, Math.max(0, draws.length - 1));
@@ -3112,8 +3235,11 @@
 
   function resolveCandidatePoolBudget() {
     const selected = candidatePoolSize?.value ?? "auto";
-    const autoBackfitSetting = recallProfile?.backfitSummary?.recommendedSetting ?? null;
-    const autoFrontierLimit = Number(autoBackfitSetting?.frontierLimit);
+    const walkForwardPolicy = recallProfile?.walkForwardPolicy ?? null;
+    const practicalRecommendation = walkForwardPolicy?.practicalRecommendation ?? null;
+    const autoFrontierLimit = Number(
+      practicalRecommendation?.frontierLimit ?? recallProfile?.candidateFrontier?.numberCount,
+    );
     const requested =
       selected === "auto"
         ? AUTO_CANDIDATE_POOL_BUDGET
@@ -3138,8 +3264,8 @@
             ACTIVE_FRONTIER_LIMIT_MAX,
           )
         : null,
-      modeSetting: interpretationMode?.value ?? autoBackfitSetting?.mode ?? "balance",
-      weightSetting: Number(sajuWeight?.value ?? autoBackfitSetting?.weight ?? 0),
+      modeSetting: interpretationMode?.value ?? "balance",
+      weightSetting: Number(sajuWeight?.value ?? 0),
       capped: browserBudget < requested,
       label: selected === "auto" ? "자동 감사 범위" : `${formatNumber(requested)}개 감사 범위`,
     };
@@ -3181,6 +3307,17 @@
       : deterministicFrontierLimit(budget);
     const modeSetting = typeof poolBudget === "object" ? poolBudget.modeSetting ?? "balance" : "balance";
     const weightSetting = typeof poolBudget === "object" ? Number(poolBudget.weightSetting ?? 60) : 60;
+    const learnedOrder = recallProfile?.walkForwardPolicy?.nextDrawNumberOrder;
+    const learnedOrderIsCurrent = Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw);
+    const learnedOrderIsValid =
+      Array.isArray(learnedOrder) &&
+      learnedOrder.length === 45 &&
+      new Set(learnedOrder).size === 45 &&
+      learnedOrder.every((number) => Number.isInteger(number) && number >= 1 && number <= 45);
+
+    if (poolBudget?.mode === "auto" && learnedOrderIsCurrent && learnedOrderIsValid) {
+      return learnedOrder.slice(0, limit).sort((a, b) => a - b);
+    }
     const byScore = rankedNumbersBy(scores, (item) => item.score);
     const byLong = rankedNumbersBy(scores, (item) => stats.frequency[item.number] ?? 0);
     const byRecent = rankedNumbersBy(scores, (item) => stats.recentFrequency[item.number] ?? 0);
@@ -3248,25 +3385,151 @@
     }
   }
 
+  function compareCandidateQuality(a, b) {
+    return (
+      Number(a?.meta?.practicalScore ?? 0) - Number(b?.meta?.practicalScore ?? 0) ||
+      Number(a?.meta?.score ?? 0) - Number(b?.meta?.score ?? 0)
+    );
+  }
+
+  function countBits(value) {
+    let bits = value;
+    let count = 0;
+    while (bits) {
+      bits &= bits - 1;
+      count += 1;
+    }
+    return count;
+  }
+
+  function quickCombinationRankScore(numbers, scores, stats) {
+    let sum = 0;
+    let odd = 0;
+    let low = 0;
+    let sectorMask = 0;
+    let tailMask = 0;
+    let consecutive = 0;
+    let repeatPrevious = 0;
+    let numberScore = 0;
+
+    for (let index = 0; index < 6; index += 1) {
+      const number = numbers[index];
+      sum += number;
+      odd += number % 2;
+      low += number <= 22 ? 1 : 0;
+      sectorMask |= 1 << Math.min(4, Math.floor((number - 1) / 10));
+      tailMask |= 1 << (number % 10);
+      consecutive += index > 0 && number === numbers[index - 1] + 1 ? 1 : 0;
+      repeatPrevious += stats.latestNumbers.has(number) ? 1 : 0;
+      numberScore += scores[number].score;
+    }
+
+    const sumBand = Math.floor(sum / 10) * 10;
+    const spreadBand = Math.floor((numbers[5] - numbers[0]) / 5) * 5;
+    const sectorCoverage = countBits(sectorMask);
+    const tailDiversity = countBits(tailMask);
+    const consecutiveBand = Math.min(3, consecutive);
+    const repeatBand = Math.min(4, repeatPrevious);
+    const model = stats.patternModel;
+    const distributionFit =
+      patternFit(model, "sumBand", sumBand) * 0.18 +
+      patternFit(model, "odd", odd) * 0.12 +
+      patternFit(model, "low", low) * 0.12 +
+      patternFit(model, "sectorCoverage", sectorCoverage) * 0.15 +
+      patternFit(model, "tailDiversity", tailDiversity) * 0.13 +
+      patternFit(model, "spreadBand", spreadBand) * 0.15 +
+      patternFit(model, "repeatPrevious", repeatBand) * 0.1 +
+      patternFit(model, "consecutive", consecutiveBand) * 0.05;
+    const historicalFit = recallProfile?.winningShape
+      ? recallProfileFit("sumBand", sumBand) * 0.18 +
+        recallProfileFit("odd", odd) * 0.12 +
+        recallProfileFit("low", low) * 0.12 +
+        recallProfileFit("sectorCoverage", sectorCoverage) * 0.15 +
+        recallProfileFit("tailDiversity", tailDiversity) * 0.13 +
+        recallProfileFit("spreadBand", spreadBand) * 0.15 +
+        recallProfileFit("repeatPrevious", repeatBand) * 0.1 +
+        recallProfileFit("consecutive", consecutiveBand) * 0.05
+      : distributionFit;
+
+    return Math.round(clamp(distributionFit * 0.52 + historicalFit * 0.38 + (numberScore / 6) * 0.1) * 1000) / 10;
+  }
+
+  function pushCandidateHeap(heap, candidate) {
+    heap.push(candidate);
+    let index = heap.length - 1;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (compareCandidateQuality(heap[parent], heap[index]) <= 0) break;
+      [heap[parent], heap[index]] = [heap[index], heap[parent]];
+      index = parent;
+    }
+  }
+
+  function replaceCandidateHeapRoot(heap, candidate) {
+    heap[0] = candidate;
+    let index = 0;
+    while (true) {
+      const left = index * 2 + 1;
+      const right = left + 1;
+      let smallest = index;
+      if (left < heap.length && compareCandidateQuality(heap[left], heap[smallest]) < 0) {
+        smallest = left;
+      }
+      if (right < heap.length && compareCandidateQuality(heap[right], heap[smallest]) < 0) {
+        smallest = right;
+      }
+      if (smallest === index) break;
+      [heap[index], heap[smallest]] = [heap[smallest], heap[index]];
+      index = smallest;
+    }
+  }
+
+  function selectTopCandidates(candidates, limit) {
+    if (candidates.length <= limit) return candidates.slice();
+    const heap = [];
+    for (const candidate of candidates) {
+      if (heap.length < limit) {
+        pushCandidateHeap(heap, candidate);
+      } else if (compareCandidateQuality(candidate, heap[0]) > 0) {
+        replaceCandidateHeapRoot(heap, candidate);
+      }
+    }
+    return heap.sort((a, b) => compareCandidateQuality(b, a));
+  }
+
   function buildDeterministicCandidatePool(stats, scores, saju, learningProfile, poolBudget) {
     const frontier = buildDeterministicNumberFrontier(scores, stats, poolBudget);
-    const candidateMap = new Map();
     const scannedCandidateCount = combinationCount(frontier.length, 6);
+    const preRankedCandidates = [];
+    const retainLimit = Math.min(poolBudget.budget, scannedCandidateCount);
+    const rankingRetentionLimit = Math.min(retainLimit, 6000);
+    const needsBoundedHeap = scannedCandidateCount > rankingRetentionLimit;
 
     enumerateSixNumberCombinations(frontier, (numbers) => {
-      candidateMap.set(numbers.join("-"), {
+      const candidate = {
         numbers,
-        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
-      });
+        meta: {
+          practicalScore: quickCombinationRankScore(numbers, scores, stats),
+          score: 0,
+        },
+      };
+      if (!needsBoundedHeap) {
+        preRankedCandidates.push(candidate);
+      } else if (preRankedCandidates.length < rankingRetentionLimit) {
+        pushCandidateHeap(preRankedCandidates, candidate);
+      } else if (compareCandidateQuality(candidate, preRankedCandidates[0]) > 0) {
+        replaceCandidateHeapRoot(preRankedCandidates, candidate);
+      }
     });
 
-    const preliminary = [...candidateMap.values()].sort((a, b) => {
-      return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
-    });
-    for (const candidate of preliminary.slice(0, 260)) {
-      const improved = improveCandidate(candidate.numbers, scores, stats, saju, learningProfile);
-      candidateMap.set(improved.numbers.join("-"), improved);
-    }
+    const retainedCandidates = preRankedCandidates.map((candidate) => ({
+      numbers: candidate.numbers,
+      meta: scoreCombination(candidate.numbers, scores, stats, saju, learningProfile),
+    }));
+
+    const candidateMap = new Map(
+      retainedCandidates.map((candidate) => [candidate.numbers.join("-"), candidate]),
+    );
 
     const ranked = [...candidateMap.values()]
       .map((candidate) => enrichLottoCandidate(candidate, stats))
@@ -3276,8 +3539,10 @@
     return {
       ranked,
       scannedCandidateCount,
+      frontierNumbers: frontier,
       frontierNumberCount: frontier.length,
       frontierCombinationCount: scannedCandidateCount,
+      rankedCandidateCount: ranked.length,
     };
   }
 
@@ -3472,11 +3737,13 @@
       universeSize: LOTTO_UNIVERSE_SIZE,
       requestedRecallCandidateCount: poolBudget.requested,
       generatedCandidateTarget: poolBudget.budget,
-      generatedCandidateCount: ranked.length,
+      generatedCandidateCount: poolBuild.frontierCombinationCount,
+      rankedCandidateCount: ranked.length,
       scannedCandidateCount: poolBuild.scannedCandidateCount,
+      frontierNumbers: poolBuild.frontierNumbers,
       frontierNumberCount: poolBuild.frontierNumberCount,
       frontierCombinationCount: poolBuild.frontierCombinationCount,
-      recallCandidateCount: ranked.length,
+      recallCandidateCount: poolBuild.frontierCombinationCount,
       coreCandidateCount: corePool.length,
       coreK: corePool.length,
       finalRecommendationCount: finalRecommendations.length,
@@ -3485,8 +3752,15 @@
       selectedPoolLabel: poolBudget.label,
       cappedForBrowser: poolBudget.capped,
       exactInclusionRateForRequested: getExactInclusionRate(poolBudget.requested),
-      exactInclusionRateForGenerated: getExactInclusionRate(ranked.length),
+      exactInclusionRateForGenerated: getExactInclusionRate(poolBuild.frontierCombinationCount),
       exactInclusionRateForCore: getExactInclusionRate(corePool.length),
+      walkForwardFrontierExactRate: Number(
+        recallProfile?.walkForwardPolicy?.practicalRecommendation?.exactRate,
+      ),
+      walkForwardFrontierRandomRate: Number(
+        recallProfile?.walkForwardPolicy?.practicalRecommendation?.randomExpectedRate,
+      ),
+      walkForwardValidatedDraws: Number(recallProfile?.walkForwardPolicy?.evaluatedDraws ?? 0),
     });
     const buildRecallMetrics = (meta) => ({
       exactInclusionRate: meta.exactInclusionRateForGenerated,
@@ -4209,7 +4483,6 @@
     };
   }
 
-
   const pensionPrizeRows = [
     { rank: "1등", condition: "조 + 6자리 일치", grossText: "월 700만원 x 20년", payment: 7000000, months: 240 },
     { rank: "2등", condition: "6자리 일치", grossText: "월 100만원 x 10년", payment: 1000000, months: 120 },
@@ -4265,7 +4538,6 @@
     `;
   }
 
-
   function ensurePensionLatestResultPanel() {
     let panel = document.querySelector("#pensionLatestResult");
     if (panel) return panel;
@@ -4292,8 +4564,8 @@
         <div class="pension-latest-card empty">
           <div>
             <span>WINNING RESULT</span>
-            <strong>\uC5F0\uAE08\uBCF5\uAD8C \uB2F9\uCCA8\uBC88\uD638 \uC900\uBE44 \uC911</strong>
-            <p>\uB3D9\uD589\uBCF5\uAD8C \uACB0\uACFC\uAC00 \uAC31\uC2E0\uB418\uBA74 \uC790\uB3D9\uC73C\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.</p>
+            <strong>연금복권 당첨번호 준비 중</strong>
+            <p>동행복권 결과가 갱신되면 자동으로 표시됩니다.</p>
           </div>
         </div>
       `;
@@ -4303,14 +4575,14 @@
     const bonusMarkup = draw.bonusDigits?.length
       ? `
         <div class="pension-result-bonus">
-          <span>\uBCF4\uB108\uC2A4</span>
+          <span>보너스</span>
           <div class="pension-result-number">${renderPensionResultDigits(draw.bonusDigits)}</div>
         </div>
       `
       : `
         <div class="pension-result-bonus muted">
-          <span>\uBCF4\uB108\uC2A4</span>
-          <p>\uACF5\uC2DD \uB370\uC774\uD130 \uAC31\uC2E0 \uB300\uAE30</p>
+          <span>보너스</span>
+          <p>공식 데이터 갱신 대기</p>
         </div>
       `;
 
@@ -4318,10 +4590,10 @@
       <div class="pension-latest-card">
         <div class="pension-result-main">
           <span>WINNING RESULT</span>
-          <strong>${formatNumber(draw.round)}\uD68C \uC5F0\uAE08\uBCF5\uAD8C \uB2F9\uCCA8\uBC88\uD638</strong>
-          <p>${draw.date ?? ""} \uCD94\uCCA8</p>
+          <strong>${formatNumber(draw.round)}회 연금복권 당첨번호</strong>
+          <p>${draw.date ?? ""} 추첨</p>
           <div class="pension-result-line">
-            <b class="pension-result-group">${draw.group}\uC870</b>
+            <b class="pension-result-group">${draw.group}조</b>
             <div class="pension-result-number">${renderPensionResultDigits(draw.digits)}</div>
           </div>
         </div>
@@ -4472,7 +4744,8 @@
       : result.selectedCount;
     const meta = result.candidatePoolMeta ?? {};
     const generatedRate = formatPercent(meta.exactInclusionRateForGenerated ?? getExactInclusionRate(result.candidateCount));
-    const coreRate = formatPercent(meta.exactInclusionRateForCore ?? getExactInclusionRate(result.filteredCount));
+    const walkForwardRate = Number(meta.walkForwardFrontierExactRate);
+    const testedRate = Number.isFinite(walkForwardRate) ? `${walkForwardRate.toFixed(2)}%` : "-";
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>핵심 후보망</span>
@@ -4481,13 +4754,13 @@
       </div>
       <div class="candidate-stat-card">
         <span>생성 후보망</span>
-        <strong>${formatNumber(result.candidateCount)}개</strong>
+        <strong>${formatNumber(meta.frontierCombinationCount ?? result.candidateCount)}개</strong>
         <em>${generatedRate}</em>
       </div>
       <div class="candidate-stat-card">
-        <span>핵심 포함률</span>
-        <strong>${coreRate}</strong>
-        <em>이론값</em>
+        <span>과거 순차검증</span>
+        <strong>${testedRate}</strong>
+        <em>번호망 포착</em>
       </div>
       <div class="candidate-stat-card">
         <span>90+ 참고</span>
@@ -4780,6 +5053,8 @@
           return b.meta.practicalScore - a.meta.practicalScore || b.meta.score - a.meta.score;
         });
         const winningNumbers = draw.numbers.slice().sort((a, b) => a - b);
+        const frontierSet = new Set(poolBuild.frontierNumbers ?? []);
+        const winnerInGeneratedFrontier = winningNumbers.every((number) => frontierSet.has(number));
         const directMeta = scoreCombination(winningNumbers, scores, statsBeforeDraw, modeSaju, null);
         const reverseExactKey = winningNumbers.join("-");
         const sortByPracticalRank = (a, b) => {
@@ -4823,11 +5098,17 @@
           reverseSearchApplied: false,
         };
         const result = compareSnapshotWithDraw(snapshot, draw);
+        result.generatedPoolHasExact = winnerInGeneratedFrontier;
+        if (result.winningCandidateStatus) {
+          result.winningCandidateStatus.generatedPoolHasExact = winnerInGeneratedFrontier;
+        }
 
         return {
           setting,
           label: settingLabelFromReplayItem(setting),
-          generatedCount: ranked.length,
+          generatedCount: poolBuild.frontierCombinationCount,
+          rankedCount: ranked.length,
+          winnerInGeneratedFrontier,
           coreCount: corePool.length,
           displayCount: displayPool.length,
           reverseRank,
@@ -5794,6 +6075,113 @@
     `;
   }
 
+  function renderProfessionalSajuReading(saju) {
+    const strengthLabel = {
+      weak: "일간의 힘이 다소 약한 편",
+      balanced: "중화권에 가까운 편",
+      strong: "일간의 힘이 강하게 잡히는 편",
+    }[saju.strength] ?? "균형을 함께 살펴볼 필요가 있는 편";
+    const strongest = Object.entries(saju.counts).sort((a, b) => b[1] - a[1])[0] ?? ["wood", 0];
+    const weakest = Object.entries(saju.counts).sort((a, b) => a[1] - b[1])[0] ?? ["water", 0];
+    const favored = saju.favored.map((key) => `${elementLabel(key)} 기운`);
+    const topTenGods = saju.topTenGods
+      .slice(0, 3)
+      .map((item) => friendlyTenGod(item.label))
+      .join(", ");
+    const numberHints = sajuNumberHints(saju, 10);
+    const original = saju.birth.correction?.original;
+    const calendarText =
+      original?.calendar === "lunar"
+        ? `음력 ${isoFromParts(original.input.year, original.input.month, original.input.day)} 입력을 양력 ${isoFromParts(
+            original.year,
+            original.month,
+            original.day,
+          )} 기준으로 바꾸어 봅니다.`
+        : `양력 ${isoFromParts(original.year, original.month, original.day)} 기준으로 봅니다.`;
+    const correctionText = saju.birth.correction?.unknownHour
+      ? "출생시각을 모르는 조건이므로 시주는 참고값으로 낮추어 봅니다."
+      : `${saju.birth.correction.place.label} 기준 ${
+          saju.birth.correction.correctionEnabled ? "지역·서머타임 보정을 적용" : "지역 보정을 적용하지 않음"
+        } · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 기준입니다.`;
+    const termText = `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} 이후 태어난 것으로 보아 ${
+      saju.monthCommand.branch
+    }월령으로 잡습니다. 다음 절기는 ${saju.monthCommand.nextTermLabel || "계산 중"}입니다.`;
+    const modeLabel =
+      {
+        balance: "중화 보완형",
+        wealth: "재성 강화형",
+        climate: "조후 균형형",
+      }[interpretationMode.value] ?? "중화 보완형";
+    const flowText = annualFlowText(saju);
+    const majorLuckReading = majorLuckText(saju);
+    const interactionText = interactionPlainText(saju);
+    const ruleCount = sajuReferenceData.expertRules?.rules?.length ?? 0;
+
+    const sections = [
+      {
+        title: "원국 구조 요약",
+        body: `이 앱의 해석 기준에서는 ${calendarText} ${termText} ${correctionText} 명식은 ${saju.pillarText}로 정리되며, ${saju.gyeok.name}의 관점도 함께 참고합니다.`,
+      },
+      {
+        title: "일간 상태",
+        body: `일간은 ${elementLabel(saju.dayMaster.element)} 기운으로 보고, 전체 힘은 ${strengthLabel}입니다. ${
+          topTenGods ? `${topTenGods} 흐름이 눈에 들어옵니다.` : "십성의 우세는 한쪽으로 강하게 단정하기보다 전체 균형을 함께 봅니다."
+        } 이 부분은 성향을 단정하기보다 선택 방식과 집중력이 어디로 기울기 쉬운지 보는 기준입니다.`,
+      },
+      {
+        title: "오행 균형",
+        body: `원국에서는 ${elementLabel(strongest[0])} 기운이 비교적 강하고, ${elementLabel(
+          weakest[0],
+        )} 기운은 보완 후보로 봅니다. 강한 기운은 장점으로 쓰되 과해지면 판단이 한쪽으로 몰릴 수 있고, 약한 기운은 생활 리듬과 선택 방식에서 보충하는 쪽이 좋습니다.`,
+      },
+      {
+        title: "용신/희신 방향",
+        body: `${favored.join(", ")}을 우선 보완 방향으로 잡습니다. ${modeLabel}에서는 부족한 기운을 채우는 것과 지나치게 강한 기운을 누그러뜨리는 것을 함께 봅니다.`,
+        extra: renderYongsinTags(saju),
+      },
+      {
+        title: "현재 운 흐름",
+        body: `${majorLuckReading} ${flowText} 운의 흐름은 좋은 일과 주의할 일을 단정하는 용도가 아니라, 선택을 서두를 때와 차분히 다듬을 때를 구분하는 참고 기준입니다.`,
+        extra: renderMajorLuckTags(saju),
+      },
+      {
+        title: "재물운/선택운",
+        body: `재물운은 ${elementLabel(saju.wealthElement)} 기운만 따로 떼어 보지 않고, 일간의 힘과 식상 흐름, 현재 운의 보조 여부를 함께 봅니다. 이 명식에서는 기회 포착 감각을 살리되 한 번에 몰아가기보다 분산해서 고르는 방식이 안정적으로 읽힙니다.`,
+      },
+      {
+        title: "로또 추천에 반영된 부분",
+        body: `로또 추천에서는 통계 기반 후보를 먼저 세우고, 사주는 ${modeLabel} 기준의 보조 점수로만 반영합니다. 현재 해석에서 잘 맞는 쪽으로 잡힌 번호는 아래와 같습니다.`,
+        extra: renderMiniBalls(numberHints),
+      },
+      {
+        title: "주의 문구",
+        body: `사주 해석은 학파별 차이가 있을 수 있으며, ${ruleCount}개의 내부 상담형 규칙은 판단을 돕는 보조 기준입니다. 복권 번호는 추첨 결과를 보장하지 않으므로, 이 해석은 무리한 구매가 아니라 선택을 정리하는 참고 리포트로 보아 주세요.`,
+      },
+    ];
+
+    document.querySelector("#sajuReading").innerHTML = `
+      ${renderPillarChart(saju)}
+      <div class="expert-report">
+        ${sections
+          .map(
+            (section) => `
+              <div class="reading-row reading-story">
+                <span>${section.title}</span>
+                <p>${section.body}</p>
+                ${section.extra ?? ""}
+              </div>
+            `,
+          )
+          .join("")}
+        <div class="reading-row">
+          <span>합충·신살</span>
+          <p>${interactionText}</p>
+          ${renderInteractionTags(saju)}
+        </div>
+      </div>
+    `;
+  }
+
   function renderMappingReading(saju) {
     const useful = elementKeys
       .slice()
@@ -6244,6 +6632,55 @@
     `;
   }
 
+  function renderLatestDrawResult() {
+    if (!latestDrawResult || !latest) return;
+    const secondReady =
+      latest.secondWinners != null && Number.isFinite(Number(latest.secondWinners));
+    const firstWinners = Number(latest.firstWinners ?? 0);
+    const secondWinners = Number(latest.secondWinners ?? 0);
+    const firstPrize = formatMoney(latest.firstPrize);
+    const secondPrize = secondReady ? formatMoney(latest.secondPrize) : "다음 데이터 갱신 후 표시";
+    const totalSales = Number(latest.totalSales ?? 0);
+
+    latestDrawResult.innerHTML = `
+      <div class="draw-result-card">
+        <div class="draw-result-main">
+          <strong>${latest.draw}회 당첨결과</strong>
+          <span>${latest.date || dataset.latestDate || ""} 추첨</span>
+          <div class="draw-balls">
+            ${latest.numbers.map(renderBall).join("")}
+            <b class="draw-plus">+</b>
+            <span class="bonus-wrap">
+              <b class="ball bonus-ball ${rangeClass(latest.bonus)}">${latest.bonus}</b>
+              <small>보너스</small>
+            </span>
+          </div>
+        </div>
+        <div class="draw-prize-grid">
+          <div class="draw-prize-card first">
+            <span>1등</span>
+            <strong>${formatNumber(firstWinners)}명</strong>
+            <em>1게임당 ${firstPrize}</em>
+          </div>
+          <div class="draw-prize-card second">
+            <span>2등</span>
+            <strong>${secondReady ? `${formatNumber(secondWinners)}명` : "수집 대기"}</strong>
+            <em>1게임당 ${secondPrize}</em>
+          </div>
+          ${
+            totalSales > 0
+              ? `<div class="draw-prize-card">
+                  <span>총 판매금액</span>
+                  <strong>${formatMoney(totalSales)}</strong>
+                  <em>동행복권 공개값</em>
+                </div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
   function drawByNumber(drawNo) {
     const parsed = Number(drawNo);
     return draws.find((item) => item.draw === parsed) ?? latest;
@@ -6259,7 +6696,7 @@
     drawSelect.innerHTML = draws
       .slice()
       .reverse()
-      .map((draw) => `<option value="${draw.draw}">${draw.draw}\uD68C</option>`)
+      .map((draw) => `<option value="${draw.draw}">${draw.draw}회</option>`)
       .join("");
     drawSelect.value = draws.some((draw) => String(draw.draw) === currentValue)
       ? currentValue
@@ -6267,10 +6704,7 @@
   }
 
   function prizeTierFromDraw(draw, rank) {
-    const source = draw?.prizeTiers;
-    const tier = Array.isArray(source)
-      ? source.find((row) => Number(row.rank) === rank)
-      : source?.[String(rank)];
+    const tier = draw?.prizeTiers?.[String(rank)];
     const prefix = ["", "first", "second", "third", "fourth", "fifth"][rank];
     return {
       rank,
@@ -6290,7 +6724,7 @@
     const manual = Number(types.manual ?? 0);
     const semiAuto = Number(types.semiAuto ?? types.semi ?? 0);
     if (!auto && !manual && !semiAuto) return "";
-    return `<small class="draw-purchase-types">\uC790\uB3D9 ${formatNumber(auto)} \u00B7 \uC218\uB3D9 ${formatNumber(manual)} \u00B7 \uBC18\uC790\uB3D9 ${formatNumber(semiAuto)}</small>`;
+    return `<small class="draw-purchase-types">자동 ${formatNumber(auto)} · 수동 ${formatNumber(manual)} · 반자동 ${formatNumber(semiAuto)}</small>`;
   }
 
   function renderPrizeTierCard(draw, rank) {
@@ -6299,9 +6733,11 @@
     const className = rank === 1 ? " first" : rank === 2 ? " second" : "";
     return `
       <div class="draw-prize-card${className}">
-        <span>${rank}\uB4F1</span>
-        <strong>${hasData ? `${formatNumber(tier.winners)}\uBA85` : "\uC815\uBCF4 \uC5C6\uC74C"}</strong>
-        <em>${hasData ? `1\uAC8C\uC784\uB2F9 ${formatMoney(tier.prize)}` : "\uB3D9\uD589\uBCF5\uAD8C \uACB0\uACFC \uAC31\uC2E0 \uD6C4 \uD45C\uC2DC"}</em>
+        <span>${rank}등</span>
+        <strong>${hasData ? `${formatNumber(tier.winners)}명` : "정보 없음"}</strong>
+        <em>${hasData ? `1게임당 ${formatMoney(tier.prize)}` : "동행복권 결과표 갱신 후 표시"}</em>
+        ${hasData ? formatPrizeNetLine(tier.prize) : ""}
+        ${rank === 1 ? renderFirstPurchaseTypes(tier) : ""}
       </div>
     `;
   }
@@ -6311,14 +6747,14 @@
     latestDrawResult.innerHTML = `
       <div class="draw-result-card">
         <div class="draw-result-main">
-          <strong>${draw.draw}\uD68C \uB2F9\uCCA8\uACB0\uACFC</strong>
-          <span>${draw.date || ""} \uCD94\uCCA8</span>
+          <strong>${draw.draw}회 당첨결과</strong>
+          <span>${draw.date || ""} 추첨</span>
           <div class="draw-balls">
             ${draw.numbers.map(renderBall).join("")}
             <b class="draw-plus">+</b>
             <span class="bonus-wrap">
               <b class="ball bonus-ball ${rangeClass(draw.bonus)}">${draw.bonus}</b>
-              <small>\uBCF4\uB108\uC2A4</small>
+              <small>보너스</small>
             </span>
           </div>
         </div>
@@ -6555,36 +6991,35 @@
 
   function buildFastAutoSajuSetting() {
     const baseSaju = buildSajuProfile(interpretationMode?.value ?? "balance");
-    const backfitSetting = recallProfile?.backfitSummary?.recommendedSetting ?? null;
+    const walkForwardPolicy = recallProfile?.walkForwardPolicy ?? null;
+    const practicalRecommendation = walkForwardPolicy?.practicalRecommendation ?? null;
     const scoreValues = Object.values(baseSaju.usefulScores ?? {});
     const maxScore = Math.max(...scoreValues, 1);
     const minScore = Math.min(...scoreValues, 0);
     const spread = clamp((maxScore - minScore) / Math.max(1, maxScore), 0, 1);
     const topWindow =
-      backfitSetting?.window ??
+      walkForwardPolicy?.recommendedWindow ??
       recallProfile?.frontierHitWindowCounts?.[0]?.window ??
       recallProfile?.bestWindowCounts?.[0]?.window ??
       recentWindow?.value ??
       "50";
     const windowInfo = windowOptionInfo(topWindow, draws.length);
     const mode =
-      backfitSetting?.mode ??
-      (baseSaju.strength === "strong"
+      baseSaju.strength === "strong"
         ? "wealth"
         : baseSaju.climateElement
           ? "climate"
-          : "balance");
-    const learnedWeight = Number(backfitSetting?.weight);
+          : "balance";
     const personalWeight = Math.round(clamp(18 + spread * 42, 0, 75));
 
     return {
       mode,
-      weight: Number.isFinite(learnedWeight) ? clamp(learnedWeight, 0, 100) : personalWeight,
+      weight: personalWeight,
       windowSize: windowInfo.size,
       windowValue: windowInfo.value,
       windowLabel: windowInfo.label,
       frontierLimit: clamp(
-        Number(backfitSetting?.frontierLimit) || AUTO_FRONTIER_NUMBER_COUNT,
+        Number(practicalRecommendation?.frontierLimit) || AUTO_FRONTIER_NUMBER_COUNT,
         22,
         ACTIVE_FRONTIER_LIMIT_MAX,
       ),
@@ -6743,10 +7178,9 @@
     updateBirthCalendarPreview();
     renderStaticSummary();
     renderFirstPaintPanels();
-    afterNextPaint(() => {
-      renderRecommendationWarmup();
-      scheduleInitialLottoRefresh();
-    });
+    drawSelect?.addEventListener("change", () => renderDrawResult());
+    renderRecommendationWarmup();
+    scheduleInitialLottoRefresh(180);
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -6805,8 +7239,6 @@
       if (!pensionState.lastResult?.pool?.length) return;
       renderPensionRecommendations(pensionState.lastResult, { randomize: true });
     });
-
-    drawSelect?.addEventListener("change", () => renderDrawResult());
 
     for (const control of [
       recentWindow,
