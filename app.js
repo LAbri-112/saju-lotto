@@ -3866,6 +3866,49 @@
     return keys;
   }
 
+  function candidateSubsetKeys(numbers, size) {
+    const keys = [];
+    const visit = (start, picked) => {
+      if (picked.length === size) {
+        keys.push(picked.join("-"));
+        return;
+      }
+      for (let index = start; index <= numbers.length - (size - picked.length); index += 1) {
+        picked.push(numbers[index]);
+        visit(index + 1, picked);
+        picked.pop();
+      }
+    };
+    visit(0, []);
+    return keys;
+  }
+
+  function finalPortfolioGeometry(items) {
+    const tickets = items ?? [];
+    const triples = new Set();
+    const quadruples = new Set();
+    const uniqueNumbers = new Set();
+    let maxPairOverlap = 0;
+
+    tickets.forEach((item, left) => {
+      item.numbers.forEach((number) => uniqueNumbers.add(number));
+      candidateSubsetKeys(item.numbers, 3).forEach((key) => triples.add(key));
+      candidateSubsetKeys(item.numbers, 4).forEach((key) => quadruples.add(key));
+      for (let right = left + 1; right < tickets.length; right += 1) {
+        maxPairOverlap = Math.max(maxPairOverlap, overlap(item.numbers, tickets[right].numbers));
+      }
+    });
+
+    return {
+      uniqueNumbers: uniqueNumbers.size,
+      uniqueTriples: triples.size,
+      maxTriples: tickets.length * 20,
+      uniqueQuadruples: quadruples.size,
+      maxQuadruples: tickets.length * 15,
+      maxPairOverlap,
+    };
+  }
+
   function buildPortfolioUsage(selected) {
     const numberUsage = Array(46).fill(0);
     const pairUsage = new Map();
@@ -4014,7 +4057,7 @@
 
   function buildIndependentPortfolioCandidate(anchor, stats, scores, saju, learningProfile) {
     if (!anchor) return null;
-    const nextDraw = Number(dataset?.latestDraw ?? 0) + 1;
+    const nextDraw = Number(stats?.latestDraw ?? dataset?.latestDraw ?? 0) + 1;
     const random = deterministicPortfolioRandom(nextDraw * 7919);
     const anchorKey = anchor.numbers.join("-");
 
@@ -4036,11 +4079,8 @@
   }
 
   function buildIndependentBaselineRecommendations(stats, scores, saju, learningProfile, target) {
-    const nextDraw = Number(dataset?.latestDraw ?? 0) + 1;
-    const appliedSajuWeight = Number(sajuWeight?.value ?? 0);
-    const seed = appliedSajuWeight > 0
-      ? stableCoverageHash(`${coverageSeed()}|independent-baseline-v2`)
-      : nextDraw * 7919;
+    const nextDraw = Number(stats?.latestDraw ?? dataset?.latestDraw ?? 0) + 1;
+    const seed = nextDraw * 7919;
     const random = deterministicPortfolioRandom(seed);
     const selected = [];
     const seen = new Set();
@@ -4056,14 +4096,15 @@
       numbers.sort((left, right) => left - right);
       const key = numbers.join("-");
       if (seen.has(key)) continue;
+      if (selected.some((item) => overlap(item.numbers, numbers) > 2)) continue;
 
       const candidate = enrichLottoCandidate({
         numbers,
         meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
       }, stats);
       candidate.reasons = [
-        "다른 추천 세트와 겹침을 낮춘 조합입니다.",
-        "통계·사주 점수는 참고 정보로만 표시합니다.",
+        "다섯 장이 서로 다른 3개·4개 묶음을 최대한 많이 담도록 배치했습니다.",
+        "다른 추천 장과 같은 번호 3개 이상이 겹치지 않습니다.",
       ];
       selected.push(attachFinalReasons(candidate, selected));
       seen.add(key);
@@ -4174,6 +4215,7 @@
       sb: candidate.sourceBuckets,
     }));
     const buildCandidatePoolMeta = (finalRecommendations) => ({
+      ...finalPortfolioGeometry(finalRecommendations),
       universeSize: LOTTO_UNIVERSE_SIZE,
       requestedRecallCandidateCount: poolBudget.requested,
       generatedCandidateTarget: poolBudget.budget,
@@ -5196,14 +5238,11 @@
       ? "후보 랜덤 배치"
       : finalPortfolioModelIsValidated()
         ? "검증 랭킹"
-        : "독립 분산";
+        : "3·4개 포착 최적화";
     const shown = result.displayMode === "random"
       ? Math.min(Number(setCount.value) || 5, result.pool?.length ?? 0)
       : result.selectedCount;
     const meta = result.candidatePoolMeta ?? {};
-    const validation = recallProfile?.walkForwardPolicy?.holdoutValidation;
-    const testedRate = Number(validation?.exactRate);
-    const randomRate = Number(validation?.randomExpectedRate);
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>이번 최종 추천</span>
@@ -5211,18 +5250,24 @@
         <em>결과 검증도 이 ${formatNumber(shown)}장만 기준으로 봅니다</em>
       </div>
       <div class="candidate-stat-card">
-        <span>분석 후보</span>
-        <strong>${formatNumber(result.filteredCount)}개</strong>
-        <em>참고용</em>
+        <span>사용 번호</span>
+        <strong>${formatNumber(meta.uniqueNumbers ?? 0)}개</strong>
+        <em>${formatNumber(shown * 6)}칸 배치</em>
       </div>
       <div class="candidate-stat-card">
-        <span>후보망 독립검증</span>
-        <strong>${Number.isFinite(testedRate) ? `${testedRate.toFixed(2)}%` : "-"}</strong>
-        <em>무작위 기대 ${Number.isFinite(randomRate) ? `${randomRate.toFixed(2)}%` : "-"}</em>
+        <span>서로 다른 3개 묶음</span>
+        <strong>${formatNumber(meta.uniqueTriples ?? 0)} / ${formatNumber(meta.maxTriples ?? 0)}</strong>
+        <em>3개 포착 범위</em>
       </div>
       <div class="candidate-stat-card">
-        <span>최종 5장 방식</span>
+        <span>서로 다른 4개 묶음</span>
+        <strong>${formatNumber(meta.uniqueQuadruples ?? 0)} / ${formatNumber(meta.maxQuadruples ?? 0)}</strong>
+        <em>4개 포착 범위</em>
+      </div>
+      <div class="candidate-stat-card">
+        <span>최종 추천 방식</span>
         <strong>${mode}</strong>
+        <em>장끼리 최대 ${formatNumber(meta.maxPairOverlap ?? 0)}개 중복</em>
       </div>
     `;
   }
