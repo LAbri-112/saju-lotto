@@ -1,35 +1,35 @@
 (() => {
   const elementInfo = {
-    wood: { label: "紐?, role: "?깆옣怨??쒗쁽", numbers: [41, 42, 43, 44, 45] },
-    fire: { label: "??, role: "?쒕젰怨??먮떒", numbers: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30] },
-    earth: { label: "??, role: "?덉젙怨?以묒떖", numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
-    metal: { label: "湲?, role: "?뺣━? 寃곗떎", numbers: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40] },
-    water: { label: "??, role: "吏?쒖? ?먮쫫", numbers: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
+    wood: { label: "목", role: "성장과 표현", numbers: [41, 42, 43, 44, 45] },
+    fire: { label: "화", role: "활력과 판단", numbers: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30] },
+    earth: { label: "토", role: "안정과 중심", numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+    metal: { label: "금", role: "정리와 결실", numbers: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40] },
+    water: { label: "수", role: "지혜와 흐름", numbers: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
   };
 
   const modeLabels = {
-    balance: "以묓솕 蹂댁셿??,
-    wealth: "?ъ꽦 媛뺥솕??,
-    climate: "議고썑 洹좏삎??,
+    balance: "중화 보완형",
+    wealth: "재성 강화형",
+    climate: "조후 균형형",
   };
 
   const strengthLabels = {
-    weak: "?쇨컙???섏씠 ?ㅼ냼 ?쏀븯寃??≫엳????,
-    balanced: "以묓솕沅뚯뿉 媛源뚯슫 ??,
-    strong: "?쇨컙???섏씠 媛뺥븯寃??≫엳????,
+    weak: "일간의 힘이 다소 약하게 잡히는 편",
+    balanced: "중화권에 가까운 편",
+    strong: "일간의 힘이 강하게 잡히는 편",
   };
 
   const tenGodRoles = {
-    friend: "?먭린 湲곗?怨??낅┰??,
-    rival: "寃쎌웳, ?묒뾽怨?紐レ쓽 議곗젙",
-    eating: "袁몄????앹궛?깃낵 ?앺솢 湲곗닠",
-    hurting: "?쒗쁽, 媛쒖꽑怨?湲곗〈 諛⑹떇???ш뎄??,
-    indirectWealth: "湲고쉶 ?ъ갑怨??몃? ?먯썝 ?쒖슜",
-    directWealth: "?꾩떎 愿由ъ? ?덉젙?곸씤 異뺤쟻",
-    sevenKillings: "?뺣컯 ??寃곕떒怨??뚰뙆",
-    directOfficer: "梨낆엫, 洹쒖튃怨??ы쉶????븷",
-    indirectResource: "吏곴?, ?먭뎄? ?덈줈??愿??,
-    directResource: "?숈뒿, 蹂댄샇? ?뚮났",
+    friend: "자기 기준과 독립성",
+    rival: "경쟁, 협업과 몫의 조정",
+    eating: "꾸준한 생산성과 생활 기술",
+    hurting: "표현, 개선과 기존 방식의 재구성",
+    indirectWealth: "기회 포착과 외부 자원 활용",
+    directWealth: "현실 관리와 안정적인 축적",
+    sevenKillings: "압박 속 결단과 돌파",
+    directOfficer: "책임, 규칙과 사회적 역할",
+    indirectResource: "직관, 탐구와 새로운 관점",
+    directResource: "학습, 보호와 회복",
   };
 
   function escapeHtml(value) {
@@ -45,7 +45,7 @@
   }
 
   function elementRole(key) {
-    return elementInfo[key]?.role ?? "蹂댁“ 湲곗슫";
+    return elementInfo[key]?.role ?? "보조 기운";
   }
 
   function isoFromParts(year, month, day) {
@@ -54,7 +54,7 @@
 
   function modeLabel() {
     const value = document.querySelector("#interpretationMode")?.value ?? "balance";
-    return modeLabels[value] ?? "以묓솕 蹂댁셿??;
+    return modeLabels[value] ?? "중화 보완형";
   }
 
   function miniBalls(numbers) {
@@ -80,7 +80,7 @@
   }
 
   function renderPillars(saju) {
-    const labels = { year: "?앸뀈", month: "?앹썡", day: "?앹씪", hour: "?앹떆" };
+    const labels = { year: "생년", month: "생월", day: "생일", hour: "생시" };
     const pillars = Array.isArray(saju?.pillars) ? saju.pillars : [];
     if (!pillars.length && saju?.pillarText) {
       return `<div class="pillar-grid simple">${escapeHtml(saju.pillarText)}</div>`;
@@ -104,49 +104,49 @@
 
   function buildCorrectionText(saju) {
     const correction = saju?.birth?.correction;
-    if (!correction) return "?낅젰???앸뀈?붿씪??湲곗??쇰줈 怨꾩궛?덉뒿?덈떎.";
+    if (!correction) return "입력한 생년월일시 기준으로 계산했습니다.";
     if (correction.unknownHour) {
-      return "異쒖깮?쒓컖??紐⑤Ⅴ??議곌굔?대?濡??쒖＜??李멸퀬媛믪쑝濡쒕쭔 蹂닿퀬, ?쇨컙怨??붾졊 以묒떖?쇰줈 ?댁꽍?⑸땲??";
+      return "출생시각을 모르는 조건이므로 시주는 참고값으로만 보고, 일간과 월령 중심으로 해석합니다.";
     }
-    const place = correction.place?.label ?? "?낅젰 吏??;
-    const correctionText = correction.correctionEnabled ? "吏??룹꽌癒명???蹂댁젙???곸슜" : "吏??蹂댁젙 ?놁씠 怨꾩궛";
-    const midnightText = correction.midnightRule === "traditional" ? "?꾪넻 ?먯떆" : "?쇱옄??議곗옄??;
-    return `${place} 湲곗??쇰줈 ${correctionText}?덇퀬, ?먯떆 湲곗?? ${midnightText}濡?蹂댁븯?듬땲??`;
+    const place = correction.place?.label ?? "입력 지역";
+    const correctionText = correction.correctionEnabled ? "지역·서머타임 보정을 적용" : "지역 보정 없이 계산";
+    const midnightText = correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시";
+    return `${place} 기준으로 ${correctionText}했고, 자시 기준은 ${midnightText}로 보았습니다.`;
   }
 
   function buildCalendarText(saju) {
     const original = saju?.birth?.correction?.original;
-    if (!original) return "?낅젰???좎쭨";
+    if (!original) return "입력한 날짜";
     if (original.calendar === "lunar") {
       const input = original.input ?? original;
-      return `?뚮젰 ${isoFromParts(input.year, input.month, input.day)} ?낅젰???묐젰 ${isoFromParts(
+      return `음력 ${isoFromParts(input.year, input.month, input.day)} 입력을 양력 ${isoFromParts(
         original.year,
         original.month,
         original.day,
-      )} 湲곗??쇰줈 諛붽씀??蹂??좎쭨`;
+      )} 기준으로 바꾸어 본 날짜`;
     }
-    return `?묐젰 ${isoFromParts(original.year, original.month, original.day)} 湲곗? ?좎쭨`;
+    return `양력 ${isoFromParts(original.year, original.month, original.day)} 기준 날짜`;
   }
 
   function buildTenGodText(saju) {
     const top = (saju?.topTenGods ?? []).slice(0, 3);
-    if (!top.length) return "??꽦? ?붾졊怨??쇨컙???섏쓣 癒쇱? ?뺤씤?????앺솢 ??븷濡???대큶?덈떎.";
+    if (!top.length) return "십성은 월령과 일간의 힘을 먼저 확인한 뒤 생활 역할로 풀어봅니다.";
     const summary = top
       .map(
         (item) =>
-          `${item.label}${Number.isFinite(item.percentage) ? ` ${item.percentage}%` : ""}(${tenGodRoles[item.key] ?? "?앺솢 ??븷"})`,
+          `${item.label}${Number.isFinite(item.percentage) ? ` ${item.percentage}%` : ""}(${tenGodRoles[item.key] ?? "생활 역할"})`,
       )
-      .join(" 쨌 ");
-    return `鍮꾩쨷???믪? ??꽦? ${summary} ?쒖엯?덈떎. ??꽦 ?섎굹瑜??깃꺽?쇰줈 ?⑥젙?섏? ?딄퀬, ?쒕줈 ?묐젰?섍굅??異⑸룎?섎뒗 諛⑹떇???④퍡 遊낅땲??`;
+      .join(" · ");
+    return `비중이 높은 십성은 ${summary} 순입니다. 십성 하나를 성격으로 단정하지 않고, 서로 협력하거나 충돌하는 방식을 함께 봅니다.`;
   }
 
   function buildMajorLuckText(saju) {
     const luck = saju?.majorLuck;
     const current = luck?.current;
-    if (!luck || !current) return "??댁? 異쒖깮 ?덇린? ?깅퀎 ?뺣낫媛 媛뽰떠吏????꾩옱 援ш컙??怨꾩궛?⑸땲??";
-    const direction = luck.provisional ? "?깅퀎 誘몄엯?μ쑝濡??쒗뻾???꾩떆 ?곸슜" : `${luck.directionLabel} ?곸슜`;
-    const tenGod = current.tenGodName ? `, 泥쒓컙 ??꽦? ${current.tenGodName}` : "";
-    return `${direction}, ${luck.startAgeText} ?꾪썑??泥???댁씠 ?쒖옉?섎뒗 寃껋쑝濡?怨꾩궛?덉뒿?덈떎. ?꾩옱??${current.pillar.name} ???${current.startAgeText}~${current.endAgeText}${tenGod})?낅땲??`;
+    if (!luck || !current) return "대운은 출생 절기와 성별 정보가 갖춰진 뒤 현재 구간을 계산합니다.";
+    const direction = luck.provisional ? "성별 미입력으로 순행을 임시 적용" : `${luck.directionLabel} 적용`;
+    const tenGod = current.tenGodName ? `, 천간 십성은 ${current.tenGodName}` : "";
+    return `${direction}, ${luck.startAgeText} 전후에 첫 대운이 시작되는 것으로 계산했습니다. 현재는 ${current.pillar.name} 대운(${current.startAgeText}~${current.endAgeText}${tenGod})입니다.`;
   }
 
   function buildInteractionText(saju) {
@@ -154,17 +154,17 @@
     const tension = (saju?.interactions?.tensionItems ?? []).map((item) => item.label).slice(0, 4);
     const stars = (saju?.interactions?.stars ?? []).map((item) => item.label).slice(0, 3);
     const parts = [];
-    parts.push(support.length ? `湲곗슫??紐⑥쑝???묒슜? ${support.join(" 쨌 ")}?낅땲??` : "?먮뱶?ъ쭊 ?⑹쓽 ?묒슜? ?곸뒿?덈떎.");
-    parts.push(tension.length ? `湲댁옣??留뚮뱶???묒슜? ${tension.join(" 쨌 ")}?낅땲??` : "異㈑룻삎쨌?는룻뙆??媛뺥븯寃??≫엳吏 ?딆뒿?덈떎.");
-    if (stars.length) parts.push(`?좎궡? ${stars.join(" 쨌 ")}??蹂댁“ ?쒖?濡쒕쭔 李멸퀬?⑸땲??`);
-    parts.push("?⑺솕??湲명쓨? ??湲?먮쭔?쇰줈 ?뺤젙?섏? ?딄퀬 ?붾졊, 諛섎났, ?ш컙怨??꾩옱 ?댁쓣 ?④퍡 ?뺤씤?⑸땲??");
+    parts.push(support.length ? `기운을 모으는 작용은 ${support.join(" · ")}입니다.` : "두드러진 합의 작용은 적습니다.");
+    parts.push(tension.length ? `긴장을 만드는 작용은 ${tension.join(" · ")}입니다.` : "충·형·해·파는 강하게 잡히지 않습니다.");
+    if (stars.length) parts.push(`신살은 ${stars.join(" · ")}을 보조 표지로만 참고합니다.`);
+    parts.push("합화나 길흉은 한 글자만으로 확정하지 않고 월령, 반복, 투간과 현재 운을 함께 확인합니다.");
     return parts.join(" ");
   }
 
   function buildLifeRhythmText(saju, strongest, weakest) {
     const lead = saju?.topTenGods?.[0];
-    const role = lead ? tenGodRoles[lead.key] : "?먯떊???듭닕??諛⑹떇";
-    return `?곸꽦?먯꽌??${role}???μ젏?쇰줈 ?곕릺, ${elementLabel(strongest[0])} 湲곗슫??怨쇳븯寃?紐곕┫ ?뚮뒗 ?띾룄瑜?議곗젅?섍퀬 ${elementLabel(weakest[0])} 湲곗슫???대떦?섎뒗 ?쒕룞???앺솢 由щ벉??蹂댁셿?섎뒗 ?몄씠 醫뗭뒿?덈떎. 嫄닿컯 吏꾨떒???꾨땲???셋룻쑕?씲룰?怨꾩쓽 洹좏삎???댄뵾??李멸퀬 ?댁꽍?낅땲??`;
+    const role = lead ? tenGodRoles[lead.key] : "자신의 익숙한 방식";
+    return `적성에서는 ${role}을 장점으로 쓰되, ${elementLabel(strongest[0])} 기운이 과하게 몰릴 때는 속도를 조절하고 ${elementLabel(weakest[0])} 기운에 해당하는 활동을 생활 리듬에 보완하는 편이 좋습니다. 건강 진단이 아니라 일·휴식·관계의 균형을 살피는 참고 해석입니다.`;
   }
 
   function renderProfessionalSajuReading(saju) {
@@ -174,70 +174,70 @@
     const entries = Object.entries(saju.counts ?? {});
     const strongest = entries.slice().sort((a, b) => b[1] - a[1])[0] ?? ["wood", 0];
     const weakest = entries.slice().sort((a, b) => a[1] - b[1])[0] ?? ["water", 0];
-    const favored = (saju.favored ?? []).map((key) => `${elementLabel(key)} 湲곗슫`);
+    const favored = (saju.favored ?? []).map((key) => `${elementLabel(key)} 기운`);
     const tenGods = buildTenGodText(saju);
     const hints = sajuNumberHints(saju, 10);
     const ruleCount = window.SAJU_EXPERT_RULES?.rules?.length ?? 0;
     const currentMode = modeLabel();
     const monthCommand = saju.monthCommand
-      ? `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} ?댄썑 ?쒖뼱??寃껋쑝濡?蹂댁븘 ${saju.monthCommand.branch}?붾졊?쇰줈 ?≪뒿?덈떎.`
-      : "?덇린 湲곗? ?붾졊??李멸퀬?⑸땲??";
+      ? `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} 이후 태어난 것으로 보아 ${saju.monthCommand.branch}월령으로 잡습니다.`
+      : "절기 기준 월령을 참고합니다.";
     const strengthPct = Math.round((saju.strengthRatio ?? 0.5) * 100);
-    const strengthEvidence = saju.strengthAnalysis?.evidence?.join(" ") ?? "?붾졊怨??ㅽ뻾 遺꾪룷瑜??④퍡 鍮꾧탳?덉뒿?덈떎.";
+    const strengthEvidence = saju.strengthAnalysis?.evidence?.join(" ") ?? "월령과 오행 분포를 함께 비교했습니다.";
     const elementRatioText = Object.keys(elementInfo)
       .map((key) => `${elementLabel(key)} ${saju.elementPercentages?.[key] ?? 0}%`)
-      .join(" 쨌 ");
+      .join(" · ");
     const methodElements = (method) =>
-      (saju.yongsinDecision?.methods?.[method] ?? []).map((key) => elementLabel(key)).join("쨌") || "異붽? ?먮떒 ?꾩슂";
+      (saju.yongsinDecision?.methods?.[method] ?? []).map((key) => elementLabel(key)).join("·") || "추가 판단 필요";
 
     const sections = [
       {
-        title: "?먭뎅 援ъ“ ?붿빟",
-        body: `???깆쓽 ?댁꽍 湲곗??먯꽌??${buildCalendarText(saju)}瑜?湲곗??쇰줈 遊낅땲?? ${monthCommand} ${buildCorrectionText(
+        title: "원국 구조 요약",
+        body: `이 앱의 해석 기준에서는 ${buildCalendarText(saju)}를 기준으로 봅니다. ${monthCommand} ${buildCorrectionText(
           saju,
-        )} 紐낆떇? ${saju.pillarText ?? "-"}濡?怨꾩궛?⑸땲?? ?붾졊??${saju.gyeok?.selectionMethod ?? "蹂멸린"} 湲곗??쇰줈 ${saju.gyeok?.name ?? "寃⑷뎅"}??${saju.gyeok?.confidence ?? "?좎젙"} ?꾨낫濡?遊낅땲??`,
+        )} 명식은 ${saju.pillarText ?? "-"}로 계산됩니다. 월령의 ${saju.gyeok?.selectionMethod ?? "본기"} 기준으로 ${saju.gyeok?.name ?? "격국"}을 ${saju.gyeok?.confidence ?? "잠정"} 후보로 봅니다.`,
       },
       {
-        title: "?쇨컙 ?곹깭",
-        body: `?쇨컙? ${elementLabel(saju.dayMaster?.element)} 湲곗슫?쇰줈 蹂닿퀬, ?꾩껜 ?섏? ${
-          strengthLabels[saju.strength] ?? "洹좏삎???④퍡 ?댄렣蹂??꾩슂媛 ?덈뒗 ??
-        }(?앹“ 鍮꾩쑉 ${strengthPct}%, ?먮떒 ?좊ː ${saju.strengthAnalysis?.confidence ?? "蹂댄넻"})?낅땲?? ${strengthEvidence} ${tenGods}`,
+        title: "일간 상태",
+        body: `일간은 ${elementLabel(saju.dayMaster?.element)} 기운으로 보고, 전체 힘은 ${
+          strengthLabels[saju.strength] ?? "균형을 함께 살펴볼 필요가 있는 편"
+        }(생조 비율 ${strengthPct}%, 판단 신뢰 ${saju.strengthAnalysis?.confidence ?? "보통"})입니다. ${strengthEvidence} ${tenGods}`,
       },
       {
-        title: "?ㅽ뻾 洹좏삎",
-        body: `?먭뎅?먯꽌??${elementLabel(strongest[0])} 湲곗슫??鍮꾧탳??媛뺥븯怨? ${elementLabel(
+        title: "오행 균형",
+        body: `원국에서는 ${elementLabel(strongest[0])} 기운이 비교적 강하고, ${elementLabel(
           weakest[0],
-        )} 湲곗슫? 蹂댁셿 ?꾨낫濡?遊낅땲?? 鍮꾩쑉? ${elementRatioText}?낅땲?? 媛뺥븳 湲곗슫? ?μ젏?쇰줈 ?곕릺 怨쇳븯硫??먮떒???쒖そ?쇰줈 紐곕┫ ???덇퀬, ?쏀븳 湲곗슫? ?앺솢 由щ벉怨??좏깮 諛⑹떇?먯꽌 蹂댁셿?섎뒗 履쎌씠 醫뗭뒿?덈떎.`,
+        )} 기운은 보완 후보로 봅니다. 비율은 ${elementRatioText}입니다. 강한 기운은 장점으로 쓰되 과하면 판단이 한쪽으로 몰릴 수 있고, 약한 기운은 생활 리듬과 선택 방식에서 보완하는 쪽이 좋습니다.`,
       },
       {
-        title: "?⑹떊/?ъ떊 諛⑺뼢",
-        body: `?듬? ?꾨낫??${methodElements("eokbu")}, 議고썑 ?꾨낫??${methodElements("johu")}, 寃⑷뎅 蹂댁“ ?꾨낫??${methodElements("gyeok")}?낅땲?? ??諛⑸쾿??援먯쭛?⑷낵 ?먭뎅 遺꾪룷瑜??⑹퀜 ${favored.join(", ") || "蹂댁셿 湲곗슫"}???곗꽑 諛⑺뼢?쇰줈 ?≪쑝硫? 醫낇빀 ?먮떒? ${saju.yongsinDecision?.confidence ?? "?먯깋??}?낅땲??`,
-        extra: renderTags((saju.yongsin ?? []).map((item) => `${item.title}: ${elementLabel(item.element)}${item.consensus ? ` 쨌 ${item.consensus}/3 ?쇱튂` : ""}`)),
+        title: "용신/희신 방향",
+        body: `억부 후보는 ${methodElements("eokbu")}, 조후 후보는 ${methodElements("johu")}, 격국 보조 후보는 ${methodElements("gyeok")}입니다. 세 방법의 교집합과 원국 분포를 합쳐 ${favored.join(", ") || "보완 기운"}을 우선 방향으로 잡으며, 종합 판단은 ${saju.yongsinDecision?.confidence ?? "탐색적"}입니다.`,
+        extra: renderTags((saju.yongsin ?? []).map((item) => `${item.title}: ${elementLabel(item.element)}${item.consensus ? ` · ${item.consensus}/3 일치` : ""}`)),
       },
       {
-        title: "?⑹땐쨌?뺥빐??,
+        title: "합충·형해파",
         body: buildInteractionText(saju),
       },
       {
-        title: "?꾩옱 ???먮쫫",
-        body: `${buildMajorLuckText(saju)} ?꾩옱 ?몄슫? ${saju.annualFlow?.year?.name ?? "-"}(${saju.annualFlow?.yearTenGod ?? "??꽦 怨꾩궛 以?})?닿퀬, ?붿슫? ${saju.annualFlow?.month?.name ?? "-"}(${saju.annualFlow?.monthTenGod ?? "??꽦 怨꾩궛 以?})?낅땲?? ?댁? 寃곌낵瑜??⑥젙?섍린蹂대떎 ?먭뎅??媛뺤젏?????곗씠???쒓린? 議곗젙???꾩슂???쒓린瑜?援щ텇?섎뒗 湲곗??낅땲??`,
+        title: "현재 운 흐름",
+        body: `${buildMajorLuckText(saju)} 현재 세운은 ${saju.annualFlow?.year?.name ?? "-"}(${saju.annualFlow?.yearTenGod ?? "십성 계산 중"})이고, 월운은 ${saju.annualFlow?.month?.name ?? "-"}(${saju.annualFlow?.monthTenGod ?? "십성 계산 중"})입니다. 운은 결과를 단정하기보다 원국의 강점이 잘 쓰이는 시기와 조정이 필요한 시기를 구분하는 기준입니다.`,
       },
       {
-        title: "?щЪ???좏깮??,
-        body: `?щЪ?댁? ${elementLabel(saju.wealthElement)} 湲곗슫留??곕줈 ?쇱뼱 蹂댁? ?딄퀬, ?쇨컙???섍낵 ?앹긽 ?먮쫫, ?꾩옱 ?댁쓽 蹂댁“ ?щ?瑜??④퍡 遊낅땲?? ??紐낆떇?먯꽌??湲고쉶 ?ъ갑 媛먭컖???뺣━?섎릺 ??踰덉뿉 紐곗븘媛湲곕낫??遺꾩궛?댁꽌 怨좊Ⅴ??諛⑹떇???덉젙?곸쑝濡??쏀옓?덈떎.`,
+        title: "재물운/선택운",
+        body: `재물운은 ${elementLabel(saju.wealthElement)} 기운만 따로 떼어 보지 않고, 일간의 힘과 식상 흐름, 현재 운의 보조 여부를 함께 봅니다. 이 명식에서는 기회 포착 감각을 정리하되 한 번에 몰아가기보다 분산해서 고르는 방식이 안정적으로 읽힙니다.`,
       },
       {
-        title: "?곸꽦쨌?앺솢 由щ벉",
+        title: "적성·생활 리듬",
         body: buildLifeRhythmText(saju, strongest, weakest),
       },
       {
-        title: "濡쒕삉 異붿쿇??諛섏쁺??遺遺?,
-        body: `濡쒕삉 異붿쿇?먯꽌???듦퀎 湲곕컲 ?꾨낫瑜?癒쇱? ?몄슦怨? ?ъ＜??${currentMode} 湲곗???蹂댁“ ?먯닔濡쒕쭔 諛섏쁺?⑸땲?? ?꾩옱 ?댁꽍?먯꽌 ??留욌뒗 履쎌쑝濡??≫엺 踰덊샇???꾨옒? 媛숈뒿?덈떎.`,
+        title: "로또 추천에 반영된 부분",
+        body: `로또 추천에서는 통계 기반 후보를 먼저 세우고, 사주는 ${currentMode} 기준의 보조 점수로만 반영합니다. 현재 해석에서 잘 맞는 쪽으로 잡힌 번호는 아래와 같습니다.`,
         extra: miniBalls(hints),
       },
       {
-        title: "二쇱쓽 臾멸뎄",
-        body: `?ъ＜ ?댁꽍? ?숉뙆蹂?李⑥씠媛 ?덉쓣 ???덉쑝硫? ${ruleCount}媛쒖쓽 ?대? ?곷떞??洹쒖튃? ?먮떒???뺣뒗 蹂댁“ 湲곗??낅땲?? 蹂듦텒 踰덊샇??異붿꺼 寃곌낵瑜?蹂댁옣?섏? ?딆쑝誘濡??좏깮???뺣━?섎뒗 李멸퀬 由ы룷?몃줈 蹂댁븘 二쇱꽭??`,
+        title: "주의 문구",
+        body: `사주 해석은 학파별 차이가 있을 수 있으며, ${ruleCount}개의 내부 상담형 규칙은 판단을 돕는 보조 기준입니다. 복권 번호는 추첨 결과를 보장하지 않으므로 선택을 정리하는 참고 리포트로 보아 주세요.`,
       },
     ];
 
@@ -255,10 +255,10 @@
           )
           .join("")}
         <div class="reading-row">
-          <span>?듭떖 諛⑺뼢</span>
-          <p>媛??媛뺥븳 湲곗슫? ${elementLabel(strongest[0])}(${elementRole(strongest[0])}), 媛??蹂댁셿??湲곗슫? ${elementLabel(
+          <span>핵심 방향</span>
+          <p>가장 강한 기운은 ${elementLabel(strongest[0])}(${elementRole(strongest[0])}), 가장 보완할 기운은 ${elementLabel(
       weakest[0],
-    )}(${elementRole(weakest[0])})濡?遊낅땲??</p>
+    )}(${elementRole(weakest[0])})로 봅니다.</p>
         </div>
       </div>`;
     return true;
