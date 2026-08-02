@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-08",
+  "updatedAt": "2026-08-02",
   "sourceBasis": "classical_and_public_reference_registry",
   "sourceHint": "사주 해석 규칙을 만들 때 참고 가능한 고전, 공공자료, 연구자료의 출처와 사용 원칙을 기록합니다.",
   "license": {
@@ -83,6 +83,66 @@
       }
     },
     {
+      "id": "kasi-lunisolar-calendar-api",
+      "title": "한국천문연구원 음양력 정보 API",
+      "category": "public_data",
+      "sourceBasis": "https://www.data.go.kr/data/15012679/openapi.do",
+      "license": {
+        "type": "public_data_portal",
+        "source": "data.go.kr",
+        "allowedUse": ["calendar_validation", "lunisolar_conversion", "sexagenary_validation"],
+        "notes": "양음력 변환과 간지 연월일 교차검증에 사용하며 이용허락범위를 준수합니다."
+      }
+    },
+    {
+      "id": "kasi-solar-term-method-faq",
+      "title": "한국천문연구원 24절기 계산 설명",
+      "category": "public_reference",
+      "sourceBasis": "https://astro.kasi.re.kr/community/post/faq?clsf_cd=FAQ_04",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "KASI",
+        "allowedUse": ["method_review", "calendar_validation"],
+        "notes": "절기를 태양 황경으로 정하는 원리와 절입 시각 검증의 참고 링크만 기록합니다."
+      }
+    },
+    {
+      "id": "japyung-month-command-study",
+      "title": "자평진전의 월령·격국·용신 연구",
+      "category": "research_reference",
+      "sourceBasis": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11275953",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "DBpia abstract metadata",
+        "allowedUse": ["method_review", "rule_reference"],
+        "notes": "논문 문장을 복사하지 않고 월령용신과 격국 판단층을 분리해야 한다는 연구 주제만 참고합니다."
+      }
+    },
+    {
+      "id": "quantified-yongsin-study",
+      "title": "명리학 용신 판단의 정량화 연구",
+      "category": "research_reference",
+      "sourceBasis": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10750186",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "DBpia abstract metadata",
+        "allowedUse": ["method_review", "evaluation_design"],
+        "notes": "위치별 영향력 정량화 시도를 참고하되 앱 가중치는 직접 작성하고 검증합니다."
+      }
+    },
+    {
+      "id": "generative-ai-myeongri-limitations",
+      "title": "생성형 인공지능의 명리 해석 양상과 한계",
+      "category": "research_reference",
+      "sourceBasis": "https://www.kci.go.kr/kciportal/mobile/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003361304",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "KCI metadata",
+        "allowedUse": ["evaluation_design", "method_review"],
+        "notes": "신강신약·용신·격국·대운을 분리 평가해야 한다는 연구 범주를 참고하며 본문을 복사하지 않습니다."
+      }
+    },
+    {
       "id": "bazi-character-simulation-benchmark",
       "title": "BaZi-Based Character Simulation Benchmark",
       "category": "research_reference",
@@ -93,9 +153,22 @@
         "allowedUse": ["readme_reference", "method_review"],
         "notes": "데이터셋 라이선스와 공개 여부를 확인하기 전까지 프로젝트 데이터에 포함하지 않습니다."
       }
+    },
+    {
+      "id": "user-provided-myeongri-intro-reference",
+      "title": "사용자 제공 사주명리학 입문 참고 PDF",
+      "category": "user_provided_reference",
+      "sourceBasis": "user_provided_document_structure_review",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_local_document",
+        "allowedUse": ["method_review", "report_structure_review"],
+        "notes": "오행·십성·격국·용신·직업·관계·생활 리듬·대운으로 이어지는 구성만 검토했으며 본문 문장은 복사하거나 프로젝트 데이터에 포함하지 않습니다."
+      }
     }
   ],
   "rules": [],
   "cases": [],
   "evalCases": []
 }
+

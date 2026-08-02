@@ -31,6 +31,8 @@
   const AUTO_FRONTIER_NUMBER_COUNT = 25;
   const ACTIVE_FRONTIER_LIMIT_MAX = 29;
   const AUTO_CANDIDATE_POOL_BUDGET = 180000;
+  const MIN_VALIDATED_RECALL_DRAWS = 100;
+  const MIN_VALIDATED_RECALL_LIFT = 1.01;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -242,6 +244,28 @@
     { pair: [8, 11], label: "신해해" },
     { pair: [9, 10], label: "유술해" },
   ];
+
+  const branchDestructionRules = [
+    { pair: [0, 9], label: "자유파" },
+    { pair: [1, 4], label: "축진파" },
+    { pair: [2, 11], label: "인해파" },
+    { pair: [3, 6], label: "묘오파" },
+    { pair: [5, 8], label: "사신파" },
+    { pair: [7, 10], label: "미술파" },
+  ];
+
+  const branchPunishmentRules = [
+    { branches: [0, 3], label: "자묘형", minimum: 2 },
+    { branches: [2, 5, 8], label: "인사신 삼형", minimum: 3 },
+    { branches: [1, 7, 10], label: "축미술 삼형", minimum: 3 },
+  ];
+
+  const selfPunishmentBranches = new Map([
+    [4, "진진 자형"],
+    [6, "오오 자형"],
+    [9, "유유 자형"],
+    [11, "해해 자형"],
+  ]);
 
   const threeHarmonyRules = [
     { branches: [8, 0, 4], element: "water", label: "신자진 수국" },
@@ -741,6 +765,15 @@
 
   function getExactInclusionRate(candidateCount) {
     return clamp(Number(candidateCount) / LOTTO_UNIVERSE_SIZE, 0, 1);
+  }
+
+  function recallModelIsValidated() {
+    const validation = recallProfile?.walkForwardPolicy?.holdoutValidation;
+    return (
+      Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw) &&
+      Number(validation?.validationDraws ?? 0) >= MIN_VALIDATED_RECALL_DRAWS &&
+      Number(validation?.lift ?? 0) >= MIN_VALIDATED_RECALL_LIFT
+    );
   }
 
   function formatPercent(value, digits = 3) {
@@ -2099,7 +2132,7 @@
   }
 
   function samePair(pair, a, b) {
-    return pair.includes(a) && pair.includes(b);
+    return (pair[0] === a && pair[1] === b) || (pair[0] === b && pair[1] === a);
   }
 
   function matchingPairRule(rules, a, b) {
@@ -2125,6 +2158,10 @@
     const items = [];
     const stars = [];
     const branchSet = new Set(pillars.map((pillar) => pillar.branchIndex));
+    const branchCounts = pillars.reduce((counts, pillar) => {
+      counts.set(pillar.branchIndex, (counts.get(pillar.branchIndex) ?? 0) + 1);
+      return counts;
+    }, new Map());
     const voidBranches = voidBranchGroups[Math.floor(dayIndex / 10)] ?? [];
     const labelPair = (left, right) => `${pillarKindLabel(left.kind)}·${pillarKindLabel(right.kind)}`;
 
@@ -2137,6 +2174,7 @@
         const branchCombo = matchingPairRule(branchCombinationRules, left.branchIndex, right.branchIndex);
         const branchClash = matchingPairRule(branchClashRules, left.branchIndex, right.branchIndex);
         const branchHarm = matchingPairRule(branchHarmRules, left.branchIndex, right.branchIndex);
+        const branchDestruction = matchingPairRule(branchDestructionRules, left.branchIndex, right.branchIndex);
 
         if (stemCombo) {
           items.push({
@@ -2177,6 +2215,30 @@
             tone: "tension",
           });
         }
+        if (branchDestruction) {
+          items.push({
+            type: "지지파",
+            label: `${labelPair(left, right)} ${branchDestruction.label}`,
+            tone: "tension",
+          });
+        }
+      }
+    }
+
+    for (const rule of branchPunishmentRules) {
+      const matched = rule.branches.filter((branch) => branchSet.has(branch));
+      if (matched.length >= rule.minimum) {
+        items.push({
+          type: "지지형",
+          label: rule.label,
+          tone: "tension",
+        });
+      }
+    }
+
+    for (const [branch, label] of selfPunishmentBranches.entries()) {
+      if ((branchCounts.get(branch) ?? 0) >= 2) {
+        items.push({ type: "지지형", label, tone: "tension" });
       }
     }
 
@@ -2263,7 +2325,12 @@
       ...(entered ?? fallback),
       enteredAt: entered,
       nextTerm: next,
-      precision: "태양 황경 근사 절입",
+      precision:
+        entered?.precision === "official-time"
+          ? "공식 절입 시각"
+          : entered?.precision === "official-date"
+            ? "공식 절입 날짜"
+            : "태양 황경 계산 절입",
     };
   }
 
@@ -2283,6 +2350,25 @@
       date.getMinutes(),
     );
     return Math.max(0, (nowTs - birthTs) / (365.2422 * 86400000));
+  }
+
+  function gregorianJulianDayNumber(year, month, day) {
+    const a = Math.floor((14 - month) / 12);
+    const y = year + 4800 - a;
+    const m = month + 12 * a - 3;
+    return (
+      day +
+      Math.floor((153 * m + 2) / 5) +
+      365 * y +
+      Math.floor(y / 4) -
+      Math.floor(y / 100) +
+      Math.floor(y / 400) -
+      32045
+    );
+  }
+
+  function sexagenaryDayIndex(year, month, day) {
+    return mod(gregorianJulianDayNumber(year, month, day) + 49, 60);
   }
 
   function luckAgeText(months) {
@@ -2365,37 +2451,76 @@
       return makePillar("month", mod(flowFirstMonthStem + flowMonth.monthNo - 1, 10), flowMonth.branchIndex);
     }
 
-    const baseDate = Date.UTC(1984, 1, 2);
-    const targetDateUtc = Date.UTC(flowBirth.year, flowBirth.month - 1, flowBirth.day);
-    const dayIndex = mod(Math.round((targetDateUtc - baseDate) / 86400000), 60);
+    const dayIndex = sexagenaryDayIndex(flowBirth.year, flowBirth.month, flowBirth.day);
     return makePillar("day", mod(dayIndex, 10), mod(dayIndex, 12));
   }
 
-  function buildYongsinProfile({ favored, strength, resourceElement, outputElement, wealthElement, officerElement, climateElement, interactions }) {
-    const reasonByElement = (element) => {
-      if (element === climateElement) return "태어난 계절의 차갑고 뜨거운 느낌을 맞추는 조후 보완입니다.";
-      if (strength === "weak" && (element === resourceElement || favored[0] === element)) {
-        return "내 기운이 약한 편이라 도와주고 회복시키는 기운을 우선합니다.";
-      }
-      if (strength === "strong" && [outputElement, wealthElement, officerElement].includes(element)) {
-        return "내 기운이 강한 편이라 밖으로 쓰고 흐르게 만드는 기운을 우선합니다.";
-      }
-      if (interactions.supportItems.some((item) => item.element === element)) {
-        return "명식 안의 합이 이 오행을 모아주므로 보조 후보로 봅니다.";
-      }
-      return "전체 오행 균형에서 부족하거나 쓰기 편한 쪽으로 잡힌 보완 기운입니다.";
-    };
+  function buildStrengthAnalysis({ counts, pillars, dayStem, dayElement, resourceElement, outputElement, wealthElement, officerElement, solarMonth, birth }) {
+    const monthHidden = hiddenStems[solarMonth.branchIndex] ?? [];
+    const monthMainElement = stems[monthHidden[0]?.stem ?? solarMonth.branchIndex][1];
+    const rootingPillars = pillars.filter((pillar) =>
+      (hiddenStems[pillar.branchIndex] ?? []).some((hidden) => hidden.stem === dayStem),
+    );
+    const supportScore = counts[dayElement] + counts[resourceElement] * 0.82;
+    const drainScore =
+      counts[outputElement] * 0.72 + counts[wealthElement] * 0.92 + counts[officerElement] * 0.92;
+    const ratio = supportScore / Math.max(0.001, supportScore + drainScore);
+    const classification = ratio >= 0.57 ? "strong" : ratio <= 0.43 ? "weak" : "balanced";
+    const seasonSupport = [dayElement, resourceElement].includes(monthMainElement);
+    const margin = Math.abs(ratio - 0.5);
+    const confidenceScore = clamp(
+      0.54 + Math.min(0.24, margin * 1.8) + (birth.unknownHour ? -0.12 : 0.08) + (rootingPillars.length ? 0.05 : 0),
+      0.35,
+      0.9,
+    );
+    const confidence = confidenceScore >= 0.76 ? "높음" : confidenceScore >= 0.58 ? "보통" : "제한적";
 
-    return favored.map((element, index) => ({
-      element,
-      title: index === 0 ? "1순위 용신 후보" : index === 1 ? "2순위 희신 후보" : "보조 기운",
-      reason: reasonByElement(element),
-    }));
+    return {
+      classification,
+      ratio,
+      supportScore,
+      drainScore,
+      monthMainElement,
+      seasonSupport,
+      rootingPillars: rootingPillars.map((pillar) => pillarKindLabel(pillar.kind)),
+      confidence,
+      confidenceScore,
+      evidence: [
+        seasonSupport ? "월령이 일간 또는 인성을 돕습니다." : "월령이 일간의 힘을 밖으로 쓰거나 제어하는 쪽입니다.",
+        rootingPillars.length
+          ? `${rootingPillars.map((pillar) => pillarKindLabel(pillar.kind)).join("·")}에서 일간의 뿌리를 확인합니다.`
+          : "지지에서 일간과 같은 천간의 뿌리가 뚜렷하지 않습니다.",
+        `생조 ${supportScore.toFixed(2)} 대 설기·재관 ${drainScore.toFixed(2)}로 비교했습니다.`,
+      ],
+    };
   }
 
-  function buildGyeokProfile(dayStem, solarMonth) {
-    const mainHidden = hiddenStems[solarMonth.branchIndex]?.[0]?.stem ?? solarMonth.branchIndex;
-    const tenGodKey = tenGod(dayStem, mainHidden);
+  function buildClimateProfile(solarMonth) {
+    const monthBranch = branches[solarMonth.branchIndex][0];
+    const bySeason = {
+      winter: { primary: "fire", secondary: "wood", text: "찬 기운을 덥히고 움직임을 돕는 방향" },
+      spring: { primary: "fire", secondary: "metal", text: "성장 기운을 따뜻하게 펴고 모양을 잡는 방향" },
+      summer: { primary: "water", secondary: "metal", text: "뜨겁고 마른 흐름을 식히고 정리하는 방향" },
+      autumn: { primary: "water", secondary: "wood", text: "건조해지는 흐름을 적시고 생기를 잇는 방향" },
+    };
+    const profile = bySeason[solarMonth.season] ?? bySeason.spring;
+    return {
+      ...profile,
+      monthBranch,
+      candidates: [profile.primary, profile.secondary],
+      confidence: "1차 후보",
+      basis: `${monthBranch}월의 계절 한난조습을 먼저 본 ${profile.text}입니다. 일간별 세부 조후와 원국의 실제 온도는 함께 대조해야 합니다.`,
+    };
+  }
+
+  function buildGyeokProfile(dayStem, solarMonth, pillars) {
+    const monthHidden = hiddenStems[solarMonth.branchIndex] ?? [];
+    const exposedStems = new Set(
+      pillars.filter((pillar) => pillar.kind !== "day").map((pillar) => pillar.stemIndex),
+    );
+    const exposedHidden = monthHidden.find((hidden) => exposedStems.has(hidden.stem));
+    const selectedHidden = exposedHidden ?? monthHidden[0] ?? { stem: solarMonth.branchIndex, weight: 1 };
+    const tenGodKey = tenGod(dayStem, selectedHidden.stem);
     const tenGodName = tenGodLabels[tenGodKey];
     const frameName = `${tenGodName}격`;
     const plain = friendlyTenGod(tenGodName);
@@ -2417,8 +2542,102 @@
       name: frameName,
       tenGodName,
       plain,
-      element: stems[mainHidden][1],
-      text: `${branches[solarMonth.branchIndex][0]}월령의 주된 장간이 ${tenGodName}으로 잡혀 ${frameName}으로 봅니다. ${frameText}`,
+      element: stems[selectedHidden.stem][1],
+      selectedStem: stems[selectedHidden.stem][0],
+      selectionMethod: exposedHidden ? "월령 지장간 투간" : "월령 본기",
+      confidence: exposedHidden ? "보통 이상" : "잠정",
+      alternatives: monthHidden
+        .filter((hidden) => hidden.stem !== selectedHidden.stem)
+        .map((hidden) => ({ stem: stems[hidden.stem][0], tenGod: tenGodLabels[tenGod(dayStem, hidden.stem)] })),
+      text: exposedHidden
+        ? `${branches[solarMonth.branchIndex][0]}월 지장간 ${stems[selectedHidden.stem][0]}가 천간에 드러난 점을 먼저 보아 ${frameName} 후보로 잡습니다. ${frameText}`
+        : `${branches[solarMonth.branchIndex][0]}월의 지장간이 천간에 뚜렷이 드러나지 않아 본기 ${stems[selectedHidden.stem][0]}를 기준으로 ${frameName}을 잠정 후보로 봅니다. ${frameText}`,
+    };
+  }
+
+  function gyeokSupportCandidates(gyeok, { resourceElement, outputElement, wealthElement, officerElement }) {
+    if (["friend", "rival"].includes(gyeok.key)) return [outputElement, wealthElement];
+    if (["eating", "hurting"].includes(gyeok.key)) return [wealthElement, officerElement];
+    if (["indirectWealth", "directWealth"].includes(gyeok.key)) return [outputElement, officerElement];
+    if (["sevenKillings", "directOfficer"].includes(gyeok.key)) return [resourceElement];
+    if (["indirectResource", "directResource"].includes(gyeok.key)) return [wealthElement, outputElement];
+    return [];
+  }
+
+  function buildYongsinDecision({
+    mode,
+    counts,
+    strengthAnalysis,
+    climate,
+    gyeok,
+    dayElement,
+    resourceElement,
+    outputElement,
+    wealthElement,
+    officerElement,
+    interactions,
+  }) {
+    const sortedByLack = elementKeys.slice().sort((a, b) => counts[a] - counts[b]);
+    const eokbu =
+      strengthAnalysis.classification === "weak"
+        ? [resourceElement, dayElement]
+        : strengthAnalysis.classification === "strong"
+          ? [outputElement, wealthElement, officerElement]
+          : sortedByLack.slice(0, 2);
+    const methods = {
+      eokbu,
+      johu: climate.candidates,
+      gyeok: gyeokSupportCandidates(gyeok, { resourceElement, outputElement, wealthElement, officerElement }),
+    };
+    const scores = Object.fromEntries(elementKeys.map((key) => [key, 0.12]));
+    const reasons = Object.fromEntries(elementKeys.map((key) => [key, []]));
+    const add = (method, candidates, weights) => {
+      candidates.forEach((element, index) => {
+        scores[element] += weights[index] ?? weights.at(-1) ?? 0;
+        reasons[element].push(method);
+      });
+    };
+    add("억부", methods.eokbu, [1, 0.68, 0.42]);
+    add("조후", methods.johu, [0.56, 0.3]);
+    add("격국", methods.gyeok, [0.44, 0.24]);
+    sortedByLack.slice(0, 2).forEach((element, index) => {
+      scores[element] += index === 0 ? 0.24 : 0.14;
+      reasons[element].push("오행 분포");
+    });
+    interactions.supportItems.forEach((item) => {
+      if (item.element) scores[item.element] += 0.06;
+    });
+    if (mode === "wealth") {
+      scores[wealthElement] += 0.48;
+      scores[outputElement] += 0.18;
+      reasons[wealthElement].push("재성 모드");
+    }
+    if (mode === "climate") {
+      scores[climate.primary] += 0.48;
+      reasons[climate.primary].push("조후 모드");
+    }
+
+    const ranked = elementKeys.slice().sort((a, b) => scores[b] - scores[a]);
+    const consensusCount = Object.fromEntries(
+      elementKeys.map((element) => [element, Object.values(methods).filter((list) => list.includes(element)).length]),
+    );
+    const leadConsensus = consensusCount[ranked[0]];
+    const confidence = leadConsensus >= 2 && strengthAnalysis.confidence !== "제한적" ? "보통 이상" : leadConsensus >= 2 ? "보통" : "탐색적";
+    const yongsin = ranked.slice(0, 3).map((element, index) => ({
+      element,
+      title: index === 0 ? "종합 용신 후보" : index === 1 ? "희신 후보" : "보조 기운",
+      reason: `${[...new Set(reasons[element])].join("·") || "전체 균형"} 판단에서 지지가 모인 기운입니다.`,
+      methods: [...new Set(reasons[element])],
+      consensus: consensusCount[element],
+    }));
+
+    return {
+      scores,
+      favored: ranked.slice(0, 3),
+      methods,
+      consensusCount,
+      confidence,
+      yongsin,
     };
   }
 
@@ -2458,9 +2677,7 @@
     const yearBranch = mod(yearIndex, 12);
     const firstMonthStem = mod((yearStem % 5) * 2 + 2, 10);
     const monthStem = mod(firstMonthStem + solarMonth.monthNo - 1, 10);
-    const baseDate = Date.UTC(1984, 1, 2);
-    const birthDateUtc = Date.UTC(birth.year, birth.month - 1, birth.day);
-    const dayIndex = mod(Math.round((birthDateUtc - baseDate) / 86400000), 60);
+    const dayIndex = sexagenaryDayIndex(birth.year, birth.month, birth.day);
     const dayStem = mod(dayIndex, 10);
     const dayBranch = mod(dayIndex, 12);
     const hourBranch =
@@ -2512,62 +2729,42 @@
     const wealthElement = controls[dayElement];
     const officerElement = controlledBy(dayElement);
     const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
-    const support =
-      counts[dayElement] +
-      counts[resourceElement] * 0.82 +
-      (solarMonth.branchIndex === dayBranch ? 0.3 : 0);
-    const pressure =
-      counts[outputElement] * 0.72 +
-      counts[wealthElement] * 0.92 +
-      counts[officerElement] * 0.92;
-    const strengthRatio = support / Math.max(1, support + pressure);
-    const strength =
-      strengthRatio >= 0.56 ? "strong" : strengthRatio <= 0.43 ? "weak" : "balanced";
-    const sortedByLack = elementKeys.slice().sort((a, b) => counts[a] - counts[b]);
-    const usefulScores = Object.fromEntries(elementKeys.map((key) => [key, 0.15]));
-
-    if (strength === "weak") {
-      usefulScores[resourceElement] += 1.05;
-      usefulScores[dayElement] += 0.82;
-    } else if (strength === "strong") {
-      usefulScores[outputElement] += 0.9;
-      usefulScores[wealthElement] += 0.86;
-      usefulScores[officerElement] += 0.72;
-    } else {
-      usefulScores[sortedByLack[0]] += 0.85;
-      usefulScores[sortedByLack[1]] += 0.62;
-      usefulScores[wealthElement] += 0.35;
-    }
-
-    const monthBranch = branches[solarMonth.branchIndex][0];
-    let climateElement = null;
-    if (["해", "자", "축"].includes(monthBranch)) climateElement = "fire";
-    if (["사", "오", "미"].includes(monthBranch)) climateElement = "water";
-    if (["신", "유", "술"].includes(monthBranch)) climateElement = "wood";
-    if (["인", "묘", "진"].includes(monthBranch)) climateElement = "metal";
-    if (climateElement) usefulScores[climateElement] += 0.45;
-
-    for (const item of interactions.supportItems) {
-      if (item.element) usefulScores[item.element] += 0.12;
-    }
-    if (interactions.stars.some((star) => star.type === "천을귀인")) usefulScores[resourceElement] += 0.16;
-    if (interactions.stars.some((star) => star.type === "문창귀인")) usefulScores[outputElement] += 0.12;
-    if (interactions.tensionItems.length) {
-      usefulScores[resourceElement] += Math.min(0.18, interactions.tensionItems.length * 0.04);
-    }
-
-    if (modeOverride === "wealth") {
-      usefulScores[wealthElement] += 0.72;
-      usefulScores[outputElement] += 0.28;
-    }
-
-    if (modeOverride === "climate" && climateElement) {
-      usefulScores[climateElement] += 0.82;
-    }
-
-    for (const key of sortedByLack.slice(0, 2)) {
-      usefulScores[key] += 0.22;
-    }
+    const strengthAnalysis = buildStrengthAnalysis({
+      counts,
+      pillars,
+      dayStem,
+      dayElement,
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+      solarMonth,
+      birth,
+    });
+    const strength = strengthAnalysis.classification;
+    const strengthRatio = strengthAnalysis.ratio;
+    const climate = buildClimateProfile(solarMonth);
+    const climateElement = climate.primary;
+    const gyeok = buildGyeokProfile(dayStem, solarMonth, pillars);
+    const yongsinDecision = buildYongsinDecision({
+      mode: modeOverride,
+      counts,
+      strengthAnalysis,
+      climate,
+      gyeok,
+      dayElement,
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+      interactions,
+    });
+    const usefulScores = yongsinDecision.scores;
+    const favored = yongsinDecision.favored;
+    const yongsin = yongsinDecision.yongsin;
+    const elementPercentages = Object.fromEntries(
+      elementKeys.map((key) => [key, total ? Math.round((counts[key] / total) * 1000) / 10 : 0]),
+    );
 
     const now = new Date();
     const currentFlowBirth = {
@@ -2579,34 +2776,34 @@
     };
     const currentSolarMonth = getSolarMonth(currentFlowBirth);
     const majorLuck = buildMajorLuckProfile(birth, monthStem, solarMonth.branchIndex, yearStem);
+    if (majorLuck.current?.pillar) {
+      majorLuck.current.tenGodName = tenGodLabels[tenGod(dayStem, majorLuck.current.pillar.stemIndex)];
+    }
     const flowYear = buildFlowPillar("year", now);
     const flowMonthPillar = buildFlowPillar("month", now);
     const flowDay = buildFlowPillar("day", now);
-    flowBoost(usefulScores, majorLuck.current?.pillar, 0.08);
-    flowBoost(usefulScores, flowYear, 0.05);
-    flowBoost(usefulScores, flowMonthPillar, 0.04);
-    flowBoost(usefulScores, flowDay, 0.03);
-
-    const favored = elementKeys
-      .slice()
-      .sort((a, b) => usefulScores[b] - usefulScores[a])
-      .slice(0, 3);
-    const yongsin = buildYongsinProfile({
-      favored,
-      strength,
-      resourceElement,
-      outputElement,
-      wealthElement,
-      officerElement,
-      climateElement,
-      interactions,
-    });
-    const gyeok = buildGyeokProfile(dayStem, solarMonth);
+    const timingScores = { ...usefulScores };
+    flowBoost(timingScores, majorLuck.current?.pillar, 0.08);
+    flowBoost(timingScores, flowYear, 0.05);
+    flowBoost(timingScores, flowMonthPillar, 0.04);
+    flowBoost(timingScores, flowDay, 0.03);
     const pillarText = pillars.map((pillar) => pillar.name).join(" ");
+    const tenGodTotal = Object.values(tenGodCounts).reduce((sum, value) => sum + value, 0);
     const topTenGods = Object.entries(tenGodCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([key, value]) => ({ key, label: tenGodLabels[key], value }));
+      .map(([key, value]) => ({
+        key,
+        label: tenGodLabels[key],
+        value,
+        percentage: tenGodTotal ? Math.round((value / tenGodTotal) * 1000) / 10 : 0,
+      }));
+    const tenGodPercentages = Object.fromEntries(
+      Object.entries(tenGodCounts).map(([key, value]) => [
+        key,
+        tenGodTotal ? Math.round((value / tenGodTotal) * 1000) / 10 : 0,
+      ]),
+    );
     const annualFlow = {
       year: flowYear,
       month: flowMonthPillar,
@@ -2633,13 +2830,20 @@
       dayStemIndex: dayStem,
       strength,
       strengthRatio,
+      strengthAnalysis,
       usefulScores,
+      timingScores,
+      elementPercentages,
+      tenGodCounts,
+      tenGodPercentages,
       topTenGods,
       interactions,
       annualFlow,
       majorLuck,
       gyeok,
       yongsin,
+      yongsinDecision,
+      climate,
       monthCommand: {
         branch: branches[solarMonth.branchIndex][0],
         element: branches[solarMonth.branchIndex][1],
@@ -3309,13 +3513,19 @@
     const weightSetting = typeof poolBudget === "object" ? Number(poolBudget.weightSetting ?? 60) : 60;
     const learnedOrder = recallProfile?.walkForwardPolicy?.nextDrawNumberOrder;
     const learnedOrderIsCurrent = Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw);
+    const learnedOrderIsValidated = recallModelIsValidated();
     const learnedOrderIsValid =
       Array.isArray(learnedOrder) &&
       learnedOrder.length === 45 &&
       new Set(learnedOrder).size === 45 &&
       learnedOrder.every((number) => Number.isInteger(number) && number >= 1 && number <= 45);
 
-    if (poolBudget?.mode === "auto" && learnedOrderIsCurrent && learnedOrderIsValid) {
+    if (
+      poolBudget?.mode === "auto" &&
+      learnedOrderIsCurrent &&
+      learnedOrderIsValidated &&
+      learnedOrderIsValid
+    ) {
       return learnedOrder.slice(0, limit).sort((a, b) => a - b);
     }
     const byScore = rankedNumbersBy(scores, (item) => item.score);
@@ -3628,6 +3838,60 @@
     return maxOverlap / 6;
   }
 
+  function portfolioQualityScore(candidate) {
+    return (
+      Number(candidate?.meta?.practicalScore ?? 0) * 0.72 +
+      Number(candidate?.meta?.recallProfileScore ?? candidate?.meta?.score ?? 0) * 0.16 +
+      Number(candidate?.meta?.distributionScore ?? candidate?.meta?.score ?? 0) * 0.12
+    );
+  }
+
+  function candidatePairKeys(numbers) {
+    const keys = [];
+    for (let left = 0; left < numbers.length - 1; left += 1) {
+      for (let right = left + 1; right < numbers.length; right += 1) {
+        keys.push(`${numbers[left]}-${numbers[right]}`);
+      }
+    }
+    return keys;
+  }
+
+  function buildPortfolioUsage(selected) {
+    const numberUsage = Array(46).fill(0);
+    const pairUsage = new Map();
+    for (const item of selected) {
+      for (const number of item.numbers) numberUsage[number] += 1;
+      for (const key of candidatePairKeys(item.numbers)) {
+        pairUsage.set(key, (pairUsage.get(key) ?? 0) + 1);
+      }
+    }
+    return { numberUsage, pairUsage };
+  }
+
+  function portfolioNoveltyScore(candidate, selected, usage) {
+    if (!selected.length) {
+      return { score: 1, maxOverlap: 0, overusedNumbers: 0 };
+    }
+
+    const overlaps = selected.map((item) => overlap(item.numbers, candidate.numbers));
+    const maxOverlap = Math.max(...overlaps);
+    const numberNovelty =
+      candidate.numbers.reduce((sum, number) => {
+        const used = usage.numberUsage[number];
+        return sum + (used === 0 ? 1 : used === 1 ? 0.3 : 0);
+      }, 0) / 6;
+    const pairKeys = candidatePairKeys(candidate.numbers);
+    const freshPairs = pairKeys.filter((key) => !usage.pairUsage.has(key)).length / pairKeys.length;
+    const overlapFit = clamp(1 - maxOverlap / 4, 0, 1);
+    const overusedNumbers = candidate.numbers.filter((number) => usage.numberUsage[number] >= 2).length;
+
+    return {
+      score: numberNovelty * 0.5 + freshPairs * 0.32 + overlapFit * 0.18,
+      maxOverlap,
+      overusedNumbers,
+    };
+  }
+
   function bucketDiversityScore(candidate, selected) {
     if (!selected.length) return 1;
     const used = new Set(selected.flatMap((item) => item.sourceBuckets ?? []));
@@ -3659,33 +3923,39 @@
 
   function selectFinalRecommendations(corePool, options = {}) {
     const target = clamp(Number(options.target) || 5, 1, 10);
-    const candidates = corePool.slice(0, Math.max(600, target * 160));
+    const candidates = corePool.slice(0, Math.max(3000, target * 600));
     const selected = [];
+    const qualityValues = candidates.map((candidate) => portfolioQualityScore(candidate));
+    const qualityHigh = Math.max(...qualityValues, 1);
+    const qualityLow = Math.min(...qualityValues, qualityHigh);
+    const qualitySpread = Math.max(0.1, qualityHigh - qualityLow);
 
     while (selected.length < target && candidates.length) {
       let bestIndex = 0;
       let bestScore = -Infinity;
+      const usage = buildPortfolioUsage(selected);
+      const strictPass = selected.length > 0 && candidates.some((candidate) => {
+        const novelty = portfolioNoveltyScore(candidate, selected, usage);
+        return novelty.maxOverlap <= 2 && novelty.overusedNumbers === 0;
+      });
 
       for (let index = 0; index < candidates.length; index += 1) {
         const candidate = candidates[index];
-        const overlapFit = 1 - selectedOverlapPenalty(candidate, selected);
+        const novelty = portfolioNoveltyScore(candidate, selected, usage);
+        if (strictPass && (novelty.maxOverlap > 2 || novelty.overusedNumbers > 0)) continue;
+        if (!strictPass && novelty.maxOverlap >= 4) continue;
+
+        const qualityFit = clamp(
+          (portfolioQualityScore(candidate) - qualityLow) / qualitySpread,
+        );
         const bucketFit = bucketDiversityScore(candidate, selected);
         const bandFit = numberBandDiversityScore(candidate);
-        const sajuFit = (candidate.sourceBuckets ?? []).includes("sajuWeighted") ? 1 : 0.45;
-        const recentFit = (candidate.sourceBuckets ?? []).includes("recentFlow") ? 1 : 0.55;
-        const longFit = (candidate.sourceBuckets ?? []).includes("longTermFrequency") ? 1 : 0.55;
-        const recallFit = candidate.meta.recallProfileScore ?? candidate.meta.score;
         const finalPickScore =
-          candidate.meta.practicalScore * 0.66 +
-          recallFit * 0.2 +
-          candidate.meta.distributionScore * 0.08 +
-          candidate.meta.score * 0.04 +
-          overlapFit * 3 +
-          bucketFit * 1.2 +
-          bandFit * 1 +
-          sajuFit * 0.5 +
-          recentFit * 0.25 +
-          longFit * 0.25;
+          qualityFit * 0.54 +
+          novelty.score * 0.34 +
+          bucketFit * 0.07 +
+          bandFit * 0.05 -
+          novelty.overusedNumbers * 0.18;
 
         if (finalPickScore > bestScore) {
           bestScore = finalPickScore;
@@ -3698,6 +3968,148 @@
     }
 
     return selected;
+  }
+
+  function stableCoverageHash(text) {
+    let hash = 2166136261;
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function coverageSeed() {
+    return [
+      Number(dataset?.latestDraw ?? 0) + 1,
+      birthDate?.value ?? "",
+      birthBranch?.value ?? "",
+      interpretationMode?.value ?? "balance",
+      Number(sajuWeight?.value ?? 0),
+    ].join("|");
+  }
+
+  function deterministicPortfolioRandom(seed) {
+    let state = seed >>> 0;
+    return () => {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let value = state;
+      value = Math.imul(value ^ (value >>> 15), value | 1);
+      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildIndependentPortfolioCandidate(anchor, stats, scores, saju, learningProfile) {
+    if (!anchor) return null;
+    const nextDraw = Number(dataset?.latestDraw ?? 0) + 1;
+    const random = deterministicPortfolioRandom(nextDraw * 7919);
+    const anchorKey = anchor.numbers.join("-");
+
+    for (let attempt = 0; attempt < 2000; attempt += 1) {
+      const numbers = [];
+      while (numbers.length < 6) {
+        const number = Math.floor(random() * 45) + 1;
+        if (!numbers.includes(number)) numbers.push(number);
+      }
+      numbers.sort((a, b) => a - b);
+      if (numbers.join("-") === anchorKey || overlap(anchor.numbers, numbers) > 3) continue;
+      return enrichLottoCandidate({
+        numbers,
+        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
+      }, stats);
+    }
+
+    return null;
+  }
+
+  function buildCoverageWheelRecommendations(
+    anchor,
+    stats,
+    scores,
+    saju,
+    learningProfile,
+    target,
+  ) {
+    if (target <= 1 || !anchor) return anchor ? [attachFinalReasons(anchor, [])] : [];
+    const anchorNumbers = new Set(anchor.numbers);
+    const available = Array.from({ length: 45 }, (_, index) => index + 1)
+      .filter((number) => !anchorNumbers.has(number));
+    const needed = Math.min(target - 1, Math.floor(available.length / 6));
+    const seed = coverageSeed();
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (let salt = 0; salt < 72; salt += 1) {
+      const ordered = available.slice().sort((left, right) => {
+        const leftHash = stableCoverageHash(`${seed}|${salt}|${left}`);
+        const rightHash = stableCoverageHash(`${seed}|${salt}|${right}`);
+        return leftHash - rightHash || left - right;
+      });
+      const portfolio = [];
+      let qualityTotal = 0;
+
+      for (let index = 0; index < needed; index += 1) {
+        const numbers = ordered.slice(index * 6, index * 6 + 6).sort((a, b) => a - b);
+        const candidate = enrichLottoCandidate({
+          numbers,
+          meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
+        }, stats);
+        portfolio.push(candidate);
+        qualityTotal += portfolioQualityScore(candidate);
+      }
+
+      const qualityAverage = qualityTotal / Math.max(1, portfolio.length);
+      const shapeFloor = Math.min(...portfolio.map((item) => item.meta.distributionScore), 0);
+      const candidateScore = qualityAverage + shapeFloor * 0.16;
+      if (candidateScore > bestScore) {
+        bestScore = candidateScore;
+        best = portfolio;
+      }
+    }
+
+    const selected = [attachFinalReasons(anchor, [])];
+    for (const candidate of best ?? []) {
+      selected.push(attachFinalReasons(candidate, selected));
+    }
+    return selected.slice(0, target);
+  }
+
+  function selectRecommendationPortfolio(corePool, stats, scores, saju, learningProfile, target) {
+    const modelSelection = selectFinalRecommendations(corePool, { target });
+    if (recallModelIsValidated() || target <= 1 || !modelSelection.length) {
+      return modelSelection;
+    }
+
+    const coverageSelection = buildCoverageWheelRecommendations(
+      modelSelection[0],
+      stats,
+      scores,
+      saju,
+      learningProfile,
+      target,
+    );
+    if (target === 5 && coverageSelection.length === 5) {
+      const independent = buildIndependentPortfolioCandidate(
+        coverageSelection[0],
+        stats,
+        scores,
+        saju,
+        learningProfile,
+      );
+      if (independent) {
+        coverageSelection[4] = attachFinalReasons(independent, coverageSelection.slice(0, 4));
+      }
+    }
+    const selectedKeys = new Set(coverageSelection.map((item) => item.numbers.join("-")));
+    for (const candidate of modelSelection.slice(1)) {
+      if (coverageSelection.length >= target) break;
+      const key = candidate.numbers.join("-");
+      if (selectedKeys.has(key)) continue;
+      coverageSelection.push(attachFinalReasons(candidate, coverageSelection));
+      selectedKeys.add(key);
+    }
+    return coverageSelection.slice(0, target);
   }
 
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
@@ -3770,7 +4182,14 @@
     });
 
     if (topOnly.checked) {
-      const finalRecommendations = selectFinalRecommendations(corePool, { target });
+      const finalRecommendations = selectRecommendationPortfolio(
+        corePool,
+        stats,
+        scores,
+        saju,
+        learningProfile,
+        target,
+      );
       const candidatePoolMeta = buildCandidatePoolMeta(finalRecommendations);
       return {
         type: "lotto",
@@ -3794,7 +4213,14 @@
       };
     }
 
-    selected.push(...selectFinalRecommendations(corePool, { target }));
+    selected.push(...selectRecommendationPortfolio(
+      corePool,
+      stats,
+      scores,
+      saju,
+      learningProfile,
+      target,
+    ));
     const candidatePoolMeta = buildCandidatePoolMeta(selected);
 
     return {
@@ -5868,7 +6294,7 @@
       ? `합이나 삼합처럼 기운이 모이는 흐름이 ${supportCount}개 보입니다.`
       : "기운이 크게 한쪽으로 모이는 합은 약한 편입니다.";
     const tensionText = tensionCount
-      ? `충·해처럼 서로 부딪히는 흐름도 ${tensionCount}개 있어서, 번호는 한쪽 오행으로 몰기보다 균형을 섞어 봅니다.`
+      ? `충·형·해·파처럼 긴장을 만드는 흐름도 ${tensionCount}개 있어, 한 작용만으로 길흉을 단정하지 않고 위치와 반복 여부를 함께 봅니다.`
       : "부딪히는 흐름은 크지 않아 보완 오행을 비교적 편하게 씁니다.";
     const starText = starLabels.length
       ? `대표 신살은 ${starLabels.join(", ")}이 잡힙니다.`
@@ -5920,7 +6346,7 @@
         (item) => `
           <div>
             <strong>${item.title} · ${elementLabel(item.element)}</strong>
-            <p>${item.reason}</p>
+            <p>${item.reason}${item.consensus ? ` 판단 일치 ${item.consensus}/3` : ""}</p>
           </div>
         `,
       )
@@ -6086,7 +6512,7 @@
     const favored = saju.favored.map((key) => `${elementLabel(key)} 기운`);
     const topTenGods = saju.topTenGods
       .slice(0, 3)
-      .map((item) => friendlyTenGod(item.label))
+      .map((item) => `${friendlyTenGod(item.label)} ${item.percentage ?? 0}%`)
       .join(", ");
     const numberHints = sajuNumberHints(saju, 10);
     const original = saju.birth.correction?.original;
@@ -6116,15 +6542,22 @@
     const majorLuckReading = majorLuckText(saju);
     const interactionText = interactionPlainText(saju);
     const ruleCount = sajuReferenceData.expertRules?.rules?.length ?? 0;
+    const strengthPct = Math.round((saju.strengthRatio ?? 0.5) * 100);
+    const strengthEvidence = saju.strengthAnalysis?.evidence?.join(" ") ?? "월령과 오행 분포를 함께 비교했습니다.";
+    const elementRatioText = elementKeys
+      .map((key) => `${elementLabel(key)} ${saju.elementPercentages?.[key] ?? 0}%`)
+      .join(" · ");
+    const methodElements = (method) =>
+      (saju.yongsinDecision?.methods?.[method] ?? []).map((key) => elementLabel(key)).join("·") || "추가 판단 필요";
 
     const sections = [
       {
         title: "원국 구조 요약",
-        body: `이 앱의 해석 기준에서는 ${calendarText} ${termText} ${correctionText} 명식은 ${saju.pillarText}로 정리되며, ${saju.gyeok.name}의 관점도 함께 참고합니다.`,
+        body: `이 앱의 해석 기준에서는 ${calendarText} ${termText} ${correctionText} 명식은 ${saju.pillarText}로 계산됩니다. 월령의 ${saju.gyeok.selectionMethod} 기준으로 ${saju.gyeok.name}을 ${saju.gyeok.confidence} 후보로 봅니다.`,
       },
       {
         title: "일간 상태",
-        body: `일간은 ${elementLabel(saju.dayMaster.element)} 기운으로 보고, 전체 힘은 ${strengthLabel}입니다. ${
+        body: `일간은 ${elementLabel(saju.dayMaster.element)} 기운으로 보고, 전체 힘은 ${strengthLabel}(생조 비율 ${strengthPct}%, 판단 신뢰 ${saju.strengthAnalysis?.confidence ?? "보통"})입니다. ${strengthEvidence} ${
           topTenGods ? `${topTenGods} 흐름이 눈에 들어옵니다.` : "십성의 우세는 한쪽으로 강하게 단정하기보다 전체 균형을 함께 봅니다."
         } 이 부분은 성향을 단정하기보다 선택 방식과 집중력이 어디로 기울기 쉬운지 보는 기준입니다.`,
       },
@@ -6132,12 +6565,17 @@
         title: "오행 균형",
         body: `원국에서는 ${elementLabel(strongest[0])} 기운이 비교적 강하고, ${elementLabel(
           weakest[0],
-        )} 기운은 보완 후보로 봅니다. 강한 기운은 장점으로 쓰되 과해지면 판단이 한쪽으로 몰릴 수 있고, 약한 기운은 생활 리듬과 선택 방식에서 보충하는 쪽이 좋습니다.`,
+        )} 기운은 보완 후보로 봅니다. 비율은 ${elementRatioText}입니다. 강한 기운은 장점으로 쓰되 과해지면 판단이 한쪽으로 몰릴 수 있고, 약한 기운은 생활 리듬과 선택 방식에서 보충하는 쪽이 좋습니다.`,
       },
       {
         title: "용신/희신 방향",
-        body: `${favored.join(", ")}을 우선 보완 방향으로 잡습니다. ${modeLabel}에서는 부족한 기운을 채우는 것과 지나치게 강한 기운을 누그러뜨리는 것을 함께 봅니다.`,
+        body: `억부 후보는 ${methodElements("eokbu")}, 조후 후보는 ${methodElements("johu")}, 격국 보조 후보는 ${methodElements("gyeok")}입니다. 세 방법의 교집합과 원국 분포를 합쳐 ${favored.join(", ")}을 우선 보완 방향으로 잡으며, 종합 판단은 ${saju.yongsinDecision?.confidence ?? "탐색적"}입니다.`,
         extra: renderYongsinTags(saju),
+      },
+      {
+        title: "합충·형해파",
+        body: interactionText,
+        extra: renderInteractionTags(saju),
       },
       {
         title: "현재 운 흐름",
@@ -6147,6 +6585,10 @@
       {
         title: "재물운/선택운",
         body: `재물운은 ${elementLabel(saju.wealthElement)} 기운만 따로 떼어 보지 않고, 일간의 힘과 식상 흐름, 현재 운의 보조 여부를 함께 봅니다. 이 명식에서는 기회 포착 감각을 살리되 한 번에 몰아가기보다 분산해서 고르는 방식이 안정적으로 읽힙니다.`,
+      },
+      {
+        title: "적성·생활 리듬",
+        body: `${topTenGods || "십성의 전체 배치"}를 생활 역할과 연결해 봅니다. 강한 ${elementLabel(strongest[0])} 기운은 장점으로 쓰되 속도를 조절하고, 약한 ${elementLabel(weakest[0])} 기운은 일·휴식·관계의 리듬에서 보완하는 편이 좋습니다. 건강 진단이 아니라 생활 균형을 살피는 참고 해석입니다.`,
       },
       {
         title: "로또 추천에 반영된 부분",
