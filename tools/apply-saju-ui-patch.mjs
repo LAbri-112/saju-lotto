@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 
-const CACHE_VERSION = "feedback-v109";
-const SW_CACHE_NAME = "saju-lotto-v109";
+const CACHE_VERSION = "feedback-v111";
+const SW_CACHE_NAME = "saju-lotto-v111";
 const SAJU_DATA_SCRIPTS = [
   "data/solar-terms.js",
   "data/saju-classical-sources.js",

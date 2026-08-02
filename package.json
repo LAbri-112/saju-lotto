@@ -10,13 +10,17 @@
     "validate:data": "node tools/validate-data.mjs",
     "learn:draw": "node tools/learn-from-draw.mjs",
     "backtest:model": "node tools/backtest-model.mjs",
+    "backtest:portfolio": "node tools/backtest-ticket-portfolio.mjs",
+    "backtest:geometry": "node tools/evaluate-portfolio-geometry.mjs",
     "backtest:recall": "node tools/backtest-candidate-recall.mjs",
     "rank:lotto": "node tools/rank-lotto-universe.mjs",
     "optimize:recall": "node tools/optimize-lotto-recall.mjs",
     "validate:recall": "node tools/validate-lotto-recall.mjs",
     "fetch:solar-terms": "node tools/fetch-solar-terms.mjs",
+    "sync:saju": "node tools/sync-saju-data-modules.mjs",
     "validate:saju": "node tools/validate-saju-data.mjs",
     "validate:saju-calendar": "node tools/validate-saju-calendar.mjs",
-    "check": "node --check app.js && node --check service-worker.js && node --check data/solar-terms.js && node --check data/saju-classical-sources.js && node --check data/saju-expert-rules.js && node --check data/saju-expert-cases.js && node --check data/saju-eval-cases.js && node --check data/saju-lotto-bridge-rules.js && node --check data/saju-professional-report.js && node --check tools/apply-draw-result-ui-patch.mjs && node --check tools/apply-performance-patch.mjs && node --check tools/apply-prize-net-patch.mjs && node --check tools/apply-pension-result-ui-patch.mjs && node --check tools/apply-saju-ui-patch.mjs && node --check tools/fix-pension-display-hotfix.mjs && node --check tools/update-lotto-data.mjs && node --check tools/update-pension-data.mjs && node --check tools/validate-data.mjs && node --check tools/validate-lotto-recall.mjs && node --check tools/validate-saju-data.mjs && node --check tools/fetch-solar-terms.mjs && node --check tools/validate-saju-calendar.mjs && node --check tools/serve-static.mjs && node --check tools/learn-from-draw.mjs && node --check tools/backtest-model.mjs && node --check tools/backtest-candidate-recall.mjs && node --check tools/rank-lotto-universe.mjs && node --check tools/optimize-lotto-recall.mjs"
+    "evaluate:saju": "node tools/evaluate-saju-engine.mjs",
+    "check": "node --check app.js && node --check service-worker.js && node --check data/solar-terms.js && node --check data/saju-classical-sources.js && node --check data/saju-expert-rules.js && node --check data/saju-expert-cases.js && node --check data/saju-eval-cases.js && node --check data/saju-lotto-bridge-rules.js && node --check data/saju-professional-report.js && node --check tools/apply-draw-result-ui-patch.mjs && node --check tools/apply-performance-patch.mjs && node --check tools/apply-prize-net-patch.mjs && node --check tools/apply-pension-result-ui-patch.mjs && node --check tools/apply-saju-ui-patch.mjs && node --check tools/fix-pension-display-hotfix.mjs && node --check tools/update-lotto-data.mjs && node --check tools/update-pension-data.mjs && node --check tools/validate-data.mjs && node --check tools/validate-lotto-recall.mjs && node --check tools/validate-saju-data.mjs && node --check tools/fetch-solar-terms.mjs && node --check tools/validate-saju-calendar.mjs && node --check tools/sync-saju-data-modules.mjs && node --check tools/evaluate-saju-engine.mjs && node --check tools/serve-static.mjs && node --check tools/learn-from-draw.mjs && node --check tools/backtest-model.mjs && node --check tools/backtest-ticket-portfolio.mjs && node --check tools/evaluate-portfolio-geometry.mjs && node --check tools/backtest-candidate-recall.mjs && node --check tools/rank-lotto-universe.mjs && node --check tools/optimize-lotto-recall.mjs"
   }
 }
