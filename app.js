@@ -16,11 +16,11 @@
   const latestPension = pensionDraws.at(-1);
 
   const elements = {
-    wood: { label: "紐?, color: "#4f8f45" },
-    fire: { label: "??, color: "#cf5a3d" },
-    earth: { label: "??, color: "#d99a20" },
-    metal: { label: "湲?, color: "#6a7471" },
-    water: { label: "??, color: "#2f68b1" },
+    wood: { label: "목", color: "#4f8f45" },
+    fire: { label: "화", color: "#cf5a3d" },
+    earth: { label: "토", color: "#d99a20" },
+    metal: { label: "금", color: "#6a7471" },
+    water: { label: "수", color: "#2f68b1" },
   };
 
   const elementKeys = ["wood", "fire", "earth", "metal", "water"];
@@ -49,31 +49,31 @@
   };
 
   const stems = [
-    ["媛?, "wood"],
-    ["??, "wood"],
-    ["蹂?, "fire"],
-    ["??, "fire"],
-    ["臾?, "earth"],
-    ["湲?, "earth"],
-    ["寃?, "metal"],
-    ["??, "metal"],
-    ["??, "water"],
-    ["怨?, "water"],
+    ["갑", "wood"],
+    ["을", "wood"],
+    ["병", "fire"],
+    ["정", "fire"],
+    ["무", "earth"],
+    ["기", "earth"],
+    ["경", "metal"],
+    ["신", "metal"],
+    ["임", "water"],
+    ["계", "water"],
   ];
 
   const branches = [
-    ["??, "water"],
-    ["異?, "earth"],
-    ["??, "wood"],
-    ["臾?, "wood"],
-    ["吏?, "earth"],
-    ["??, "fire"],
-    ["??, "fire"],
-    ["誘?, "earth"],
-    ["??, "metal"],
-    ["??, "metal"],
-    ["??, "earth"],
-    ["??, "water"],
+    ["자", "water"],
+    ["축", "earth"],
+    ["인", "wood"],
+    ["묘", "wood"],
+    ["진", "earth"],
+    ["사", "fire"],
+    ["오", "fire"],
+    ["미", "earth"],
+    ["신", "metal"],
+    ["유", "metal"],
+    ["술", "earth"],
+    ["해", "water"],
   ];
 
   const hiddenStems = [
@@ -133,54 +133,54 @@
   };
 
   const tenGodLabels = {
-    friend: "鍮꾧껄",
-    rival: "寃곸옱",
-    eating: "?앹떊",
-    hurting: "?곴?",
-    indirectWealth: "?몄옱",
-    directWealth: "?뺤옱",
-    sevenKillings: "?멸?",
-    directOfficer: "?뺢?",
-    indirectResource: "?몄씤",
-    directResource: "?뺤씤",
+    friend: "비견",
+    rival: "겁재",
+    eating: "식신",
+    hurting: "상관",
+    indirectWealth: "편재",
+    directWealth: "정재",
+    sevenKillings: "편관",
+    directOfficer: "정관",
+    indirectResource: "편인",
+    directResource: "정인",
   };
 
   const elementDirections = {
-    wood: { label: "?숈そ", angle: 90, vibe: "?깆옣怨??쒖옉" },
-    fire: { label: "?⑥そ", angle: 180, vibe: "?뺤옣怨?二쇰ぉ" },
-    earth: { label: "以묒븰쨌?⑥꽌履?, angle: 225, vibe: "?덉젙怨?異뺤쟻" },
-    metal: { label: "?쒖そ", angle: 270, vibe: "?뺣━? 寃곗떎" },
-    water: { label: "遺곸そ", angle: 0, vibe: "?먮쫫怨?吏곴컧" },
+    wood: { label: "동쪽", angle: 90, vibe: "성장과 시작" },
+    fire: { label: "남쪽", angle: 180, vibe: "확장과 주목" },
+    earth: { label: "중앙·남서쪽", angle: 225, vibe: "안정과 축적" },
+    metal: { label: "서쪽", angle: 270, vibe: "정리와 결실" },
+    water: { label: "북쪽", angle: 0, vibe: "흐름과 직감" },
   };
 
   const hourBranches = [
-    { label: "?먯떆", range: "23:30~01:29", branch: 0, midpoint: "00:30" },
-    { label: "異뺤떆", range: "01:30~03:29", branch: 1, midpoint: "02:30" },
-    { label: "?몄떆", range: "03:30~05:29", branch: 2, midpoint: "04:30" },
-    { label: "臾섏떆", range: "05:30~07:29", branch: 3, midpoint: "06:30" },
-    { label: "吏꾩떆", range: "07:30~09:29", branch: 4, midpoint: "08:30" },
-    { label: "?ъ떆", range: "09:30~11:29", branch: 5, midpoint: "10:30" },
-    { label: "?ㅼ떆", range: "11:30~13:29", branch: 6, midpoint: "12:30" },
-    { label: "誘몄떆", range: "13:30~15:29", branch: 7, midpoint: "14:30" },
-    { label: "?좎떆", range: "15:30~17:29", branch: 8, midpoint: "16:30" },
-    { label: "?좎떆", range: "17:30~19:29", branch: 9, midpoint: "18:30" },
-    { label: "?좎떆", range: "19:30~21:29", branch: 10, midpoint: "20:30" },
-    { label: "?댁떆", range: "21:30~23:29", branch: 11, midpoint: "22:30" },
+    { label: "자시", range: "23:30~01:29", branch: 0, midpoint: "00:30" },
+    { label: "축시", range: "01:30~03:29", branch: 1, midpoint: "02:30" },
+    { label: "인시", range: "03:30~05:29", branch: 2, midpoint: "04:30" },
+    { label: "묘시", range: "05:30~07:29", branch: 3, midpoint: "06:30" },
+    { label: "진시", range: "07:30~09:29", branch: 4, midpoint: "08:30" },
+    { label: "사시", range: "09:30~11:29", branch: 5, midpoint: "10:30" },
+    { label: "오시", range: "11:30~13:29", branch: 6, midpoint: "12:30" },
+    { label: "미시", range: "13:30~15:29", branch: 7, midpoint: "14:30" },
+    { label: "신시", range: "15:30~17:29", branch: 8, midpoint: "16:30" },
+    { label: "유시", range: "17:30~19:29", branch: 9, midpoint: "18:30" },
+    { label: "술시", range: "19:30~21:29", branch: 10, midpoint: "20:30" },
+    { label: "해시", range: "21:30~23:29", branch: 11, midpoint: "22:30" },
   ];
 
   const birthPlaces = {
-    unknown: { label: "異쒖깮吏??紐⑤쫫", lat: null, lng: null },
-    seoul: { label: "?쒖슱?밸퀎??, lat: 37.5665, lng: 126.978 },
-    incheon: { label: "?몄쿇愿묒뿭??, lat: 37.4563, lng: 126.7052 },
-    suwon: { label: "寃쎄린 ?섏썝??, lat: 37.2636, lng: 127.0286 },
-    wonju: { label: "媛뺤썝 ?먯＜??, lat: 37.3422, lng: 127.9202 },
-    chuncheon: { label: "媛뺤썝 異섏쿇??, lat: 37.8813, lng: 127.7298 },
-    gangneung: { label: "媛뺤썝 媛뺣쫱??, lat: 37.7519, lng: 128.8761 },
-    daejeon: { label: "??꾧킅??떆", lat: 36.3504, lng: 127.3845 },
-    daegu: { label: "?援ш킅??떆", lat: 35.8714, lng: 128.6014 },
-    gwangju: { label: "愿묒＜愿묒뿭??, lat: 35.1595, lng: 126.8526 },
-    busan: { label: "遺?곌킅??떆", lat: 35.1796, lng: 129.0756 },
-    jeju: { label: "?쒖＜?밸퀎?먯튂??, lat: 33.4996, lng: 126.5312 },
+    unknown: { label: "출생지역 모름", lat: null, lng: null },
+    seoul: { label: "서울특별시", lat: 37.5665, lng: 126.978 },
+    incheon: { label: "인천광역시", lat: 37.4563, lng: 126.7052 },
+    suwon: { label: "경기 수원시", lat: 37.2636, lng: 127.0286 },
+    wonju: { label: "강원 원주시", lat: 37.3422, lng: 127.9202 },
+    chuncheon: { label: "강원 춘천시", lat: 37.8813, lng: 127.7298 },
+    gangneung: { label: "강원 강릉시", lat: 37.7519, lng: 128.8761 },
+    daejeon: { label: "대전광역시", lat: 36.3504, lng: 127.3845 },
+    daegu: { label: "대구광역시", lat: 35.8714, lng: 128.6014 },
+    gwangju: { label: "광주광역시", lat: 35.1595, lng: 126.8526 },
+    busan: { label: "부산광역시", lat: 35.1796, lng: 129.0756 },
+    jeju: { label: "제주특별자치도", lat: 33.4996, lng: 126.5312 },
   };
 
   const koreaDstRanges = [
@@ -189,96 +189,96 @@
   ];
 
   const solarMonthTerms = [
-    { key: "lichun", label: "?낆텣", longitude: 315, approxMonth: 2, approxDay: 4, monthNo: 1, branchIndex: 2, season: "spring" },
-    { key: "jingzhe", label: "寃쎌묩", longitude: 345, approxMonth: 3, approxDay: 6, monthNo: 2, branchIndex: 3, season: "spring" },
-    { key: "qingming", label: "泥?챸", longitude: 15, approxMonth: 4, approxDay: 5, monthNo: 3, branchIndex: 4, season: "spring" },
-    { key: "lixia", label: "?낇븯", longitude: 45, approxMonth: 5, approxDay: 6, monthNo: 4, branchIndex: 5, season: "summer" },
-    { key: "mangzhong", label: "留앹쥌", longitude: 75, approxMonth: 6, approxDay: 6, monthNo: 5, branchIndex: 6, season: "summer" },
-    { key: "xiaoshu", label: "?뚯꽌", longitude: 105, approxMonth: 7, approxDay: 7, monthNo: 6, branchIndex: 7, season: "summer" },
-    { key: "liqiu", label: "?낆텛", longitude: 135, approxMonth: 8, approxDay: 8, monthNo: 7, branchIndex: 8, season: "autumn" },
-    { key: "bailu", label: "諛깅줈", longitude: 165, approxMonth: 9, approxDay: 8, monthNo: 8, branchIndex: 9, season: "autumn" },
-    { key: "hanlu", label: "?쒕줈", longitude: 195, approxMonth: 10, approxDay: 8, monthNo: 9, branchIndex: 10, season: "autumn" },
-    { key: "lidong", label: "?낅룞", longitude: 225, approxMonth: 11, approxDay: 7, monthNo: 10, branchIndex: 11, season: "winter" },
-    { key: "daxue", label: "???, longitude: 255, approxMonth: 12, approxDay: 7, monthNo: 11, branchIndex: 0, season: "winter" },
-    { key: "xiaohan", label: "?뚰븳", longitude: 285, approxMonth: 1, approxDay: 5, monthNo: 12, branchIndex: 1, season: "winter" },
+    { key: "lichun", label: "입춘", longitude: 315, approxMonth: 2, approxDay: 4, monthNo: 1, branchIndex: 2, season: "spring" },
+    { key: "jingzhe", label: "경칩", longitude: 345, approxMonth: 3, approxDay: 6, monthNo: 2, branchIndex: 3, season: "spring" },
+    { key: "qingming", label: "청명", longitude: 15, approxMonth: 4, approxDay: 5, monthNo: 3, branchIndex: 4, season: "spring" },
+    { key: "lixia", label: "입하", longitude: 45, approxMonth: 5, approxDay: 6, monthNo: 4, branchIndex: 5, season: "summer" },
+    { key: "mangzhong", label: "망종", longitude: 75, approxMonth: 6, approxDay: 6, monthNo: 5, branchIndex: 6, season: "summer" },
+    { key: "xiaoshu", label: "소서", longitude: 105, approxMonth: 7, approxDay: 7, monthNo: 6, branchIndex: 7, season: "summer" },
+    { key: "liqiu", label: "입추", longitude: 135, approxMonth: 8, approxDay: 8, monthNo: 7, branchIndex: 8, season: "autumn" },
+    { key: "bailu", label: "백로", longitude: 165, approxMonth: 9, approxDay: 8, monthNo: 8, branchIndex: 9, season: "autumn" },
+    { key: "hanlu", label: "한로", longitude: 195, approxMonth: 10, approxDay: 8, monthNo: 9, branchIndex: 10, season: "autumn" },
+    { key: "lidong", label: "입동", longitude: 225, approxMonth: 11, approxDay: 7, monthNo: 10, branchIndex: 11, season: "winter" },
+    { key: "daxue", label: "대설", longitude: 255, approxMonth: 12, approxDay: 7, monthNo: 11, branchIndex: 0, season: "winter" },
+    { key: "xiaohan", label: "소한", longitude: 285, approxMonth: 1, approxDay: 5, monthNo: 12, branchIndex: 1, season: "winter" },
   ];
 
   const stemCombinationRules = [
-    { pair: [0, 5], element: "earth", label: "媛묎린???? },
-    { pair: [1, 6], element: "metal", label: "?꾧꼍??湲? },
-    { pair: [2, 7], element: "water", label: "蹂묒떊???? },
-    { pair: [3, 8], element: "wood", label: "?뺤엫??紐? },
-    { pair: [4, 9], element: "fire", label: "臾닿퀎???? },
+    { pair: [0, 5], element: "earth", label: "갑기합 토" },
+    { pair: [1, 6], element: "metal", label: "을경합 금" },
+    { pair: [2, 7], element: "water", label: "병신합 수" },
+    { pair: [3, 8], element: "wood", label: "정임합 목" },
+    { pair: [4, 9], element: "fire", label: "무계합 화" },
   ];
 
   const stemClashRules = [
-    { pair: [0, 6], label: "媛묎꼍異? },
-    { pair: [1, 7], label: "?꾩떊異? },
-    { pair: [2, 8], label: "蹂묒엫異? },
-    { pair: [3, 9], label: "?뺢퀎異? },
+    { pair: [0, 6], label: "갑경충" },
+    { pair: [1, 7], label: "을신충" },
+    { pair: [2, 8], label: "병임충" },
+    { pair: [3, 9], label: "정계충" },
   ];
 
   const branchCombinationRules = [
-    { pair: [0, 1], element: "earth", label: "?먯텞???? },
-    { pair: [2, 11], element: "wood", label: "?명빐??紐? },
-    { pair: [3, 10], element: "fire", label: "臾섏닠???? },
-    { pair: [4, 9], element: "metal", label: "吏꾩쑀??湲? },
-    { pair: [5, 8], element: "water", label: "?ъ떊???? },
-    { pair: [6, 7], element: "earth", label: "?ㅻ????? },
+    { pair: [0, 1], element: "earth", label: "자축합 토" },
+    { pair: [2, 11], element: "wood", label: "인해합 목" },
+    { pair: [3, 10], element: "fire", label: "묘술합 화" },
+    { pair: [4, 9], element: "metal", label: "진유합 금" },
+    { pair: [5, 8], element: "water", label: "사신합 수" },
+    { pair: [6, 7], element: "earth", label: "오미합 토" },
   ];
 
   const branchClashRules = [
-    { pair: [0, 6], label: "?먯삤異? },
-    { pair: [1, 7], label: "異뺣?異? },
-    { pair: [2, 8], label: "?몄떊異? },
-    { pair: [3, 9], label: "臾섏쑀異? },
-    { pair: [4, 10], label: "吏꾩닠異? },
-    { pair: [5, 11], label: "?ы빐異? },
+    { pair: [0, 6], label: "자오충" },
+    { pair: [1, 7], label: "축미충" },
+    { pair: [2, 8], label: "인신충" },
+    { pair: [3, 9], label: "묘유충" },
+    { pair: [4, 10], label: "진술충" },
+    { pair: [5, 11], label: "사해충" },
   ];
 
   const branchHarmRules = [
-    { pair: [0, 7], label: "?먮??? },
-    { pair: [1, 6], label: "異뺤삤?? },
-    { pair: [2, 5], label: "?몄궗?? },
-    { pair: [3, 4], label: "臾섏쭊?? },
-    { pair: [8, 11], label: "?좏빐?? },
-    { pair: [9, 10], label: "?좎닠?? },
+    { pair: [0, 7], label: "자미해" },
+    { pair: [1, 6], label: "축오해" },
+    { pair: [2, 5], label: "인사해" },
+    { pair: [3, 4], label: "묘진해" },
+    { pair: [8, 11], label: "신해해" },
+    { pair: [9, 10], label: "유술해" },
   ];
 
   const branchDestructionRules = [
-    { pair: [0, 9], label: "?먯쑀?? },
-    { pair: [1, 4], label: "異뺤쭊?? },
-    { pair: [2, 11], label: "?명빐?? },
-    { pair: [3, 6], label: "臾섏삤?? },
-    { pair: [5, 8], label: "?ъ떊?? },
-    { pair: [7, 10], label: "誘몄닠?? },
+    { pair: [0, 9], label: "자유파" },
+    { pair: [1, 4], label: "축진파" },
+    { pair: [2, 11], label: "인해파" },
+    { pair: [3, 6], label: "묘오파" },
+    { pair: [5, 8], label: "사신파" },
+    { pair: [7, 10], label: "미술파" },
   ];
 
   const branchPunishmentRules = [
-    { branches: [0, 3], label: "?먮쵖??, minimum: 2 },
-    { branches: [2, 5, 8], label: "?몄궗???쇳삎", minimum: 3 },
-    { branches: [1, 7, 10], label: "異뺣????쇳삎", minimum: 3 },
+    { branches: [0, 3], label: "자묘형", minimum: 2 },
+    { branches: [2, 5, 8], label: "인사신 삼형", minimum: 3 },
+    { branches: [1, 7, 10], label: "축미술 삼형", minimum: 3 },
   ];
 
   const selfPunishmentBranches = new Map([
-    [4, "吏꾩쭊 ?먰삎"],
-    [6, "?ㅼ삤 ?먰삎"],
-    [9, "?좎쑀 ?먰삎"],
-    [11, "?댄빐 ?먰삎"],
+    [4, "진진 자형"],
+    [6, "오오 자형"],
+    [9, "유유 자형"],
+    [11, "해해 자형"],
   ]);
 
   const threeHarmonyRules = [
-    { branches: [8, 0, 4], element: "water", label: "?좎옄吏??섍뎅" },
-    { branches: [11, 3, 7], element: "wood", label: "?대쵖誘?紐⑷뎅" },
-    { branches: [2, 6, 10], element: "fire", label: "?몄삤???붽뎅" },
-    { branches: [5, 9, 1], element: "metal", label: "?ъ쑀異?湲덇뎅" },
+    { branches: [8, 0, 4], element: "water", label: "신자진 수국" },
+    { branches: [11, 3, 7], element: "wood", label: "해묘미 목국" },
+    { branches: [2, 6, 10], element: "fire", label: "인오술 화국" },
+    { branches: [5, 9, 1], element: "metal", label: "사유축 금국" },
   ];
 
   const seasonalHarmonyRules = [
-    { branches: [2, 3, 4], element: "wood", label: "?몃쵖吏?諛⑺빀" },
-    { branches: [5, 6, 7], element: "fire", label: "?ъ삤誘?諛⑺빀" },
-    { branches: [8, 9, 10], element: "metal", label: "?좎쑀??諛⑺빀" },
-    { branches: [11, 0, 1], element: "water", label: "?댁옄異?諛⑺빀" },
+    { branches: [2, 3, 4], element: "wood", label: "인묘진 방합" },
+    { branches: [5, 6, 7], element: "fire", label: "사오미 방합" },
+    { branches: [8, 9, 10], element: "metal", label: "신유술 방합" },
+    { branches: [11, 0, 1], element: "water", label: "해자축 방합" },
   ];
 
   const voidBranchGroups = [
@@ -320,233 +320,253 @@
 
   const luckyCatalog = {
     wood: {
-      colors: ["?몄씠吏 洹몃┛", "泥?줉", "諛앹? ?곕떂"],
-      outfit: "?먯뿰?ㅻ윭???덊듃???곕떂, ?몃줈?좎씠 ?댁븘?덈뒗 ?ㅻ（??,
-      item: "?섎Т 吏덇컧 ?ㅻ쭅, ?묒? ?명듃, 珥덈줉??移대뱶吏媛?,
-      food: "?먮윭?? ?뚯뒪?, ?덈툕?? ?깆떛??怨쇱씪",
+      colors: ["세이지 그린", "청록", "밝은 데님"],
+      outfit: "자연스러운 니트나 데님, 세로선이 살아있는 실루엣",
+      item: "나무 질감 키링, 작은 노트, 초록색 카드지갑",
+      food: "샐러드, 파스타, 허브티, 싱싱한 과일",
     },
     fire: {
-      colors: ["肄붾엫", "泥대━ ?덈뱶", "?쇱씠???묓겕"],
-      outfit: "?쇨뎬鍮쏆쓣 ?대━???ъ씤??而щ윭 ?곸쓽???곕쑜???ㅼ쓽 ?≪꽭?쒕━",
-      item: "?묒? 議곕챸, 由쎈갇, 遺됱? ?ъ씤???뚯슦移?,
-      food: "?곕쑜??李? ?좊쭏??硫붾돱, ?곷떦??留ㅼ숴???뚯떇",
+      colors: ["코랄", "체리 레드", "라이트 핑크"],
+      outfit: "얼굴빛을 살리는 포인트 컬러 상의나 따뜻한 톤의 액세서리",
+      item: "작은 조명, 립밤, 붉은 포인트 파우치",
+      food: "따뜻한 차, 토마토 메뉴, 적당히 매콤한 음식",
     },
     earth: {
-      colors: ["踰꾪꽣 ?먮줈", "?щ┝", "?쇱씠??釉뚮씪??],
-      outfit: "?몄븞???붿툩, ?덉젙媛??덈뒗 ?ㅻ땲而ㅼ쫰, 遺?쒕윭???뚯옱",
-      item: "?몃씪誘?而? ?묒? ?뚯슦移? ?ㅻえ??吏媛?,
-      food: "諛? ?⑦샇諛? 媛먯옄, 怨좎냼??怨〓Ъ 媛꾩떇",
+      colors: ["버터 옐로", "크림", "라이트 브라운"],
+      outfit: "편안한 셔츠, 안정감 있는 스니커즈, 부드러운 소재",
+      item: "세라믹 컵, 작은 파우치, 네모난 지갑",
+      food: "밥, 단호박, 감자, 고소한 곡물 간식",
     },
     metal: {
-      colors: ["?붿씠??, "?ㅻ쾭", "荑?洹몃젅??],
-      outfit: "源붾걫???붿툩, 硫뷀깉 ?쒓퀎, ?뺣룉???⑥깋 ?ㅽ???,
-      item: "????? 肄붿씤 耳?댁뒪, 誘몃땲 嫄곗슱",
-      food: "諛? 臾? ?먮?, ?대갚??援?Ъ",
+      colors: ["화이트", "실버", "쿨 그레이"],
+      outfit: "깔끔한 셔츠, 메탈 시계, 정돈된 단색 스타일",
+      item: "은색 펜, 코인 케이스, 미니 거울",
+      food: "배, 무, 두부, 담백한 국물",
     },
     water: {
-      colors: ["釉붾옓", "誘몃뱶?섏엲 釉붾（", "?꾩씠??釉붾（"],
-      outfit: "?먮Ⅴ???륁쓽 ?꾩슦?? ?대몢?????섏쓽, ?щ챸???뚯옱 ?ъ씤??,
-      item: "臾쇰퀝, 釉붾（ 怨꾩뿴 ?댁뼱??耳?댁뒪, ?щ챸 ?뚯슦移?,
-      food: "臾? 李④???硫??붾━, ?댁“瑜? 留묒? ?섑봽",
+      colors: ["블랙", "미드나잇 블루", "아이스 블루"],
+      outfit: "흐르는 핏의 아우터, 어두운 톤 하의, 투명한 소재 포인트",
+      item: "물병, 블루 계열 이어폰 케이스, 투명 파우치",
+      food: "물, 차가운 면 요리, 해조류, 맑은 수프",
     },
   };
 
   const storeCandidates = [
     {
-      name: "?μ뼇留덉쨷臾?,
-      address: "媛뺤썝 ?먯＜??移섏븙濡?2335 1痢?,
+      name: "흥양마중물",
+      address: "강원 원주시 치악로 2335 1층",
       lat: 37.4085,
       lng: 128.0158,
-      region: ["媛뺤썝", "?먯＜??, "?뚯큹硫?, "?μ뼇由?],
-      note: "?먯＜?쒖뿉??1??諛곗텧 ?대젰??媛??留롮씠 ?뚮젮吏?紐낅떦 ?꾨낫",
+      region: ["강원", "원주시", "소초면", "흥양리"],
+      note: "원주시에서 1등 배출 이력이 가장 많이 알려진 명당 후보",
       firstWins: 6,
       firstDraws: [1139, 1131, 883, 871, 739, 646],
-      tags: ["?먯＜", "1?깅떎??, "紐낅떦"],
+      tags: ["원주", "1등다수", "명당"],
       element: "water",
       direction: "north",
       source: "regional-public-ranking",
     },
     {
-      name: "二쇳깮蹂듦텒諛?,
-      address: "媛뺤썝 ?먯＜???곗궛珥덇탳湲?29 1痢?,
+      name: "주택복권방",
+      address: "강원 원주시 우산초교길 29 1층",
       lat: 37.3692,
       lng: 127.9398,
-      region: ["媛뺤썝", "?먯＜??, "?곗궛??],
-      note: "?먯＜???곗궛?숆텒?먯꽌 1??諛곗텧 ?대젰???щ윭 踰??뚮젮吏??꾨낫",
+      region: ["강원", "원주시", "우산동"],
+      note: "원주시 우산동권에서 1등 배출 이력이 여러 번 알려진 후보",
       firstWins: 5,
       firstDraws: [1143, 1123, 1115, 1084, 917],
-      tags: ["?먯＜", "1?깅떎??, "?앺솢沅?],
+      tags: ["원주", "1등다수", "생활권"],
       element: "metal",
       direction: "north",
       source: "regional-public-ranking",
     },
     {
-      name: "蹂듦텒?섎씪",
-      address: "媛뺤썝 ?먯＜???됱썝濡?23 1痢?,
+      name: "복권나라",
+      address: "강원 원주시 평원로 23 1층",
       lat: 37.3494,
       lng: 127.9506,
-      region: ["媛뺤썝", "?먯＜??, "以묒븰??],
-      note: "?먯＜??以묒븰?숆텒?먯꽌 1??諛곗텧 ?대젰???뚮젮吏??꾨낫",
+      region: ["강원", "원주시", "중앙동"],
+      note: "원주시 중앙동권에서 1등 배출 이력이 알려진 후보",
       firstWins: 3,
       firstDraws: [1126, 1100, 992],
-      tags: ["?먯＜", "1?깅떎??, "以묒븰沅?],
+      tags: ["원주", "1등다수", "중앙권"],
       element: "earth",
       direction: "center",
       source: "regional-public-ranking",
     },
     {
-      name: "?ㅽ뙆",
-      address: "?쒖슱 ?몄썝援??숈씪濡?1493 二쇨났10?⑥?醫낇빀?곴?111",
+      name: "스파",
+      address: "서울 노원구 동일로 1493 주공10단지종합상가111",
       lat: 37.6605,
       lng: 127.0736,
-      region: ["?쒖슱", "?몄썝援?, "?곴퀎??],
-      note: "?숉뻾蹂듦텒 ?뱀꺼 ?먮ℓ??紐⑸줉??諛섎났 ?깆옣?섎뒗 ?쒖슱沅?紐낅떦 ?꾨낫",
+      region: ["서울", "노원구", "상계동"],
+      note: "동행복권 당첨 판매점 목록에 반복 등장하는 서울권 명당 후보",
       firstWins: 49,
-      tags: ["?꾪넻紐낅떦", "?곴?", "?좊룞?멸뎄"],
+      tags: ["전통명당", "상가", "유동인구"],
       element: "metal",
       direction: "north",
       source: "dhlottery-top-store",
     },
     {
-      name: "濡쒕삉??,
-      address: "?쒖슱 ?곷벑?ш뎄 ?곸쨷濡?2 1痢??곷벑?щ룞3媛)",
+      name: "로또킹",
+      address: "서울 영등포구 영중로 2 1층(영등포동3가)",
       lat: 37.5182,
       lng: 126.9067,
-      region: ["?쒖슱", "?곷벑?ш뎄", "?곷벑??],
-      note: "??꽭沅뚭낵 ?곴텒 ?먮쫫??媛뺥븳 ?쒖슱 ?쒕궓沅??꾨낫",
-      tags: ["??꽭沅?, "?곴텒", "?닿렐湲?],
+      region: ["서울", "영등포구", "영등포"],
+      note: "역세권과 상권 흐름이 강한 서울 서남권 후보",
+      tags: ["역세권", "상권", "퇴근길"],
       element: "water",
       direction: "west",
       source: "dhlottery-top-store",
     },
     {
-      name: "媛濡쒗뙋留ㅻ?",
-      address: "?쒖슱 媛뺣룞援??щ┝?쎈줈 648 泥쒗샇??3踰?異쒓뎄 ??,
+      name: "가로판매대",
+      address: "서울 강동구 올림픽로 648 천호역 3번 출구 앞",
       lat: 37.5386,
       lng: 127.1234,
-      region: ["?쒖슱", "媛뺣룞援?, "泥쒗샇"],
-      note: "泥쒗샇???좊룞 ?먮쫫?????媛?먰삎 ?꾨낫",
-      tags: ["??꽭沅?, "媛??, "?숈꽑"],
+      region: ["서울", "강동구", "천호"],
+      note: "천호역 유동 흐름을 타는 가판형 후보",
+      tags: ["역세권", "가판", "동선"],
       element: "wood",
       direction: "east",
       source: "dhlottery-top-store",
     },
     {
-      name: "援먰넻移대뱶?먮ℓ?",
-      address: "?쒖슱 媛뺣룞援??곸씪濡?5湲?18 1痢?,
+      name: "교통카드판매대",
+      address: "서울 강동구 상일로15길 18 1층",
       lat: 37.5511,
       lng: 127.1697,
-      region: ["?쒖슱", "媛뺣룞援?, "?곸씪??],
-      note: "理쒓렐 ?뚯감 1??諛곗텧??紐⑸줉???깆옣???숈そ 沅뚯뿭 ?꾨낫",
-      tags: ["理쒓렐?깆옣", "?숇꽕??, "?먮룞"],
+      region: ["서울", "강동구", "상일동"],
+      note: "최근 회차 1등 배출점 목록에 등장한 동쪽 권역 후보",
+      tags: ["최근등장", "동네형", "자동"],
       element: "wood",
       direction: "east",
       source: "dhlottery-top-store",
     },
     {
-      name: "罹먮끉醫낇빀",
-      address: "?쒖슱 ?⑹궛援??덉갹濡?156 3痢??곌만媛 ?ㅻⅨ履??ㅻ쾲吏몄뭏",
+      name: "캐논종합",
+      address: "서울 용산구 새창로 156 3층 큰길가 오른쪽 네번째칸",
       lat: 37.5351,
       lng: 126.9609,
-      region: ["?쒖슱", "?⑹궛援?, "?⑸Ц??],
-      note: "以묒븰沅??대룞 ?숈꽑怨?留욌뒗 ?⑹궛沅??꾨낫",
-      tags: ["以묒븰沅?, "?곌만", "?대룞?숈꽑"],
+      region: ["서울", "용산구", "용문동"],
+      note: "중앙권 이동 동선과 맞는 용산권 후보",
+      tags: ["중앙권", "큰길", "이동동선"],
       element: "earth",
       direction: "center",
       source: "dhlottery-top-store",
     },
     {
-      name: "?좉났二?濡쒕삉",
-      address: "?쒖슱 留덊룷援??붾뱶而듬턿濡?湲?65 1痢?,
+      name: "신공주 로또",
+      address: "서울 마포구 월드컵북로4길 65 1층",
       lat: 37.5576,
       lng: 126.9236,
-      region: ["?쒖슱", "留덊룷援?, "?띾?"],
-      note: "?딆? ?곴텒怨?諛??쒓컙? ?먮쫫??媛뺥븳 ?쒕턿沅??꾨낫",
-      tags: ["?딆??곴텒", "?꾨낫", "???],
+      region: ["서울", "마포구", "홍대"],
+      note: "젊은 상권과 밤 시간대 흐름이 강한 서북권 후보",
+      tags: ["젊은상권", "도보", "저녁"],
       element: "fire",
       direction: "west",
       source: "dhlottery-top-store",
     },
     {
-      name: "?덈꼈?쎈쭪?붽납",
-      address: "遺???숆뎄 議곕갑濡?9踰덇만 18-1",
+      name: "돈벼락맞는곳",
+      address: "부산 동구 조방로49번길 18-1",
       lat: 35.1396,
       lng: 129.0592,
-      region: ["遺??, "?숆뎄", "踰붿씪??],
-      note: "遺?곌텒 ?뱀꺼 ?먮ℓ??紐⑸줉???깆옣???대쫫遺??媛뺥븳 ?꾨낫",
-      tags: ["遺??, "?ъ꽦?뚮쭏", "?숆뎄"],
+      region: ["부산", "동구", "범일동"],
+      note: "부산권 당첨 판매점 목록에 등장한 이름부터 강한 후보",
+      tags: ["부산", "재성테마", "동구"],
       element: "water",
       direction: "south",
       source: "dhlottery-top-store",
     },
     {
-      name: "?≪쿇蹂듦텒諛?,
-      address: "遺???댁슫?援??좎닔珥뚮줈 108",
+      name: "송천복권방",
+      address: "부산 해운대구 선수촌로 108",
       lat: 35.2003,
       lng: 129.1263,
-      region: ["遺??, "?댁슫?援?, "諛섏뿬??],
-      note: "?댁슫? ?앺솢沅뚯뿉???묎렐?섍린 醫뗭? ?숇꽕???꾨낫",
-      tags: ["遺??, "?숇꽕??, "?앺솢沅?],
+      region: ["부산", "해운대구", "반여동"],
+      note: "해운대 생활권에서 접근하기 좋은 동네형 후보",
+      tags: ["부산", "동네형", "생활권"],
       element: "water",
       direction: "east",
       source: "dhlottery-top-store",
     },
     {
-      name: "?몄썝濡쒕삉蹂듦텒諛?,
-      address: "遺???섏쁺援??섏쁺濡?25踰덇만 53 101??,
+      name: "세원로또복권방",
+      address: "부산 수영구 수영로725번길 53 101호",
       lat: 35.1667,
       lng: 129.1144,
-      region: ["遺??, "?섏쁺援?, "?섏쁺"],
-      note: "遺???섏쁺 ?앺솢沅뚯뿉???묎렐?깆씠 醫뗭? 理쒓렐 ?뱀꺼 ?먮ℓ???꾨낫",
-      tags: ["遺??, "??꽭沅?, "紐낅떦"],
+      region: ["부산", "수영구", "수영"],
+      note: "부산 수영 생활권에서 접근성이 좋은 최근 당첨 판매점 후보",
+      tags: ["부산", "역세권", "명당"],
       element: "water",
       direction: "east",
       source: "dhlottery-top-store",
     },
     {
-      name: "?먭컝移??꾧묠鍮꾨챸??,
-      address: "遺??以묎뎄 ?먭컝移섎줈 33 501,502??,
+      name: "자갈치 도깨비명당",
+      address: "부산 중구 자갈치로 33 501,502호",
       lat: 35.0969,
       lng: 129.0305,
-      region: ["遺??, "以묎뎄", "?먭컝移?],
-      note: "遺???먮룄???곴텒怨?紐낅떦 ?대?吏瑜??④퍡 蹂대뒗 ?꾨낫",
-      tags: ["遺??, "?꾪넻紐낅떦", "?곴텒"],
+      region: ["부산", "중구", "자갈치"],
+      note: "부산 원도심 상권과 명당 이미지를 함께 보는 후보",
+      tags: ["부산", "전통명당", "상권"],
       element: "water",
       direction: "south",
       source: "dhlottery-top-store",
     },
     {
-      name: "蹂듦텒紐낅떦(?곷궓??",
-      address: "?援??ъ꽌援??붾같濡?122",
+      name: "복권명당(영남점)",
+      address: "대구 달서구 월배로 122",
       lat: 35.8166,
       lng: 128.5277,
-      region: ["?援?, "?ъ꽌援?, "?붾같"],
-      note: "?援??ъ꽌援ш텒 紐낅떦???꾨낫",
-      tags: ["?援?, "紐낅떦", "?앺솢沅?],
+      region: ["대구", "달서구", "월배"],
+      note: "대구 달서구권 명당형 후보",
+      tags: ["대구", "명당", "생활권"],
       element: "earth",
       direction: "west",
       source: "dhlottery-top-store",
     },
     {
-      name: "臾대웾蹂듦텒",
-      address: "?援??섏꽦援??쒖?濡?37 1痢??숉렪?곴?",
+      name: "무량복권",
+      address: "대구 수성구 시지로 37 1층 동편상가",
       lat: 35.8396,
       lng: 128.7049,
-      region: ["?援?, "?섏꽦援?, "?쒖?"],
-      note: "?援??섏꽦援??숈꽑?먯꽌 蹂대뒗 理쒓렐 ?뱀꺼 ?먮ℓ???꾨낫",
-      tags: ["?援?, "?숇꽕??, "?앺솢沅?],
+      region: ["대구", "수성구", "시지"],
+      note: "대구 수성구 동선에서 보는 최근 당첨 판매점 후보",
+      tags: ["대구", "동네형", "생활권"],
       element: "earth",
       direction: "east",
       source: "dhlottery-top-store",
     },
     {
-      name: "蹂듦텒?뺢뎅",
-      address: "?몄쿇 遺?됯뎄 寃쎌씤濡?931",
+      name: "복권왕국",
+      address: "인천 부평구 경인로 931",
       lat: 37.4895,
       lng: 126.7241,
-      region: ["?몄쿇", "遺?됯뎄", "遺??],
-      note: "?몄쿇 遺???곴텒 ?먮쫫??蹂대뒗 ?꾨낫",
-      tags: ["?몄쿇", "?곴텒", "?…65672 tokens truncated…extContent = `${formatNumber(dataset.count)}??;
+      region: ["인천", "부평구", "부평"],
+      note: "인천 부평 상권 흐름을 보는 후보",
+      tags: ["인천", "상권", "큰길"],
+      element: "metal",
+      direction: "west",
+      source: "dhlottery-top-store",
+    },
+    {
+      name: "한국인세계대박복권",
+      address: "인천 연수구 한나루로197번길 34",
+      lat: 37.4194,
+      lng: 126.6788,
+      region: ["인천", "연수구", "옥련동"],
+      note: "인천 연수권에서 생활 동선과 명당성을 함께 보는 후보",
+      tags: ["인천", "명당", "생활권"],
+      element: "metal",
+      direction: "south",
+      source: "dhlottery-top-store",
+    },
+    {
+ …64698 tokens truncated…Summary() {
+    document.querySelector("#latestDraw").textContent = `${dataset.latestDraw}회`;
+    document.querySelector("#dataCount").textContent = `${formatNumber(dataset.count)}회`;
     document.querySelector("#latestNumbers").innerHTML = latest.numbers
       .map((number) => `<span class="ball ${rangeClass(number)}">${number}</span>`)
       .join("");
@@ -573,15 +593,15 @@
     const container = document.querySelector("#recommendations");
 
     if (summary) {
-      summary.textContent = "異붿쿇 ?꾨낫瑜?以鍮꾪븯怨??덉뒿?덈떎. ?붾㈃??癒쇱? ?꾩슫 ??怨꾩궛?⑸땲??";
+      summary.textContent = "추천 후보를 준비하고 있습니다. 화면을 먼저 띄운 뒤 계산합니다.";
     }
 
     if (candidateStats) {
       candidateStats.innerHTML = `
         <div class="candidate-hero-stat">
-          <span>異붿쿇 以鍮?/span>
-          <strong>?좎떆留뚯슂</strong>
-          <em>?뱀꺼踰덊샇 ?곗씠?곗? 媛쒖씤 ?ㅼ젙??留욎텛??以묒엯?덈떎</em>
+          <span>추천 준비</span>
+          <strong>잠시만요</strong>
+          <em>당첨번호 데이터와 개인 설정을 맞추는 중입니다</em>
         </div>
       `;
     }
@@ -591,8 +611,8 @@
         <article class="recommendation-card is-loading">
           <div class="card-head">
             <div>
-              <strong>${index + 1}踰?議고빀</strong>
-              <div class="card-meta">怨꾩궛 ?湲?/div>
+              <strong>${index + 1}번 조합</strong>
+              <div class="card-meta">계산 대기</div>
             </div>
             <span class="score-pill">...</span>
           </div>
@@ -607,7 +627,7 @@
   function refresh(options = {}) {
     if (!draws.length) {
       document.querySelector("#scoreSummary").textContent =
-        "?뱀꺼 踰덊샇 ?곗씠?곕? 李얠? 紐삵뻽?듬땲??";
+        "당첨 번호 데이터를 찾지 못했습니다.";
       return;
     }
 
@@ -636,11 +656,11 @@
       }
     }
     const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
-    const sajuText = `?ъ＜ 諛섏쁺 ${sajuWeight.value}%`;
+    const sajuText = `사주 반영 ${sajuWeight.value}%`;
 
     sajuWeightOut.textContent = `${sajuWeight.value}%`;
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel} 쨌 ${selectedWindow.label} 쨌 ${sajuText} 쨌 ?듭떖 ?꾨낫留?${formatNumber(result.filteredCount)}媛?;
+      `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 핵심 후보망 ${formatNumber(result.filteredCount)}개`;
 
     lottoState.lastResult = result;
     renderRecommendations(result);
@@ -650,8 +670,8 @@
       if (auditContainer) {
         auditContainer.innerHTML = `
           <div class="candidate-audit-empty">
-            <strong>媛쒖씤 留욎땄 ?ы쁽 怨꾩궛 以鍮?以?/strong>
-            <p>泥??붾㈃??癒쇱? ?꾩슫 ?? ?ъ＜ 0~100%? ?щ윭 理쒓렐 ?먮쫫 湲곗????좎떆 ???ㅼ떆 怨꾩궛?⑸땲??</p>
+            <strong>개인 맞춤 재현 계산 준비 중</strong>
+            <p>첫 화면을 먼저 띄운 뒤, 사주 0~100%와 여러 최근 흐름 기준을 잠시 후 다시 계산합니다.</p>
           </div>
         `;
       }
@@ -765,7 +785,7 @@
 
   function autoSajuSettingLabel(setting) {
     if (!setting) return "";
-    return `${modeName(setting.mode)} 쨌 ?ъ＜ ${setting.weight}% 쨌 ${settingWindowLabel(setting)}`;
+    return `${modeName(setting.mode)} · 사주 ${setting.weight}% · ${settingWindowLabel(setting)}`;
   }
 
   function buildFastAutoSajuSetting() {
@@ -810,7 +830,7 @@
     const setting = buildFastAutoSajuSetting();
     if (!setting) {
       if (autoSajuStatus) {
-        autoSajuStatus.textContent = "?먮룞 ?명똿??怨꾩궛???뚯감 ?곗씠?곌? ?꾩쭅 遺議깊빀?덈떎.";
+        autoSajuStatus.textContent = "자동 세팅을 계산할 회차 데이터가 아직 부족합니다.";
       }
       return null;
     }
@@ -829,12 +849,12 @@
     syncSajuWeight(setting.weight, false);
 
     if (autoSajuStatus) {
-      const basisText = setting.basisDraw ? `${setting.basisDraw}??` : "";
+      const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
       const reasonText = setting.fast
-        ? "鍮좊Ⅸ 媛쒖씤 ?붿빟 湲곗??쇰줈 癒쇱? 留욎톬?듬땲??"
-        : `${basisText}?꾩껜 ?뚯감 ?붿빟?먯꽌 ?먯＜ 媛源뚯썱???ㅼ젙?낅땲??`;
+        ? "빠른 개인 요약 기준으로 먼저 맞췄습니다."
+        : `${basisText}전체 회차 요약에서 자주 가까웠던 설정입니다.`;
       autoSajuStatus.textContent =
-        `?먮룞 ?곸슜?? ${autoSajuSettingLabel(setting)} 쨌 ${reasonText}`;
+        `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
     }
 
     return setting;
@@ -941,10 +961,10 @@
       lng: Number(position.coords.longitude.toFixed(6)),
     };
 
-    locationStatus.textContent = `?꾩옱 ?꾩튂 ?뺤씤?? ${coordinateLabel(userPosition)} 쨌 吏??챸 ?뺤씤 以?;
+    locationStatus.textContent = `현재 위치 확인됨: ${coordinateLabel(userPosition)} · 지역명 확인 중`;
     userRegionLabel = (await reverseGeocodePosition(userPosition)) || "";
-    const label = userRegionLabel || "吏??챸 ?뺤씤 ?ㅽ뙣";
-    locationStatus.textContent = `?꾩옱 ?꾩튂: ${label} 쨌 ${coordinateLabel(userPosition)}`;
+    const label = userRegionLabel || "지역명 확인 실패";
+    locationStatus.textContent = `현재 위치: ${label} · ${coordinateLabel(userPosition)}`;
     refresh();
   }
 
@@ -965,7 +985,7 @@
       event.preventDefault();
       window.clearTimeout(lottoState.refreshTimer);
       if (!clampBirthDateInput()) {
-        birthDate.setCustomValidity("?앸뀈?붿씪??1998-08-27泥섎읆 ?낅젰?댁＜?몄슂.");
+        birthDate.setCustomValidity("생년월일을 1998-08-27처럼 입력해주세요.");
         birthDate.reportValidity();
         return;
       }
@@ -1112,18 +1132,18 @@
 
     useLocation.addEventListener("click", () => {
       if (!navigator.geolocation) {
-        locationStatus.textContent = "??釉뚮씪?곗??먯꽌???꾩옱 ?꾩튂瑜?遺덈윭?????놁뼱??";
+        locationStatus.textContent = "이 브라우저에서는 현재 위치를 불러올 수 없어요.";
         return;
       }
 
-      locationStatus.textContent = "?꾩옱 ?꾩튂瑜??뺤씤?섎뒗 以묒엯?덈떎.";
+      locationStatus.textContent = "현재 위치를 확인하는 중입니다.";
       navigator.geolocation.getCurrentPosition(
         (position) => {
           applyCurrentLocation(position);
         },
         () => {
           locationStatus.textContent =
-            "?꾩튂 沅뚰븳??諛쏆? 紐삵뻽?댁슂. ?꾩옱 ?꾩튂 湲곗? 吏??異붿쿇??留뚮뱾?ㅻ㈃ 釉뚮씪?곗? ?꾩튂 沅뚰븳???꾩슂?⑸땲??";
+            "위치 권한을 받지 못했어요. 현재 위치 기준 지도 추천을 만들려면 브라우저 위치 권한이 필요합니다.";
         },
         { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 },
       );
