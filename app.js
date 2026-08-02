@@ -7322,11 +7322,6 @@
       renderCandidateAuditSummary(stats, saju);
     }
     renderElementBars(saju);
-    if (typeof window.renderProfessionalSajuReading === "function") {
-      window.renderProfessionalSajuReading(saju);
-    } else {
-      renderSajuReading(saju);
-    }
     renderMappingReading(saju);
     renderPreviousDrawAudit();
     renderHotCold(stats, scores);

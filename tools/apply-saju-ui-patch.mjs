@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 
-const CACHE_VERSION = "feedback-v107";
-const SW_CACHE_NAME = "saju-lotto-v107";
+const CACHE_VERSION = "feedback-v108";
+const SW_CACHE_NAME = "saju-lotto-v108";
 const SAJU_DATA_SCRIPTS = [
   "data/solar-terms.js",
   "data/saju-classical-sources.js",
@@ -9,7 +9,6 @@ const SAJU_DATA_SCRIPTS = [
   "data/saju-expert-cases.js",
   "data/saju-eval-cases.js",
   "data/saju-lotto-bridge-rules.js",
-  "data/saju-professional-report.js",
 ];
 
 async function read(path) {
