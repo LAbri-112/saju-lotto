@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 
-const CACHE_VERSION = "feedback-v95";
-const SW_CACHE_NAME = "saju-lotto-v95";
+const CACHE_VERSION = "feedback-v107";
+const SW_CACHE_NAME = "saju-lotto-v107";
 const SAJU_DATA_SCRIPTS = [
   "data/solar-terms.js",
   "data/saju-classical-sources.js",
@@ -25,6 +25,13 @@ function insertAfter(text, marker, addition) {
   const index = text.indexOf(marker);
   if (index < 0) throw new Error(`Missing marker: ${marker}`);
   return `${text.slice(0, index + marker.length)}${addition}${text.slice(index + marker.length)}`;
+}
+
+function insertBefore(text, marker, addition) {
+  if (text.includes(addition.trim().split("\n")[0].trim())) return text;
+  const index = text.indexOf(marker);
+  if (index < 0) throw new Error(`Missing marker: ${marker}`);
+  return `${text.slice(0, index)}${addition}${text.slice(index)}`;
 }
 
 function addAppShellAsset(sw, src) {
@@ -109,7 +116,6 @@ async function patchApp() {
       app = app.replace("    renderSajuReading(saju);", professionalCall);
     }
   }
-
   await write("app.js", app);
 }
 
@@ -195,3 +201,4 @@ await patchServiceWorker();
 await patchPackage();
 await patchReadme();
 console.log("Saju UI patch applied.");
+
