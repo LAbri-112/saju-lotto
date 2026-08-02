@@ -767,12 +767,22 @@
     return clamp(Number(candidateCount) / LOTTO_UNIVERSE_SIZE, 0, 1);
   }
 
-  function recallModelIsValidated() {
+  function candidateNetworkIsValidated() {
     const validation = recallProfile?.walkForwardPolicy?.holdoutValidation;
     return (
       Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw) &&
       Number(validation?.validationDraws ?? 0) >= MIN_VALIDATED_RECALL_DRAWS &&
       Number(validation?.lift ?? 0) >= MIN_VALIDATED_RECALL_LIFT
+    );
+  }
+
+  function finalPortfolioModelIsValidated() {
+    const validation = recallProfile?.walkForwardPolicy?.finalPortfolioValidation;
+    return (
+      Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw) &&
+      Number(validation?.validationDraws ?? 0) >= MIN_VALIDATED_RECALL_DRAWS &&
+      Number(validation?.exactLift ?? 0) >= MIN_VALIDATED_RECALL_LIFT &&
+      Number(validation?.hit3PlusLift ?? 0) >= MIN_VALIDATED_RECALL_LIFT
     );
   }
 
@@ -3513,7 +3523,7 @@
     const weightSetting = typeof poolBudget === "object" ? Number(poolBudget.weightSetting ?? 60) : 60;
     const learnedOrder = recallProfile?.walkForwardPolicy?.nextDrawNumberOrder;
     const learnedOrderIsCurrent = Number(recallProfile?.basisLatestDraw) === Number(dataset?.latestDraw);
-    const learnedOrderIsValidated = recallModelIsValidated();
+    const learnedOrderIsValidated = candidateNetworkIsValidated();
     const learnedOrderIsValid =
       Array.isArray(learnedOrder) &&
       learnedOrder.length === 45 &&
@@ -3980,12 +3990,14 @@
   }
 
   function coverageSeed() {
+    const appliedSajuWeight = Number(sajuWeight?.value ?? 0);
+    const personalSeed = appliedSajuWeight > 0
+      ? [birthDate?.value ?? "", birthBranch?.value ?? "", interpretationMode?.value ?? "balance"].join("|")
+      : "statistics-only";
     return [
       Number(dataset?.latestDraw ?? 0) + 1,
-      birthDate?.value ?? "",
-      birthBranch?.value ?? "",
-      interpretationMode?.value ?? "balance",
-      Number(sajuWeight?.value ?? 0),
+      personalSeed,
+      appliedSajuWeight,
     ].join("|");
   }
 
@@ -4021,6 +4033,43 @@
     }
 
     return null;
+  }
+
+  function buildIndependentBaselineRecommendations(stats, scores, saju, learningProfile, target) {
+    const nextDraw = Number(dataset?.latestDraw ?? 0) + 1;
+    const appliedSajuWeight = Number(sajuWeight?.value ?? 0);
+    const seed = appliedSajuWeight > 0
+      ? stableCoverageHash(`${coverageSeed()}|independent-baseline-v2`)
+      : nextDraw * 7919;
+    const random = deterministicPortfolioRandom(seed);
+    const selected = [];
+    const seen = new Set();
+    let attempts = 0;
+
+    while (selected.length < target && attempts < 10000) {
+      attempts += 1;
+      const numbers = [];
+      while (numbers.length < 6) {
+        const number = Math.floor(random() * 45) + 1;
+        if (!numbers.includes(number)) numbers.push(number);
+      }
+      numbers.sort((left, right) => left - right);
+      const key = numbers.join("-");
+      if (seen.has(key)) continue;
+
+      const candidate = enrichLottoCandidate({
+        numbers,
+        meta: scoreCombination(numbers, scores, stats, saju, learningProfile),
+      }, stats);
+      candidate.reasons = [
+        "다른 추천 세트와 겹침을 낮춘 조합입니다.",
+        "통계·사주 점수는 참고 정보로만 표시합니다.",
+      ];
+      selected.push(attachFinalReasons(candidate, selected));
+      seen.add(key);
+    }
+
+    return selected.slice(0, target);
   }
 
   function buildCoverageWheelRecommendations(
@@ -4077,39 +4126,18 @@
 
   function selectRecommendationPortfolio(corePool, stats, scores, saju, learningProfile, target) {
     const modelSelection = selectFinalRecommendations(corePool, { target });
-    if (recallModelIsValidated() || target <= 1 || !modelSelection.length) {
+    if (finalPortfolioModelIsValidated() || target <= 1 || !modelSelection.length) {
       return modelSelection;
     }
 
-    const coverageSelection = buildCoverageWheelRecommendations(
-      modelSelection[0],
+    const baselineSelection = buildIndependentBaselineRecommendations(
       stats,
       scores,
       saju,
       learningProfile,
       target,
     );
-    if (target === 5 && coverageSelection.length === 5) {
-      const independent = buildIndependentPortfolioCandidate(
-        coverageSelection[0],
-        stats,
-        scores,
-        saju,
-        learningProfile,
-      );
-      if (independent) {
-        coverageSelection[4] = attachFinalReasons(independent, coverageSelection.slice(0, 4));
-      }
-    }
-    const selectedKeys = new Set(coverageSelection.map((item) => item.numbers.join("-")));
-    for (const candidate of modelSelection.slice(1)) {
-      if (coverageSelection.length >= target) break;
-      const key = candidate.numbers.join("-");
-      if (selectedKeys.has(key)) continue;
-      coverageSelection.push(attachFinalReasons(candidate, coverageSelection));
-      selectedKeys.add(key);
-    }
-    return coverageSelection.slice(0, target);
+    return baselineSelection.length === target ? baselineSelection : modelSelection;
   }
 
   function generateRecommendations(stats, scores, saju, learningProfile = null) {
@@ -5164,36 +5192,36 @@
 
   function renderCandidateStats(result) {
     if (!candidateStats) return;
-    const mode = result.displayMode === "random" ? "랜덤 배치" : "분포 최우선";
+    const mode = result.displayMode === "random"
+      ? "후보 랜덤 배치"
+      : finalPortfolioModelIsValidated()
+        ? "검증 랭킹"
+        : "독립 분산";
     const shown = result.displayMode === "random"
       ? Math.min(Number(setCount.value) || 5, result.pool?.length ?? 0)
       : result.selectedCount;
     const meta = result.candidatePoolMeta ?? {};
-    const generatedRate = formatPercent(meta.exactInclusionRateForGenerated ?? getExactInclusionRate(result.candidateCount));
-    const walkForwardRate = Number(meta.walkForwardFrontierExactRate);
-    const testedRate = Number.isFinite(walkForwardRate) ? `${walkForwardRate.toFixed(2)}%` : "-";
+    const validation = recallProfile?.walkForwardPolicy?.holdoutValidation;
+    const testedRate = Number(validation?.exactRate);
+    const randomRate = Number(validation?.randomExpectedRate);
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
-        <span>핵심 후보망</span>
+        <span>이번 최종 추천</span>
+        <strong>${formatNumber(shown)}장</strong>
+        <em>결과 검증도 이 ${formatNumber(shown)}장만 기준으로 봅니다</em>
+      </div>
+      <div class="candidate-stat-card">
+        <span>분석 후보</span>
         <strong>${formatNumber(result.filteredCount)}개</strong>
-        <em>최종 구매 추천번호는 ${formatNumber(shown)}장만 보여줍니다</em>
+        <em>참고용</em>
       </div>
       <div class="candidate-stat-card">
-        <span>생성 후보망</span>
-        <strong>${formatNumber(meta.frontierCombinationCount ?? result.candidateCount)}개</strong>
-        <em>${generatedRate}</em>
+        <span>후보망 독립검증</span>
+        <strong>${Number.isFinite(testedRate) ? `${testedRate.toFixed(2)}%` : "-"}</strong>
+        <em>무작위 기대 ${Number.isFinite(randomRate) ? `${randomRate.toFixed(2)}%` : "-"}</em>
       </div>
       <div class="candidate-stat-card">
-        <span>과거 순차검증</span>
-        <strong>${testedRate}</strong>
-        <em>번호망 포착</em>
-      </div>
-      <div class="candidate-stat-card">
-        <span>90+ 참고</span>
-        <strong>${formatNumber(result.highScoreCount)}개</strong>
-      </div>
-      <div class="candidate-stat-card">
-        <span>표시 방식</span>
+        <span>최종 5장 방식</span>
         <strong>${mode}</strong>
       </div>
     `;
@@ -5324,9 +5352,9 @@
         );
       })[0];
     const coreEvaluated = coreCandidates.map(evaluate);
-    const displayEvaluated = displayCandidates.map(evaluate);
     const corePoolBestMatch = bestOf(coreCandidates);
     const displaySampleBestMatch = bestOf(displayCandidates);
+    const selectedPoolBestMatch = bestOf(selectedCandidates);
     const bestMatch = corePoolBestMatch;
     const tierCounts = [1, 2, 3, 4, 5].map((tier) => ({
       tier,
@@ -5368,6 +5396,14 @@
             tier: displaySampleBestMatch.tier,
           }
         : null,
+      selectedPoolBestMatch: selectedPoolBestMatch
+        ? {
+            numbers: selectedPoolBestMatch.n,
+            overlap: selectedPoolBestMatch.matchCount,
+            bonusMatch: selectedPoolBestMatch.bonusMatch,
+            tier: selectedPoolBestMatch.tier,
+          }
+        : null,
       explanation: includedInCorePool
         ? "당첨번호 조합은 실제 핵심 후보망 안에 포함되었습니다."
         : generatedInCandidatePool
@@ -5391,6 +5427,7 @@
       bestMatch,
       corePoolBestMatch,
       displaySampleBestMatch,
+      selectedPoolBestMatch,
       tierCounts,
       totalWinners,
       winningCandidateStatus,
@@ -5449,6 +5486,7 @@
       setting.weight,
       setting.windowValue ?? setting.windowSize,
       setting.frontierLimit ?? AUTO_FRONTIER_NUMBER_COUNT,
+      Number(setCount.value) || 5,
     ].join("|");
 
     return boundedCacheGet(
@@ -5501,7 +5539,16 @@
           : [...ranked, reverseExactCandidate].sort(sortByPracticalRank);
         const reverseRank = rankedWithWinner.findIndex((candidate) => candidate.numbers.join("-") === reverseExactKey) + 1;
         const filtered = ranked.filter((candidate) => candidate.meta.score >= 80);
-        const corePool = buildCoreCandidatePool(ranked, filtered, Number(setCount.value) || 5);
+        const target = clamp(Number(setCount.value) || 5, 1, 10);
+        const corePool = buildCoreCandidatePool(ranked, filtered, target);
+        const finalPortfolio = selectRecommendationPortfolio(
+          corePool,
+          statsBeforeDraw,
+          scores,
+          modeSaju,
+          null,
+          target,
+        );
         const displayPool = corePool.slice(0, DISPLAY_SAMPLE_K);
         const toSnapshotItem = (candidate) => ({
           n: candidate.numbers,
@@ -5513,7 +5560,7 @@
           bl: candidate.meta.bucketLabel,
         });
         const snapshot = {
-          selected: corePool.slice(0, Number(setCount.value) || 5).map(toSnapshotItem),
+          selected: finalPortfolio.map(toSnapshotItem),
           generatedCandidates: ranked.map(toSnapshotItem),
           coreCandidates: corePool.map(toSnapshotItem),
           candidates: displayPool.map(toSnapshotItem),
@@ -5862,31 +5909,21 @@
     const coreIncluded = Boolean(replayStatus?.includedInCorePool);
     const generatedIncluded = Boolean(replayStatus?.generatedInCandidatePool);
     const reverseRank = replay?.reverseCandidateCount ?? selectedSetting.candidateNeed;
-    const replayBest = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
+    const replayBest = replay?.result?.selectedPoolBestMatch;
     const replayNumbers = replayBest?.n ?? [];
     const replayCoreCount = replay?.coreCount ? formatNumber(replay.coreCount) : "계산 중";
     const replayText = replayBest
       ? `${replay.result.maxOverlap}개 일치${replayBest.bonusMatch ? " + 보너스 일치" : ""} · ${tierLabel(replayBest.tier)}`
       : "계산 대기";
-    const statusText = coreIncluded
-      ? "핵심 후보 안"
-      : generatedIncluded
-        ? "생성 후보 안"
-        : "후보망 밖";
-    const statusClass = coreIncluded ? "is-hit" : "is-info";
-    const hitLocationTitle = coreIncluded
-      ? "당첨번호가 후보 안에 있었습니다"
-      : generatedIncluded
-        ? "넓은 생성 후보에는 있었습니다"
-        : "당첨번호는 후보망 밖이었습니다";
-    const candidateLine = coreIncluded
-      ? `${selectedSettingLine} 설정의 핵심 후보망 ${replayCoreCount}개 안에 6개 조합이 있었습니다.`
-      : generatedIncluded
-        ? `${selectedSettingLine} 설정의 넓은 생성 후보에는 있었지만, 핵심 후보망 ${replayCoreCount}개 안에는 없었습니다.`
-        : `${selectedSettingLine} 설정으로 만든 후보망에는 6개 조합이 없었습니다. 아래에는 그 후보망에서 가장 많이 맞춘 조합을 보여줍니다.`;
-    const positionMeaning = generatedIncluded
-      ? "생성 후보에는 있었지만 최종 핵심 후보망까지 올라오지는 못했습니다."
-      : "이 결과는 다음 자동 학습에서 후보망을 다시 조정할 때 참고합니다.";
+    const finalIncluded = Boolean(replay?.result?.finalRecommendationHasExact);
+    const statusText = finalIncluded ? "최종 5장 적중" : "최종 5장 미포함";
+    const statusClass = finalIncluded ? "is-hit" : "is-info";
+    const hitLocationTitle = finalIncluded
+      ? "최종 추천 5장 안에 1등 조합이 있었습니다"
+      : "최종 추천 5장에는 1등 조합이 없었습니다";
+    const candidateLine = replayBest
+      ? `${selectedSettingLine} 기준 최종 5장 중 가장 가까운 조합은 ${replayBest.matchCount}개가 일치했습니다.`
+      : "최종 추천 5장을 재현할 데이터가 부족합니다.";
     const rangeLabels = {
       "0~20%": "사주 거의 안 씀",
       "21~40%": "사주 조금 씀",
@@ -5926,11 +5963,11 @@
           <div class="portfolio-head">
             <div>
               <span>개인별 후보 검증</span>
-              <strong>${latestDraw.draw}회 당첨번호 포함 여부</strong>
+              <strong>${latestDraw.draw}회 최종 5장 검증</strong>
             </div>
             <b class="${statusClass}">${statusText}</b>
           </div>
-        <p class="portfolio-note">실제 추천 후보망에 당첨번호가 있었는지 먼저 봅니다.</p>
+        <p class="portfolio-note">회차 직전 데이터만 사용해 실제 최종 추천 5장을 다시 계산합니다.</p>
         <div class="portfolio-latest">
           <div>
             <span>${latestDraw.draw}회 당첨번호</span>
@@ -5938,7 +5975,7 @@
           </div>
         </div>
         <div class="portfolio-hit-location ${statusClass}">
-          <span>당첨번호 포함 여부</span>
+          <span>최종 5장 결과</span>
           <strong>${hitLocationTitle}</strong>
           <p>${candidateLine}</p>
         </div>
@@ -5947,7 +5984,7 @@
           ${qualifyingSettingRows}
         </div>
         <div class="portfolio-replay-card">
-          <span>그 설정으로 다시 추천했다면 가장 많이 맞은 후보</span>
+          <span>최종 5장 중 가장 많이 맞은 조합</span>
           <div class="ball-line compact-ball-line">${replayNumbers.map(renderAuditBall).join("")}</div>
           <strong>${replayText}</strong>
           <p>${replay ? `${latestDraw.draw}회 직전 데이터 기준 · ${replay.label}` : "회차 직전 후보를 다시 계산할 데이터가 부족합니다."}</p>
@@ -5955,7 +5992,7 @@
         <div class="store-tags">
           <span>회차당 설정 ${formatNumber(portfolio.scanCount)}가지</span>
           <span>검증 회차 ${formatNumber(portfolio.records.length)}개</span>
-          <span>후보망 실제 포함 기준</span>
+          <span>최종 추천 5장 기준</span>
         </div>
         <details class="portfolio-draw-details">
           <summary>개인 재현 요약 보기</summary>
@@ -6675,8 +6712,8 @@
     window.clearTimeout(lottoState.previousAuditTimer);
     container.innerHTML = `
       <div class="previous-audit-card is-loading">
-        <strong>직전 회차 핵심 후보망 복기</strong>
-        <p>${draw.draw}회 기준으로 가장 많이 맞춘 후보를 확인하는 중입니다.</p>
+        <strong>직전 회차 최종 5장 복기</strong>
+        <p>${draw.draw}회 직전에 추천됐을 5장을 다시 계산하는 중입니다.</p>
       </div>
     `;
 
@@ -6684,13 +6721,13 @@
     lottoState.previousAuditTimer = window.setTimeout(() => runWhenIdle(() => {
       if (generation !== lottoState.generation) return;
       const replay = replayBestCandidateForDraw(draw, currentReplaySetting());
-      const best = replay?.result?.corePoolBestMatch ?? replay?.result?.bestMatch;
+      const best = replay?.result?.selectedPoolBestMatch;
 
       if (!best?.n?.length) {
         container.innerHTML = `
           <div class="previous-audit-card">
-            <strong>직전 회차 핵심 후보망 복기</strong>
-            <p>아직 비교할 후보망을 만들지 못했습니다.</p>
+            <strong>직전 회차 최종 5장 복기</strong>
+            <p>아직 최종 추천 5장을 재현하지 못했습니다.</p>
           </div>
         `;
         return;
@@ -6698,22 +6735,22 @@
 
       const prizeText = lottoTierPrizeText(best.tier, draw);
       const matchText = `${best.matchCount}개 일치${best.bonusMatch ? " + 보너스 일치" : ""}`;
-      const exactText = replay?.result?.corePoolHasExact
-        ? "당첨번호 6개 조합도 핵심 후보망 안에 있었습니다."
-        : "당첨번호 6개 조합은 핵심 후보망 밖이었습니다.";
+      const exactText = replay?.result?.finalRecommendationHasExact
+        ? "1등 당첨번호 6개 조합이 최종 5장 안에 있었습니다."
+        : "1등 당첨번호 6개 조합은 최종 5장에 없었습니다.";
 
       container.innerHTML = `
         <div class="previous-audit-card">
           <div>
             <span>${draw.draw}회 직전 복기</span>
-            <strong>핵심 후보망 중 최다 일치 조합</strong>
+            <strong>최종 5장 중 최다 일치 조합</strong>
             <p>${exactText}</p>
           </div>
           <div class="previous-audit-balls">${best.n.map(renderAuditBall).join("")}</div>
           <div class="previous-audit-meta">
             <span>${matchText}</span>
             <span>${tierLabel(best.tier)} · ${prizeText}</span>
-            <span>후보망 ${formatNumber(replay?.coreCount ?? replay?.candidateCount ?? 0)}개 기준</span>
+            <span>최종 추천 ${formatNumber(replay?.result?.counts?.selected ?? 0)}장 기준</span>
           </div>
         </div>
       `;

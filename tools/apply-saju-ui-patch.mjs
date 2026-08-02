@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 
-const CACHE_VERSION = "feedback-v108";
-const SW_CACHE_NAME = "saju-lotto-v108";
+const CACHE_VERSION = "feedback-v109";
+const SW_CACHE_NAME = "saju-lotto-v109";
 const SAJU_DATA_SCRIPTS = [
   "data/solar-terms.js",
   "data/saju-classical-sources.js",
@@ -200,4 +200,3 @@ await patchServiceWorker();
 await patchPackage();
 await patchReadme();
 console.log("Saju UI patch applied.");
-
