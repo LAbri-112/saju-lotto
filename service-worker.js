@@ -1,20 +1,20 @@
-const CACHE_NAME = "saju-lotto-v108";
+const CACHE_NAME = "saju-lotto-v109";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=feedback-v108",
-  "./app.js?v=feedback-v108",
+  "./styles.css?v=feedback-v109",
+  "./app.js?v=feedback-v109",
   "./manifest.webmanifest",
   "./assets/icon.svg",
-  "./data/lotto-results.js?v=feedback-v108",
-  "./data/pension-results.js?v=feedback-v108",
-  "./data/lotto-recall-profile.js?v=feedback-v108",
-  "./data/solar-terms.js?v=feedback-v108",
-  "./data/saju-classical-sources.js?v=feedback-v108",
-  "./data/saju-expert-rules.js?v=feedback-v108",
-  "./data/saju-expert-cases.js?v=feedback-v108",
-  "./data/saju-eval-cases.js?v=feedback-v108",
-  "./data/saju-lotto-bridge-rules.js?v=feedback-v108"
+  "./data/lotto-results.js?v=feedback-v109",
+  "./data/pension-results.js?v=feedback-v109",
+  "./data/lotto-recall-profile.js?v=feedback-v109",
+  "./data/solar-terms.js?v=feedback-v109",
+  "./data/saju-classical-sources.js?v=feedback-v109",
+  "./data/saju-expert-rules.js?v=feedback-v109",
+  "./data/saju-expert-cases.js?v=feedback-v109",
+  "./data/saju-eval-cases.js?v=feedback-v109",
+  "./data/saju-lotto-bridge-rules.js?v=feedback-v109"
 ];
 
 self.addEventListener("install", (event) => {
@@ -100,5 +100,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
-
 
