@@ -13,7 +13,7 @@ function parseArgs(argv) {
   );
 }
 
-function fakeElement(id, props = {}) {
+export function fakeElement(id, props = {}) {
   return {
     id,
     value: props.value ?? "",
@@ -40,7 +40,7 @@ function fakeElement(id, props = {}) {
   };
 }
 
-function buildControls(config) {
+export function buildControls(config) {
   const controls = new Map();
   const add = (id, props) => controls.set(`#${id}`, fakeElement(id, props));
 
@@ -57,9 +57,14 @@ function buildControls(config) {
   }
 
   add("birthDate", { value: config.birthDate });
+  add("birthCalendar", { value: config.birthCalendar ?? "solar" });
+  add("birthGender", { value: config.birthGender ?? "unknown" });
   add("birthBranch", { value: config.birthBranch });
   add("birthTime", { value: config.birthTime });
   add("unknownTime", { checked: config.unknownTime });
+  add("birthPlace", { value: config.birthPlace ?? "unknown" });
+  add("timeCorrection", { checked: config.timeCorrection ?? false });
+  add("midnightRule", { value: config.midnightRule ?? "traditional" });
   add("recentWindow", { value: String(config.recentWindow) });
   add("sajuWeight", { value: String(config.sajuWeight) });
   add("sajuWeightNumber", { value: String(config.sajuWeight) });
@@ -71,11 +76,12 @@ function buildControls(config) {
     options: [{ textContent: config.modeLabel }],
   });
   add("walkRange", { value: String(config.walkRange) });
+  add("candidatePoolSize", { value: config.candidatePoolSize ?? "auto" });
 
   return controls;
 }
 
-function exposeAppEngine(appSource) {
+export function exposeAppEngine(appSource) {
   return appSource.replace(
     /\s*init\(\);\s*\}\)\(\);\s*$/,
     `
@@ -83,14 +89,22 @@ function exposeAppEngine(appSource) {
     buildStats,
     buildSajuProfile,
     buildNumberScores,
-    scoreCombination
+    scoreCombination,
+    buildDeterministicCandidatePool,
+    autoFilterCandidates,
+    buildCoreCandidatePool,
+    selectFinalRecommendations,
+    selectRecommendationPortfolio,
+    buildCoverageWheelRecommendations,
+    portfolioQualityScore,
+    overlap
   };
 })();
 `,
   );
 }
 
-function runAppEngine(appSource, dataset, config) {
+export function runAppEngine(appSource, dataset, config, recallProfile = null, referenceData = {}) {
   const controls = buildControls(config);
   const context = {
     console,
@@ -106,6 +120,13 @@ function runAppEngine(appSource, dataset, config) {
     Object,
     window: {
       LOTTO_RESULTS: dataset,
+      LOTTO_RECALL_PROFILE: recallProfile,
+      SAJU_SOLAR_TERMS: referenceData.solarTerms,
+      SAJU_CLASSICAL_SOURCES: referenceData.classicalSources,
+      SAJU_EXPERT_RULES: referenceData.expertRules,
+      SAJU_EXPERT_CASES: referenceData.expertCases,
+      SAJU_EVAL_CASES: referenceData.evalCases,
+      SAJU_LOTTO_BRIDGE_RULES: referenceData.lottoBridgeRules,
       addEventListener() {},
       innerHeight: 900,
       innerWidth: 1400,
@@ -271,7 +292,9 @@ async function main() {
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.stack ?? error.message}\n`);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error.stack ?? error.message}\n`);
+    process.exit(1);
+  });
+}
