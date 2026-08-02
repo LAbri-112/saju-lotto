@@ -2,7 +2,7 @@ window.SAJU_CLASSICAL_SOURCES = {
   "schemaVersion": 1,
   "updatedAt": "2026-08-02",
   "sourceBasis": "classical_and_public_reference_registry",
-  "sourceHint": "?ъ＜ ?댁꽍 洹쒖튃??留뚮뱾 ??李멸퀬 媛?ν븳 怨좎쟾, 怨듦났?먮즺, ?곌뎄?먮즺??異쒖쿂? ?ъ슜 ?먯튃??湲곕줉?⑸땲??",
+  "sourceHint": "사주 해석 규칙을 만들 때 참고 가능한 고전, 공공자료, 연구자료의 출처와 사용 원칙을 기록합니다.",
   "license": {
     "type": "own_created_metadata",
     "source": "directly_written",
@@ -11,12 +11,12 @@ window.SAJU_CLASSICAL_SOURCES = {
       "rule_reference",
       "documentation"
     ],
-    "notes": "異쒖쿂 紐⑸줉怨??ъ슜 ?먯튃? 吏곸젒 ?묒꽦?덉뒿?덈떎. ?꾨? 踰덉뿭臾? 二쇱꽍, 媛뺤쓽 臾몄옣??蹂듭궗?섏? ?딆뒿?덈떎."
+    "notes": "출처 목록과 사용 원칙은 직접 작성했습니다. 현대 번역문, 주석, 강의 문장을 복사하지 않습니다."
   },
   "sources": [
     {
       "id": "yeon-hae-ja-pyeong",
-      "title": "?고빐?먰룊",
+      "title": "연해자평",
       "category": "classical_text",
       "sourceBasis": "classical_text_reference",
       "license": {
@@ -25,12 +25,12 @@ window.SAJU_CLASSICAL_SOURCES = {
         "allowedUse": [
           "rule_reference"
         ],
-        "notes": "怨좎쟾 ?먮Ц? 李멸퀬?섎릺 ?깆쓽 ?댁꽍 臾몄옣? 吏곸젒 ?ъ옉?깊빐???⑸땲??"
+        "notes": "고전 원문은 참고하되 앱의 해석 문장은 직접 재작성해야 합니다."
       }
     },
     {
       "id": "ja-pyeong-jin-jeon",
-      "title": "?먰룊吏꾩쟾",
+      "title": "자평진전",
       "category": "classical_text",
       "sourceBasis": "classical_text_reference",
       "license": {
@@ -39,12 +39,12 @@ window.SAJU_CLASSICAL_SOURCES = {
         "allowedUse": [
           "rule_reference"
         ],
-        "notes": "寃⑷뎅怨??⑹떊 ?먮떒??李멸퀬 ?꾨낫?낅땲?? ?꾨? 二쇱꽍? 臾대떒 蹂듭궗?섏? ?딆뒿?덈떎."
+        "notes": "격국과 용신 판단의 참고 후보입니다. 현대 주석은 무단 복사하지 않습니다."
       }
     },
     {
       "id": "sam-myeong-tong-hoe",
-      "title": "?쇰챸?듯쉶",
+      "title": "삼명통회",
       "category": "classical_text",
       "sourceBasis": "classical_text_reference",
       "license": {
@@ -53,12 +53,12 @@ window.SAJU_CLASSICAL_SOURCES = {
         "allowedUse": [
           "rule_reference"
         ],
-        "notes": "怨좎쟾 ?먮Ц 李멸퀬?⑹엯?덈떎. ??臾몄옣? ?먯껜 洹쒖튃?쇰줈 ?ъ옉?깊빀?덈떎."
+        "notes": "고전 원문 참고용입니다. 앱 문장은 자체 규칙으로 재작성합니다."
       }
     },
     {
       "id": "jeok-cheon-su",
-      "title": "?곸쿇??,
+      "title": "적천수",
       "category": "classical_text",
       "sourceBasis": "classical_text_reference",
       "license": {
@@ -67,12 +67,12 @@ window.SAJU_CLASSICAL_SOURCES = {
         "allowedUse": [
           "rule_reference"
         ],
-        "notes": "?먭뎅 洹좏삎, ?듦렐, 議고썑 ?댁꽍??李멸퀬 ?꾨낫?낅땲??"
+        "notes": "원국 균형, 통근, 조후 해석의 참고 후보입니다."
       }
     },
     {
       "id": "gung-tong-bo-gam",
-      "title": "沅곹넻蹂닿컧",
+      "title": "궁통보감",
       "category": "classical_text",
       "sourceBasis": "classical_text_reference",
       "license": {
@@ -81,12 +81,12 @@ window.SAJU_CLASSICAL_SOURCES = {
         "allowedUse": [
           "rule_reference"
         ],
-        "notes": "議고썑? 怨꾩젅 ?먮떒??李멸퀬 ?꾨낫?낅땲?? ?꾨? 踰덉뿭臾몄? 蹂꾨룄 ?덈씫 ?놁씠 ?ы븿?섏? ?딆뒿?덈떎."
+        "notes": "조후와 계절 판단의 참고 후보입니다. 현대 번역문은 별도 허락 없이 포함하지 않습니다."
       }
     },
     {
       "id": "kasi-special-day-api",
-      "title": "?쒓뎅泥쒕Ц?곌뎄???뱀씪 ?뺣낫 API",
+      "title": "한국천문연구원 특일 정보 API",
       "category": "public_data",
       "sourceBasis": "https://www.data.go.kr/data/15012690/openapi.do",
       "license": {
@@ -96,12 +96,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "calendar_validation",
           "solar_terms"
         ],
-        "notes": "怨듦났?곗씠?고룷???댁슜?덈씫踰붿쐞瑜??뺤씤?섍퀬 ?ъ슜?⑸땲??"
+        "notes": "공공데이터포털 이용허락범위를 확인하고 사용합니다."
       }
     },
     {
       "id": "kasi-lunisolar-calendar-api",
-      "title": "?쒓뎅泥쒕Ц?곌뎄???뚯뼇???뺣낫 API",
+      "title": "한국천문연구원 음양력 정보 API",
       "category": "public_data",
       "sourceBasis": "https://www.data.go.kr/data/15012679/openapi.do",
       "license": {
@@ -112,12 +112,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "lunisolar_conversion",
           "sexagenary_validation"
         ],
-        "notes": "?묒쓬??蹂?섍낵 媛꾩? ?곗썡??援먯감寃利앹뿉 ?ъ슜?섎ŉ ?댁슜?덈씫踰붿쐞瑜?以?섑빀?덈떎."
+        "notes": "양음력 변환과 간지 연월일 교차검증에 사용하며 이용허락범위를 준수합니다."
       }
     },
     {
       "id": "kasi-solar-term-method-faq",
-      "title": "?쒓뎅泥쒕Ц?곌뎄??24?덇린 怨꾩궛 ?ㅻ챸",
+      "title": "한국천문연구원 24절기 계산 설명",
       "category": "public_reference",
       "sourceBasis": "https://astro.kasi.re.kr/community/post/faq?clsf_cd=FAQ_04",
       "license": {
@@ -127,12 +127,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "method_review",
           "calendar_validation"
         ],
-        "notes": "?덇린瑜??쒖뼇 ?⑷꼍?쇰줈 ?뺥븯???먮━? ?덉엯 ?쒓컖 寃利앹쓽 李멸퀬 留곹겕留?湲곕줉?⑸땲??"
+        "notes": "절기를 태양 황경으로 정하는 원리와 절입 시각 검증의 참고 링크만 기록합니다."
       }
     },
     {
       "id": "japyung-month-command-study",
-      "title": "?먰룊吏꾩쟾???붾졊쨌寃⑷뎅쨌?⑹떊 ?곌뎄",
+      "title": "자평진전의 월령·격국·용신 연구",
       "category": "research_reference",
       "sourceBasis": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11275953",
       "license": {
@@ -142,12 +142,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "method_review",
           "rule_reference"
         ],
-        "notes": "?쇰Ц 臾몄옣??蹂듭궗?섏? ?딄퀬 ?붾졊?⑹떊怨?寃⑷뎅 ?먮떒痢듭쓣 遺꾨━?댁빞 ?쒕떎???곌뎄 二쇱젣留?李멸퀬?⑸땲??"
+        "notes": "논문 문장을 복사하지 않고 월령용신과 격국 판단층을 분리해야 한다는 연구 주제만 참고합니다."
       }
     },
     {
       "id": "quantified-yongsin-study",
-      "title": "紐낅━???⑹떊 ?먮떒???뺣웾???곌뎄",
+      "title": "명리학 용신 판단의 정량화 연구",
       "category": "research_reference",
       "sourceBasis": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10750186",
       "license": {
@@ -157,12 +157,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "method_review",
           "evaluation_design"
         ],
-        "notes": "?꾩튂蹂??곹뼢???뺣웾???쒕룄瑜?李멸퀬?섎릺 ??媛以묒튂??吏곸젒 ?묒꽦?섍퀬 寃利앺빀?덈떎."
+        "notes": "위치별 영향력 정량화 시도를 참고하되 앱 가중치는 직접 작성하고 검증합니다."
       }
     },
     {
       "id": "generative-ai-myeongri-limitations",
-      "title": "?앹꽦???멸났吏?μ쓽 紐낅━ ?댁꽍 ?묒긽怨??쒓퀎",
+      "title": "생성형 인공지능의 명리 해석 양상과 한계",
       "category": "research_reference",
       "sourceBasis": "https://www.kci.go.kr/kciportal/mobile/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003361304",
       "license": {
@@ -172,7 +172,7 @@ window.SAJU_CLASSICAL_SOURCES = {
           "evaluation_design",
           "method_review"
         ],
-        "notes": "?좉컯?좎빟쨌?⑹떊쨌寃⑷뎅쨌??댁쓣 遺꾨━ ?됯??댁빞 ?쒕떎???곌뎄 踰붿＜瑜?李멸퀬?섎ŉ 蹂몃Ц??蹂듭궗?섏? ?딆뒿?덈떎."
+        "notes": "신강신약·용신·격국·대운을 분리 평가해야 한다는 연구 범주를 참고하며 본문을 복사하지 않습니다."
       }
     },
     {
@@ -187,12 +187,12 @@ window.SAJU_CLASSICAL_SOURCES = {
           "readme_reference",
           "method_review"
         ],
-        "notes": "?곗씠?곗뀑 ?쇱씠?좎뒪? 怨듦컻 ?щ?瑜??뺤씤?섍린 ?꾧퉴吏 ?꾨줈?앺듃 ?곗씠?곗뿉 ?ы븿?섏? ?딆뒿?덈떎."
+        "notes": "데이터셋 라이선스와 공개 여부를 확인하기 전까지 프로젝트 데이터에 포함하지 않습니다."
       }
     },
     {
       "id": "user-provided-myeongri-intro-reference",
-      "title": "?ъ슜???쒓났 ?ъ＜紐낅━???낅Ц 李멸퀬 PDF",
+      "title": "사용자 제공 사주명리학 입문 참고 PDF",
       "category": "user_provided_reference",
       "sourceBasis": "user_provided_document_structure_review",
       "license": {
@@ -202,7 +202,7 @@ window.SAJU_CLASSICAL_SOURCES = {
           "method_review",
           "report_structure_review"
         ],
-        "notes": "?ㅽ뻾쨌??꽦쨌寃⑷뎅쨌?⑹떊쨌吏곸뾽쨌愿怨꽷룹깮??由щ벉쨌??댁쑝濡??댁뼱吏??援ъ꽦留?寃?좏뻽?쇰ŉ 蹂몃Ц 臾몄옣? 蹂듭궗?섍굅???꾨줈?앺듃 ?곗씠?곗뿉 ?ы븿?섏? ?딆뒿?덈떎."
+        "notes": "오행·십성·격국·용신·직업·관계·생활 리듬·대운으로 이어지는 구성만 검토했으며 본문 문장은 복사하거나 프로젝트 데이터에 포함하지 않습니다."
       }
     }
   ],
