@@ -73,11 +73,37 @@ for (const testCase of evalData.evalCases ?? []) {
   if (!profile.gyeok?.selectionMethod) mismatches.push("gyeok selection method missing");
   if (!profile.yongsinDecision?.methods?.eokbu?.length) mismatches.push("eokbu candidates missing");
   if (!profile.yongsinDecision?.methods?.johu?.length) mismatches.push("johu candidates missing");
+  for (const method of ["gyeok", "tonggwan", "byeongyak", "sungeung"]) {
+    if (!Array.isArray(profile.yongsinDecision?.methods?.[method])) {
+      mismatches.push(`${method} method layer missing`);
+    }
+  }
+  if (!profile.yongsinDecision?.safeguards?.missingElementShortcutDisabled) {
+    mismatches.push("missing-element yongsin shortcut is not disabled");
+  }
+  if (profile.yongsinDecision?.yongsin?.some((item) => item.methods?.includes("오행 분포"))) {
+    mismatches.push("missing-element distribution still selects yongsin");
+  }
   if (!profile.topTenGods?.length || profile.topTenGods.some((item) => !Number.isFinite(item.percentage))) {
     mismatches.push("ten-god percentages missing");
   }
   if (!profile.majorLuck?.current?.pillar || !profile.majorLuck.current.tenGodName) {
     mismatches.push("current major-luck evidence missing");
+  }
+  if (
+    !Number.isFinite(profile.majorLuck?.termIntervalDays) ||
+    !Number.isFinite(profile.majorLuck?.correctionFactor) ||
+    !profile.majorLuck?.calculationMethod
+  ) {
+    mismatches.push("major-luck solar-term interval correction missing");
+  }
+  if (
+    !profile.wealthProfile ||
+    !Number.isFinite(profile.wealthProfile.capacity) ||
+    !Number.isFinite(profile.wealthProfile.productiveChain) ||
+    !profile.wealthProfile.strategy
+  ) {
+    mismatches.push("wealth capacity and productive-chain profile missing");
   }
   if (!Array.isArray(profile.interactions?.supportItems) || !Array.isArray(profile.interactions?.tensionItems)) {
     mismatches.push("interaction evidence missing");

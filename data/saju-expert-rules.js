@@ -1,6 +1,6 @@
 window.SAJU_EXPERT_RULES = {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-02",
+  "updatedAt": "2026-08-09",
   "sourceBasis": "own_created_expert_style_rules",
   "sourceHint": "전문 역술가 상담형 문체를 만들기 위한 직접 작성 규칙입니다.",
   "license": {
@@ -119,10 +119,10 @@ window.SAJU_EXPERT_RULES = {
       }
     },
     {
-      "id": "separate-yongsin-methods-v2",
+      "id": "separate-yongsin-methods-v3",
       "category": "yongsin",
-      "sourceBasis": "classical_method_comparison_and_directly_written",
-      "rule": "억부용신, 조후용신, 격국 보조 후보를 별도로 계산한 뒤 교집합과 충돌을 보여줍니다. 서로 다른 학파의 용신 개념을 하나의 확정값으로 섞지 않습니다.",
+      "sourceBasis": "classical_method_comparison_and_user_provided_academic_research",
+      "rule": "격국 후보를 먼저 확인한 뒤 억부·조후·통관·병약·순응·격국 용신을 별도로 계산하고 합의 정도를 표시합니다. 단순히 없거나 적은 오행을 용신으로 올리지 않으며 병약과 순응은 성립 조건이 엄격한 보조 후보로만 둡니다.",
       "license": {
         "type": "own_created",
         "source": "directly_written",
@@ -132,6 +132,71 @@ window.SAJU_EXPERT_RULES = {
           "rule_engine"
         ],
         "notes": "월령용신과 일간 보완용신의 개념 차이를 반영해 직접 작성했습니다."
+      }
+    },
+    {
+      "id": "missing-element-not-yongsin-v1",
+      "category": "yongsin_guardrail",
+      "sourceBasis": "user_provided_academic_research_and_directly_written",
+      "rule": "원국에 없거나 적은 오행이라는 이유만으로 용신·희신을 정하지 않습니다. 월령, 통근, 신강신약, 조후, 격국, 생극제화의 실제 작용을 먼저 확인합니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": [
+          "app",
+          "evaluation",
+          "rule_engine"
+        ],
+        "notes": "사용자 제공 용신 연구를 검토해 앱의 금지 규칙으로 재작성했습니다."
+      }
+    },
+    {
+      "id": "wealth-capacity-chain-v2",
+      "category": "wealth_and_choice",
+      "sourceBasis": "classical_wealth_structure_research_and_directly_written",
+      "rule": "재물운은 재성의 개수보다 일간의 감당력, 재성의 투간·통근, 식상생재 연결, 격국의 구조, 대운·세운·월운의 지원을 함께 계산합니다. 신약한 원국은 재성을 곧바로 늘리지 않고 인성·비겁의 보강을 먼저 확인합니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": [
+          "app",
+          "evaluation",
+          "rule_engine",
+          "lotto_bridge"
+        ],
+        "notes": "재성 구조 연구와 중화·용신 연구를 바탕으로 판단 순서를 직접 작성했습니다."
+      }
+    },
+    {
+      "id": "major-luck-term-interval-correction-v2",
+      "category": "luck_flow",
+      "sourceBasis": "user_provided_major_luck_calculation_research",
+      "rule": "대운 시작 시점은 양남음녀 순행·음남양녀 역행을 적용하고 출생시각에서 해당 절기까지의 거리에 실제 절기 간격을 30일 기준으로 보정한 뒤 3일 1년으로 환산합니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": [
+          "app",
+          "evaluation",
+          "rule_engine"
+        ],
+        "notes": "사용자 제공 대운 계산 연구의 방법을 자체 코드로 구현한 규칙입니다."
+      }
+    },
+    {
+      "id": "conditional-combination-transformation-v2",
+      "category": "interactions",
+      "sourceBasis": "user_provided_five_elements_research_and_directly_written",
+      "rule": "천간합과 지지육합은 관계 신호로 표시하되 곧바로 합화 오행으로 바꾸지 않습니다. 삼합·방합은 세 지지가 모두 있을 때만 강한 구조 신호로 반영하고 월령과 다른 충합을 함께 봅니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": [
+          "app",
+          "evaluation",
+          "rule_engine"
+        ],
+        "notes": "합화 성립 조건을 보수적으로 적용하도록 직접 작성했습니다."
       }
     },
     {
