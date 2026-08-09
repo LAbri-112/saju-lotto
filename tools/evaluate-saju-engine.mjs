@@ -105,6 +105,43 @@ for (const testCase of evalData.evalCases ?? []) {
   ) {
     mismatches.push("wealth capacity and productive-chain profile missing");
   }
+  if (
+    !profile.wealthProfile?.wealthCapacityMatrix?.key ||
+    !profile.wealthProfile?.wealthCapacityMatrix?.label ||
+    !Number.isFinite(profile.wealthProfile?.wealthPower)
+  ) {
+    mismatches.push("wealth capacity matrix missing");
+  }
+  if (
+    !Number.isFinite(profile.wealthProfile?.natalReadiness) ||
+    !Number.isFinite(profile.wealthProfile?.currentReadiness) ||
+    !Number.isFinite(profile.wealthProfile?.confidenceScore) ||
+    !Number.isFinite(profile.wealthProfile?.methodAgreement)
+  ) {
+    mismatches.push("wealth readiness or confidence evidence missing");
+  }
+  if (
+    typeof profile.wealthProfile?.natalWealthPresent !== "boolean" ||
+    typeof profile.wealthProfile?.currentWealthFlowActive !== "boolean"
+  ) {
+    mismatches.push("natal wealth and current timing are not separated");
+  }
+  if (profile.wealthProfile?.birthTimeReliability !== (input.unknownTime ? 0.52 : 0.92)) {
+    mismatches.push("birth-time uncertainty is not reflected in wealth confidence");
+  }
+  if (profile.wealthProfile?.careerSignalExcludedFromLotteryScore !== true) {
+    mismatches.push("career aptitude signal can leak into lottery score");
+  }
+  const fixedNow = new Date("2026-08-09T09:00:00+09:00");
+  const wealthMoment = engine.buildWeeklyWealthMoment(profile, "lotto", fixedNow);
+  if (
+    !wealthMoment ||
+    wealthMoment.modelVersion !== "wealth-capacity-chain-v3" ||
+    !Number.isFinite(wealthMoment.currentReadiness) ||
+    !Number.isFinite(wealthMoment.profileConfidence)
+  ) {
+    mismatches.push("capacity-aware weekly wealth timing missing");
+  }
   if (!Array.isArray(profile.interactions?.supportItems) || !Array.isArray(profile.interactions?.tensionItems)) {
     mismatches.push("interaction evidence missing");
   }
