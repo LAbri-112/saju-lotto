@@ -303,6 +303,74 @@ window.SAJU_CLASSICAL_SOURCES = {
         ],
         "notes": "문헌의 메타분석 결과를 참고하되 본문을 복사하지 않습니다."
       }
+    },
+    {
+      "id": "self-employed-saju-wealth-correlation-2006",
+      "title": "자영업종사자 사주와 재운의 상관관계 연구",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "김경희, 2006, 경기대학교 석사학위논문",
+      "sourceHint": "일간의 감당력과 재성의 힘을 신왕재왕·신왕재약·신약재왕·신약재약으로 나누고 원국과 대운을 분리해 검토합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "rule_reference",
+          "evaluation_design"
+        ],
+        "notes": "자영업자 234명의 관찰 연구로 표본 선택과 사후 분류의 한계가 있어 수치를 예측 확률로 사용하지 않고 판단축만 자체 규칙으로 재작성합니다."
+      }
+    },
+    {
+      "id": "myeongri-vocational-aptitude-correlation-2009",
+      "title": "명리의 선천직업적성과 실제 직업유형과의 상관성 연구",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "이명재, 2009, 국제문화대학원대학교 석사학위논문",
+      "sourceHint": "관인상생·식상생재 등 직업 적성 신호와 재물운·복권 점수를 분리하는 근거로 검토합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "rule_reference",
+          "evaluation_design"
+        ],
+        "notes": "서울 영등포구 성인 315명의 자기보고 설문 연구로 지역·표집 한계가 있으므로 직업 유형 신호를 복권 당첨 점수로 전용하지 않습니다."
+      }
+    },
+    {
+      "id": "wealth-luck-income-effect-2001",
+      "title": "재운이 부자를 만드는가?: 사주가 소득에 미치는 효과분석",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "남성일·전재식, 한국노동패널 자료를 이용한 소득함수 분석",
+      "sourceHint": "재운지수의 표본별 차이, 연구자 간 판정 불일치, 출생시각 누락을 재물 판단 신뢰도에 반영합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "confidence_design",
+          "evaluation_design"
+        ],
+        "notes": "1,017개 관찰치에서 일부 표본은 양의 관계를 보였지만 자영업 표본에서는 설명력이 없었고 전문가별 지수도 달랐습니다. 관찰 결과를 인과나 당첨 확률로 사용하지 않습니다."
+      }
+    },
+    {
+      "id": "fengshui-myeongri-theory-system-2020",
+      "title": "풍수와 명리의 이론체계 분석과 활용방안에 관한 연구",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "문상덕, 2020, 공주대학교 박사학위논문",
+      "sourceHint": "월지본기·지장간투간, 격국 중심·용신 중심 등 고전 명리서의 관점 차이를 분리하고 방법 합의도를 기록합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "rule_reference",
+          "evaluation_design"
+        ],
+        "notes": "10편의 고전 명리서 비교와 노동패널 실증 부분을 검토하되 원문을 복사하지 않고 학파별 판정층과 신뢰도 규칙을 직접 작성합니다."
+      }
     }
   ],
   "rules": [],
