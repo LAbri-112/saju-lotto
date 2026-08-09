@@ -1,6 +1,6 @@
 window.SAJU_CLASSICAL_SOURCES = {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-02",
+  "updatedAt": "2026-08-09",
   "sourceBasis": "classical_and_public_reference_registry",
   "sourceHint": "사주 해석 규칙을 만들 때 참고 가능한 고전, 공공자료, 연구자료의 출처와 사용 원칙을 기록합니다.",
   "license": {
@@ -203,6 +203,105 @@ window.SAJU_CLASSICAL_SOURCES = {
           "report_structure_review"
         ],
         "notes": "오행·십성·격국·용신·직업·관계·생활 리듬·대운으로 이어지는 구성만 검토했으며 본문 문장은 복사하거나 프로젝트 데이터에 포함하지 않습니다."
+      }
+    },
+    {
+      "id": "mangpai-origin-theory-2018",
+      "title": "맹파명리학의 연원과 이론체계에 관한 연구",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "박형규, 2018, 공주대학교 박사학위논문",
+      "sourceHint": "체용·빈주·공의 구조와 재성의 실제 작용을 보조 관점으로 검토합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "rule_reference"
+        ],
+        "notes": "동일 논문의 중복 파일 2개를 확인했습니다. 논문 문장을 복사하지 않고 구조적 판단 순서만 자체 규칙으로 재작성합니다."
+      }
+    },
+    {
+      "id": "naming-yongsin-application-2017",
+      "title": "작명·개명의 사회적 현상에 따른 성명학의 용신 적용에 대한 고찰",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "이재승·김만태, 2017, DOI 10.22143/HSS21.8.4.26",
+      "sourceHint": "억부·조후·통관·병약·순응·격국 용신을 분리하고 결핍 오행의 기계적 보충을 금지하는 근거로 검토합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf_and_KCI_metadata",
+        "allowedUse": [
+          "method_review",
+          "evaluation_design"
+        ],
+        "notes": "본문을 데이터셋에 포함하지 않고 판단 원칙을 직접 재작성합니다."
+      }
+    },
+    {
+      "id": "neutralization-yongsin-development-2025",
+      "title": "사주명리에서 중화사상과 용신론의 전개",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "김만태, 2025, DOI 10.62784/HSSCR.3.1",
+      "sourceHint": "중화를 오행 개수의 균등으로 환원하지 않고 격국과 용신 방법별 맥락을 먼저 판단합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "rule_reference",
+          "evaluation_design"
+        ],
+        "notes": "학파별 차이와 병약론 내부 논쟁을 보수적으로 처리하며 원문 문장은 복사하지 않습니다."
+      }
+    },
+    {
+      "id": "major-luck-calculation-review-2025",
+      "title": "사주명리의 대운계산법 검토",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "최재봉·최정준, 2025, DOI 10.35203/EACT.2025.18.7",
+      "sourceHint": "순역행과 절기 거리뿐 아니라 실제 절기 간격을 30일 기준으로 보정해 대운 시작 시점을 계산합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "calendar_validation",
+          "calculation_method",
+          "evaluation_design"
+        ],
+        "notes": "연구의 계산 아이디어를 자체 구현하고 설명 문장은 직접 작성합니다."
+      }
+    },
+    {
+      "id": "yin-yang-five-elements-application-2018",
+      "title": "음양오행과 천간지지의 명리적 적용에 관한 연구",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "한지연, 2018, 대구한의대학교 석사학위논문",
+      "sourceHint": "생극제화와 간지 상호작용을 조건부로 처리하고 삼합·방합은 완전한 지지 구성이 있을 때만 강하게 반영합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf",
+        "allowedUse": [
+          "method_review",
+          "interaction_rules"
+        ],
+        "notes": "합화의 성립을 자동 확정하지 않으며 원문 문장은 복사하지 않습니다."
+      }
+    },
+    {
+      "id": "korean-myeongri-meta-analysis-2017",
+      "title": "한국 명리학의 메타분석학적 고찰",
+      "category": "user_provided_academic_reference",
+      "sourceBasis": "황금옥, 2017",
+      "sourceHint": "명리 연구의 방법론적 한계를 반영해 규칙별 근거와 평가셋을 분리하고 과도한 확정 표현을 피합니다.",
+      "license": {
+        "type": "bibliographic_reference_only",
+        "source": "user_provided_academic_pdf_and_KCI_metadata",
+        "allowedUse": [
+          "method_review",
+          "evaluation_design",
+          "documentation"
+        ],
+        "notes": "문헌의 메타분석 결과를 참고하되 본문을 복사하지 않습니다."
       }
     }
   ],
