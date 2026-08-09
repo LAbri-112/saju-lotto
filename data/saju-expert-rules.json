@@ -106,15 +106,63 @@
       }
     },
     {
-      "id": "wealth-capacity-chain-v2",
+      "id": "wealth-capacity-chain-v3",
       "category": "wealth_and_choice",
-      "sourceBasis": "classical_wealth_structure_research_and_directly_written",
-      "rule": "재물운은 재성의 개수보다 일간의 감당력, 재성의 투간·통근, 식상생재 연결, 격국의 구조, 대운·세운·월운의 지원을 함께 계산합니다. 신약한 원국은 재성을 곧바로 늘리지 않고 인성·비겁의 보강을 먼저 확인합니다.",
+      "sourceBasis": "classical_wealth_structure_and_user_provided_empirical_research",
+      "rule": "재물운은 일간의 감당력과 재성의 실제 힘을 각각 계산해 신왕재왕·신왕재약·신약재왕·신약재약의 네 구조를 기본축으로 살피되 중화권은 억지로 신왕·신약에 넣지 않고 별도로 유지합니다. 재성의 개수보다 투간·통근, 식상생재 연결, 격국, 용신 방법 합의도, 대운·세운·월운을 함께 보며 신약재왕은 재성을 더하기 전에 인성·비겁의 지지를 확인합니다.",
       "license": {
         "type": "own_created",
         "source": "directly_written",
         "allowedUse": ["app", "evaluation", "rule_engine", "lotto_bridge"],
-        "notes": "재성 구조 연구와 중화·용신 연구를 바탕으로 판단 순서를 직접 작성했습니다."
+        "notes": "사용자 제공 재운 연구와 중화·용신 연구를 비교해 연속 점수와 네 유형 분류를 함께 쓰는 규칙으로 직접 작성했습니다."
+      }
+    },
+    {
+      "id": "wealth-natal-timing-separation-v1",
+      "category": "wealth_and_choice",
+      "sourceBasis": "user_provided_empirical_wealth_research_and_directly_written",
+      "rule": "원국에 재성이 있는지와 현재 대운·세운·월운에 재성 흐름이 들어오는지를 별도 값으로 둡니다. 현재 재성운은 시기의 활성 신호일 뿐 원국의 재성 비중이나 선천 구조를 바꾸지 않습니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "rule_engine", "lotto_bridge"],
+        "notes": "원국에 재성이 없더라도 운에서 관련 활동이 나타날 수 있다는 연구 주장을 구조 변경이 아닌 시기 점수로 제한해 재작성했습니다."
+      }
+    },
+    {
+      "id": "wealth-empirical-confidence-v1",
+      "category": "confidence",
+      "sourceBasis": "user_provided_income_and_wealth_studies",
+      "rule": "재운과 소득의 관찰 연구는 표본, 직업군, 출생시각 유무, 판정자에 따라 결과가 달랐으므로 수치를 인과관계나 예측 확률로 사용하지 않습니다. 출생시각 누락과 용신 방법 불일치는 개인 재물 판단의 신뢰도를 낮춥니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "rule_engine"],
+        "notes": "서로 다른 실증 결과의 한계를 감추지 않고 신뢰도 계산에 반영하는 규칙입니다."
+      }
+    },
+    {
+      "id": "career-signal-not-lottery-signal-v1",
+      "category": "lotto_bridge_guardrail",
+      "sourceBasis": "user_provided_vocational_aptitude_studies_and_directly_written",
+      "rule": "관인상생·식상생재 등의 직업 적성 신호는 상담용 활동 경향으로만 해석합니다. 직업 유형 일치율이나 직업만족도 결과를 로또·연금복권 번호 점수 또는 당첨 가능성 가산값으로 사용하지 않습니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "rule_engine", "lotto_bridge"],
+        "notes": "측정 대상이 다른 연구 결과를 복권 점수로 전용하는 오류를 막습니다."
+      }
+    },
+    {
+      "id": "school-consistency-and-consensus-v1",
+      "category": "method_consistency",
+      "sourceBasis": "classical_method_comparison_and_user_provided_theory_system_research",
+      "rule": "월지본기와 지장간투간, 격국 중심과 유용지신 중심처럼 학파별 관법을 섞어 하나의 확정값으로 만들지 않습니다. 각 방법의 후보를 따로 계산하고 같은 오행에 판단이 모이는 정도를 합의도로 기록합니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "rule_engine"],
+        "notes": "고전 10종 비교에서 확인되는 관점 차이를 일관된 계산층과 신뢰도에 반영합니다."
       }
     },
     {

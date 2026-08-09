@@ -2803,6 +2803,7 @@
   }
 
   function buildWealthProfile({
+    birth,
     pillars,
     dayStem,
     dayElement,
@@ -2834,9 +2835,29 @@
         .some((key) => outputKeys.has(key)),
     );
     const isWeak = strengthAnalysis.classification === "weak";
+    const dayMasterSupported = strengthAnalysis.classification !== "weak";
+    const wealthPower = clamp(
+      Math.min(1, wealthShare / 0.24) * 0.44 +
+        Math.min(1, exposedWealth.length / 2) * 0.18 +
+        Math.min(1, rootedWealth.length / 2) * 0.24 +
+        (["directWealth", "indirectWealth"].includes(gyeok.key) ? 0.14 : 0),
+    );
+    const wealthForceStrong = wealthPower >= 0.52;
+    const wealthCapacityKey = `${strengthAnalysis.classification}-${
+      wealthForceStrong ? "strong" : "weak"
+    }`;
+    const wealthCapacityLabels = {
+      "strong-strong": "신왕재왕형",
+      "strong-weak": "신왕재약형",
+      "balanced-strong": "중화재왕형",
+      "balanced-weak": "중화재약형",
+      "weak-strong": "신약재왕형",
+      "weak-weak": "신약재약형",
+    };
+    const wealthLoadPenalty = !dayMasterSupported && wealthPower > 0.62 ? (wealthPower - 0.62) * 0.18 : 0;
     const capacity = clamp(
       isWeak
-        ? 0.42 + strengthAnalysis.ratio * 0.72 + (rootedWealth.length ? 0.03 : 0)
+        ? 0.42 + strengthAnalysis.ratio * 0.72 - wealthLoadPenalty
         : strengthAnalysis.classification === "balanced"
           ? 0.82 + (0.5 - Math.abs(strengthAnalysis.ratio - 0.5)) * 0.2
           : 0.88 + Math.min(0.08, (strengthAnalysis.ratio - 0.57) * 0.3),
@@ -2849,9 +2870,9 @@
         (outputPillars.length && rootedWealth.length ? 0.18 : 0),
     );
     const structureScore = clamp(
-      exposedWealth.length * 0.2 +
-        rootedWealth.length * 0.13 +
-        (["directWealth", "indirectWealth"].includes(gyeok.key) ? 0.28 : 0.08),
+      wealthPower * 0.58 +
+        productiveChain * 0.22 +
+        (["directWealth", "indirectWealth"].includes(gyeok.key) ? 0.2 : 0.05),
     );
     const maximumUseful = Math.max(...Object.values(yongsinDecision.scores), 0.01);
     const yongsinAlignment = clamp(
@@ -2869,15 +2890,60 @@
     const timingScore = flowRoles.length
       ? flowRoles.reduce((sum, key) => sum + flowRoleValue(key), 0) / flowRoles.length
       : 0.5;
+    const activeYongsinMethods = Object.values(yongsinDecision.methods ?? {}).filter(
+      (items) => Array.isArray(items) && items.length,
+    );
+    const leadElement = yongsinDecision.favored?.[0];
+    const leadConsensus = yongsinDecision.consensusCount?.[leadElement] ?? 0;
+    const methodAgreement = activeYongsinMethods.length
+      ? clamp(leadConsensus / activeYongsinMethods.length)
+      : 0.35;
+    const birthTimeReliability = birth?.unknownHour ? 0.52 : 0.92;
+    const evidenceDepth = clamp(
+      (exposedWealth.length ? 0.5 : 0) + (rootedWealth.length ? 0.5 : 0),
+    );
+    const confidenceScore = clamp(
+      strengthAnalysis.confidenceScore * 0.42 +
+        birthTimeReliability * 0.28 +
+        (0.4 + methodAgreement * 0.6) * 0.18 +
+        (0.06 + evidenceDepth * 0.06),
+      0.35,
+      0.93,
+    );
+    const confidence = confidenceScore >= 0.78 ? "높음" : confidenceScore >= 0.6 ? "보통" : "제한적";
+    const natalReadiness = clamp(
+      capacity * 0.32 + productiveChain * 0.28 + structureScore * 0.22 + yongsinAlignment * 0.18,
+    );
+    const currentReadiness = clamp(natalReadiness * 0.72 + timingScore * 0.28);
+    const natalWealthPresent = wealthShare > 0.035 || exposedWealth.length > 0 || rootedWealth.length > 0;
+    const currentWealthFlowActive = flowRoles.some((key) => wealthKeys.has(key));
+    const officerShare =
+      ((tenGodCounts.directOfficer ?? 0) + (tenGodCounts.sevenKillings ?? 0)) / tenGodTotal;
+    const resourceShare =
+      ((tenGodCounts.directResource ?? 0) + (tenGodCounts.indirectResource ?? 0)) / tenGodTotal;
+    const outwardCareerShare = outputShare + wealthShare;
+    const structuredCareerShare = officerShare + resourceShare;
+    const careerPattern =
+      outwardCareerShare >= structuredCareerShare + 0.08
+        ? { key: "output-wealth", label: "식상생재형 활동 경향" }
+        : structuredCareerShare >= outwardCareerShare + 0.08
+          ? { key: "officer-resource", label: "관인상생형 조직 경향" }
+          : { key: "mixed", label: "혼합형 활동 경향" };
     const favoredElements = isWeak
       ? [...new Set([resourceElement, dayElement, ...yongsinDecision.favored, outputElement])]
       : [...new Set([outputElement, wealthElement, ...yongsinDecision.favored])];
-    const strategy = isWeak
-      ? "재성을 바로 키우기보다 인성·비겁으로 감당력을 보강한 뒤 식상생재 흐름을 잇는 쪽"
-      : "식상으로 활동과 선택을 열고 재성으로 결실을 받는 흐름을 살리는 쪽";
+    const strategy = {
+      "strong-strong": "감당력과 재성의 기반을 함께 살피되 식상생재가 자연스럽게 이어지는 때를 고르는 쪽",
+      "strong-weak": "일간의 감당력은 활용하되 약한 재성의 뿌리를 억지로 키우지 않고 식상과 운의 연결을 기다리는 쪽",
+      "balanced-strong": "중화권의 감당력을 유지하면서 강한 재성이 식상생재로 무리 없이 이어지는 때를 고르는 쪽",
+      "balanced-weak": "중화권의 안정성을 해치지 않으면서 식상과 현재 운이 약한 재성을 자연스럽게 잇는 때를 고르는 쪽",
+      "weak-strong": "강한 재성을 바로 더하기보다 인성·비겁으로 감당력을 보강한 뒤 식상생재 흐름을 잇는 쪽",
+      "weak-weak": "재성을 단독으로 키우기보다 일간의 생활 리듬과 생조 기반을 먼저 안정시키는 쪽",
+    }[wealthCapacityKey];
 
     return {
       wealthShare,
+      wealthPower,
       outputShare,
       directWealthShare: (tenGodCounts.directWealth ?? 0) / tenGodTotal,
       indirectWealthShare: (tenGodCounts.indirectWealth ?? 0) / tenGodTotal,
@@ -2888,14 +2954,33 @@
       structureScore,
       yongsinAlignment,
       timingScore,
+      natalReadiness,
+      currentReadiness,
+      natalWealthPresent,
+      currentWealthFlowActive,
+      flowCanActivateAbsentNatalWealth: !natalWealthPresent && currentWealthFlowActive,
+      wealthCapacityMatrix: {
+        key: wealthCapacityKey,
+        label: wealthCapacityLabels[wealthCapacityKey],
+        strengthBand: strengthAnalysis.classification,
+        dayMasterSupported,
+        wealthForceStrong,
+      },
+      methodAgreement,
+      birthTimeReliability,
+      confidenceScore,
+      confidence,
+      careerPattern,
+      careerSignalExcludedFromLotteryScore: true,
       flowRoles,
       favoredElements: favoredElements.slice(0, 4),
       strategy,
       evidence: [
+        `${wealthCapacityLabels[wealthCapacityKey]}로 분류하되 연속 점수와 현재 운을 따로 봅니다.`,
         `재성 비중 ${(wealthShare * 100).toFixed(1)}%, 식상 비중 ${(outputShare * 100).toFixed(1)}%`,
         `재성 투간 ${exposedWealth.length}곳, 지지 통근 ${rootedWealth.length}곳`,
         `일간의 재성 감당력 ${Math.round(capacity * 100)}점, 식상생재 연결 ${Math.round(productiveChain * 100)}점`,
-        `대운·세운·월운의 재물 흐름 적합도 ${Math.round(timingScore * 100)}점`,
+        `원국 준비도 ${Math.round(natalReadiness * 100)}점, 현재 운 적합도 ${Math.round(timingScore * 100)}점`,
       ],
     };
   }
@@ -3052,6 +3137,7 @@
       monthTerm: currentSolarMonth.enteredAt ? formatSolarTerm(currentSolarMonth.enteredAt) : "",
     };
     const wealthProfile = buildWealthProfile({
+      birth,
       pillars,
       dayStem,
       dayElement,
@@ -7307,30 +7393,40 @@
         const directOutputToWealth =
           (outputTenGodKeys.has(dayTenGod) && wealthTenGodKeys.has(hourTenGod)) ||
           (wealthTenGodKeys.has(dayTenGod) && outputTenGodKeys.has(hourTenGod));
-        const productiveChain = clamp(
+        const eventProductiveChain = clamp(
           (directOutputToWealth ? 0.72 : 0) +
             (outputTenGodKeys.has(dayTenGod) || outputTenGodKeys.has(hourTenGod) ? 0.18 : 0) +
             hiddenWealth * 0.1,
         );
+        const productiveChain = clamp(
+          eventProductiveChain * 0.68 + (saju.wealthProfile?.productiveChain ?? 0.5) * 0.32,
+        );
         const supportFit =
           saju.strength === "weak" ? clamp(supportElementHits / 2) : clamp(0.55 + usefulFit * 0.45);
         const capacity = saju.wealthProfile?.capacity ?? (saju.strength === "weak" ? 0.62 : 0.9);
-        const contextFit = clamp(
+        const profileConfidence = saju.wealthProfile?.confidenceScore ?? 0.62;
+        const natalReadiness = saju.wealthProfile?.natalReadiness ?? 0.55;
+        const currentReadiness = saju.wealthProfile?.currentReadiness ?? natalReadiness;
+        const contextRaw = clamp(
           (saju.wealthProfile?.timingScore ?? 0.5) * 0.58 +
             (saju.wealthProfile?.yongsinAlignment ?? usefulFit) * 0.42,
         );
-        const overloadPenalty =
-          saju.strength === "weak" && wealthElementHits >= 2 && supportElementHits === 0 ? 0.12 : 0;
+        const contextFit = clamp(0.5 + (contextRaw - 0.5) * profileConfidence);
+        const unsupportedWealth =
+          saju.strength === "weak" && wealthElementHits >= 2 && supportElementHits === 0;
+        const lowCapacityWealth =
+          wealthElementHits > 0 && capacity < 0.65 && supportFit < 0.5;
+        const overloadPenalty = unsupportedWealth ? 0.16 : lowCapacityWealth ? 0.08 : 0;
         const raw =
-          (dayWealth * 0.15 +
-            hourWealth * 0.15 +
-            hiddenWealth * 0.1 +
-            productiveChain * 0.17 +
-            usefulFit * 0.14 +
-            supportFit * 0.12 +
-            contextFit * 0.09 +
-            relationFit * 0.08) *
-            (0.72 + capacity * 0.28) -
+          (dayWealth * 0.09 +
+            hourWealth * 0.08 +
+            hiddenWealth * 0.05 +
+            productiveChain * 0.22 +
+            usefulFit * 0.16 +
+            supportFit * 0.14 +
+            contextFit * 0.14 +
+            relationFit * 0.12) *
+            (0.68 + capacity * 0.17 + currentReadiness * 0.15) -
           overloadPenalty;
 
         candidates.push({
@@ -7345,11 +7441,16 @@
           raw,
           usefulFit,
           relationFit,
+          eventProductiveChain,
           productiveChain,
           supportFit,
           contextFit,
           capacity,
+          profileConfidence,
+          natalReadiness,
+          currentReadiness,
           overloadPenalty,
+          modelVersion: "wealth-capacity-chain-v3",
           policy,
         });
       }
@@ -7388,18 +7489,23 @@
   function applyWealthMomentToSaju(saju, moment) {
     if (!moment) return saju;
     const usefulScores = { ...saju.usefulScores };
-    flowBoost(usefulScores, moment.dayPillar, 0.16);
-    flowBoost(usefulScores, moment.hourPillar, 0.13);
+    const confidenceScale = 0.68 + (moment.profileConfidence ?? 0.62) * 0.22;
+    const readinessScale = 0.75 + (moment.currentReadiness ?? 0.55) * 0.25;
+    const adjustmentScale = confidenceScale * readinessScale;
+    flowBoost(usefulScores, moment.dayPillar, 0.13 * adjustmentScale);
+    flowBoost(usefulScores, moment.hourPillar, 0.1 * adjustmentScale);
     (saju.wealthProfile?.favoredElements ?? saju.favored).forEach((element, index) => {
-      usefulScores[element] += [0.14, 0.1, 0.06, 0.03][index] ?? 0.02;
+      usefulScores[element] += ([0.11, 0.08, 0.045, 0.025][index] ?? 0.015) * adjustmentScale;
     });
     if (saju.strength === "weak") {
-      usefulScores[saju.resourceElement] += 0.15;
-      usefulScores[saju.dayMaster.element] += 0.1;
-      usefulScores[saju.wealthElement] += 0.07;
+      usefulScores[saju.resourceElement] += 0.13 * adjustmentScale;
+      usefulScores[saju.dayMaster.element] += 0.09 * adjustmentScale;
+      usefulScores[saju.outputElement] += 0.04 * adjustmentScale;
+      usefulScores[saju.wealthElement] +=
+        (moment.supportFit >= 0.55 ? 0.055 : 0.025) * adjustmentScale;
     } else {
-      usefulScores[saju.outputElement] += 0.12;
-      usefulScores[saju.wealthElement] += 0.18;
+      usefulScores[saju.outputElement] += 0.1 * adjustmentScale;
+      usefulScores[saju.wealthElement] += 0.13 * adjustmentScale;
     }
     const favored = elementKeys.slice().sort((left, right) => usefulScores[right] - usefulScores[left]);
     return {
