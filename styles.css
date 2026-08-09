@@ -765,6 +765,171 @@ button:focus-visible {
   gap: 12px;
 }
 
+.wealth-moment-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 2px solid #e5484d;
+  border-radius: 8px;
+  background: #fffafa;
+  box-shadow: 0 8px 20px rgba(229, 72, 77, 0.1);
+}
+
+.wealth-moment-card[hidden] {
+  display: none;
+}
+
+.wealth-moment-heading,
+.wealth-moment-heading > div,
+.wealth-pick-row,
+.wealth-lotto-balls,
+.wealth-pension-digits {
+  display: flex;
+  align-items: center;
+}
+
+.wealth-moment-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wealth-moment-heading > div {
+  gap: 10px;
+  min-width: 0;
+}
+
+.wealth-moment-heading span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.wealth-moment-heading h3 {
+  margin: 0;
+  color: #b4232a;
+  font-size: 1.26rem;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.wealth-moment-heading > strong {
+  color: #5e2730;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.wealth-moment-lead {
+  margin: 12px 0 10px;
+  color: #321d22;
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.58;
+  word-break: keep-all;
+}
+
+.wealth-moment-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wealth-moment-reasons span {
+  padding: 6px 8px;
+  border: 1px solid #f2b7ba;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #7d2b33;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.wealth-best-five-label {
+  margin-top: 14px;
+  color: #b4232a;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.wealth-pick-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.wealth-pick-row {
+  min-width: 0;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid #f2c8ca;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.wealth-pick-row > b {
+  display: grid;
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff0f1;
+  color: #b4232a;
+  font-size: 0.7rem;
+}
+
+.wealth-pick-row > em {
+  flex: 0 0 auto;
+  color: #5e2730;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.wealth-lotto-balls,
+.wealth-pension-digits {
+  min-width: 0;
+  gap: 3px;
+}
+
+.wealth-lotto-balls .ball,
+.wealth-pension-digits span {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.64rem;
+  font-weight: 950;
+}
+
+.wealth-pension-digits span {
+  background: #e5484d;
+}
+
+.wealth-moment-card > small {
+  display: block;
+  margin-top: 10px;
+  color: #75555a;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.recommendations.wealth-best-five,
+.pension-recommendations.wealth-best-five {
+  padding: 8px;
+  border: 2px solid rgba(229, 72, 77, 0.7);
+  border-radius: 8px;
+  background: rgba(255, 250, 250, 0.64);
+}
+
 .fortune-panel {
   margin-top: 12px;
   background:
@@ -903,22 +1068,25 @@ button:focus-visible {
 
 .draw-select-label {
   display: grid;
-  gap: 6px;
-  justify-items: end;
+  gap: 5px;
+  min-width: 150px;
+  margin: 0;
+}
+
+.draw-select-label span {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 900;
 }
 
 .draw-select-label select {
-  min-width: 132px;
-  border: 1px solid rgba(24, 169, 153, 0.22);
+  min-height: 38px;
+  border: 1px solid rgba(24, 169, 153, 0.24);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
-  font: inherit;
+  padding: 0 34px 0 12px;
   font-weight: 900;
-  padding: 8px 10px;
 }
 
 .draw-result-card {
@@ -999,7 +1167,7 @@ button:focus-visible {
 
 .draw-prize-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1053,6 +1221,28 @@ button:focus-visible {
   font-weight: 900;
   line-height: 1.2;
   padding: 5px 8px;
+}
+
+#latestNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+#latestNumbers .ball,
+.draw-balls .ball,
+.draw-result-main .draw-balls .ball,
+.draw-result-main .draw-balls .bonus-ball {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+
+#latestNumbers .ball {
+  width: 30px;
+  min-width: 30px;
+  font-size: 0.82rem;
+  line-height: 1;
 }
 
 .candidate-toolbar {
@@ -2707,8 +2897,6 @@ button:focus-visible {
   gap: 12px;
 }
 
-
-
 .pension-prize-guide {
   margin-bottom: 12px;
   border: 1px solid rgba(24, 169, 153, 0.22);
@@ -2792,8 +2980,6 @@ button:focus-visible {
   font-size: 0.74rem;
 }
 
-
-
 .pension-latest-result {
   margin-bottom: 12px;
 }
@@ -2867,10 +3053,12 @@ button:focus-visible {
 }
 
 .pension-result-digit {
-  width: 32px;
-  aspect-ratio: 1;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
   background: linear-gradient(135deg, #5b8def, #7ba7ff);
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  font-size: 1.12rem !important;
 }
 
 .pension-result-bonus {
@@ -2919,14 +3107,14 @@ button:focus-visible {
 
 .pension-group-badge {
   min-width: 54px;
-  min-height: 34px;
+  min-height: 42px;
   background: rgba(232, 250, 247, 0.95);
   color: var(--teal-dark);
 }
 
 .pension-score-pill {
   min-width: 62px;
-  min-height: 34px;
+  min-height: 42px;
   flex-direction: column;
   gap: 1px;
   background: rgba(239, 246, 255, 0.95);
@@ -2948,21 +3136,22 @@ button:focus-visible {
 .pension-number-line {
   display: grid;
   grid-template-columns: repeat(6, minmax(34px, 1fr));
-  gap: 7px;
+  gap: 9px;
   margin-bottom: 12px;
 }
 
 .pension-digit {
   display: grid;
-  aspect-ratio: 1;
+  height: 42px;
   min-width: 0;
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--blue), #7ba7ff);
-  color: #fff;
+  color: #fff !important;
   font-size: 1.05rem;
   font-weight: 900;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+font-size: 1.12rem !important;
 }
 
 .pension-card p {
@@ -3010,6 +3199,8 @@ button:focus-visible {
 .pension-rule-list strong {
   color: var(--teal-dark);
   font-weight: 950;
+line-height: 1;
+  text-align: center;
 }
 
 .pension-rule-list span,
@@ -3060,6 +3251,10 @@ button:focus-visible {
 
   .pension-prize-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pension-latest-card {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3236,7 +3431,8 @@ button:focus-visible {
     border-radius: 10px;
     font-size: 1rem;
     box-shadow: 0 12px 24px rgba(24, 169, 153, 0.28);
-  }
+  font-size: 1.12rem !important;
+}
 
   .setting-details {
     margin-top: 8px;
@@ -3260,6 +3456,45 @@ button:focus-visible {
 
   .summary-grid {
     display: none;
+  }
+
+  .wealth-moment-card {
+    padding: 13px;
+  }
+
+  .wealth-moment-heading,
+  .wealth-moment-heading > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .wealth-moment-heading {
+    gap: 7px;
+  }
+
+  .wealth-moment-heading h3 {
+    font-size: 1.14rem;
+  }
+
+  .wealth-moment-heading > strong {
+    white-space: normal;
+  }
+
+  .wealth-pick-list {
+    grid-template-columns: 1fr;
+  }
+
+  .wealth-pick-row {
+    min-height: 42px;
+    overflow: visible;
+  }
+
+  .wealth-lotto-balls .ball,
+  .wealth-pension-digits span {
+    flex-basis: 27px;
+    width: 27px;
+    height: 27px;
+    font-size: 0.74rem;
   }
 
   .fortune-score-grid {
@@ -3311,6 +3546,20 @@ button:focus-visible {
 
   .draw-result-card {
     padding: 10px;
+  }
+
+  .draw-prize-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pension-prize-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .draw-select-label {
+    width: 100%;
   }
 
   .candidate-audit-result {
@@ -3373,7 +3622,7 @@ button:focus-visible {
   }
 
   .draw-balls {
-    gap: 7px;
+    gap: 9px;
   }
 
   .draw-result-main strong {
@@ -3465,18 +3714,3 @@ button:focus-visible {
   }
 }
 
-
-#latestNumbers .ball,
-.draw-balls .ball,
-.draw-result-main .draw-balls .ball,
-.draw-result-main .draw-balls .bonus-ball {
-  color: #fff !important;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
-}
-
-
-@media (max-width: 980px) {
-  .pension-latest-card {
-    grid-template-columns: 1fr;
-  }
-}

@@ -674,6 +674,7 @@
   const drawSelect = document.querySelector("#drawSelect");
   const candidateStats = document.querySelector("#candidateStats");
   const shuffleCandidates = document.querySelector("#shuffleCandidates");
+  const lottoWealthMoment = document.querySelector("#lottoWealthMoment");
   const autoSajuStatus = document.querySelector("#autoSajuStatus");
   const gameTabs = document.querySelectorAll(".game-tab");
   const lottoWorkspace = document.querySelector("#lottoWorkspace");
@@ -686,6 +687,7 @@
   const pensionStats = document.querySelector("#pensionStats");
   const pensionRecommendations = document.querySelector("#pensionRecommendations");
   const pensionShuffle = document.querySelector("#pensionShuffle");
+  const pensionWealthMoment = document.querySelector("#pensionWealthMoment");
 
   let userPosition = null;
   let userRegionLabel = "";
@@ -1183,10 +1185,10 @@
   function savePensionProfile() {
     if (typeof localStorage === "undefined") return;
     const profile = {
-      version: 3,
+      version: 4,
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
-      personalWeight: pensionPersonalWeight?.value ?? "0",
+      personalWeight: pensionPersonalWeight?.value ?? "auto",
       mode: pensionMode?.value ?? "set",
       savedAt: new Date().toISOString(),
     };
@@ -1209,7 +1211,7 @@
     }
     selectValueIfAvailable(
       pensionPersonalWeight,
-      profile.version >= 2 ? profile.personalWeight : "0",
+      profile.version >= 4 ? profile.personalWeight : "auto",
     );
     selectValueIfAvailable(
       pensionMode,
@@ -2683,8 +2685,8 @@
     return "friend";
   }
 
-  function buildSajuProfile(modeOverride = interpretationMode.value) {
-    const birth = parseBirth();
+  function buildSajuProfile(modeOverride = interpretationMode.value, birthOverride = null) {
+    const birth = birthOverride ?? parseBirth();
     const solarMonth = getSolarMonth(birth);
     const solarYear = getSajuSolarYear(birth);
     const yearIndex = mod(solarYear - 4, 60);
@@ -4551,7 +4553,7 @@
   }
 
   function resolvePensionPersonalWeight(luckyDigits, stats) {
-    const setting = pensionPersonalWeight?.value ?? "0";
+    const setting = pensionPersonalWeight?.value ?? "auto";
     if (setting !== "auto") {
       return {
         setting,
@@ -4564,8 +4566,8 @@
     if (!stats?.count || !luckyDigits?.length) {
       return {
         setting: "auto",
-        weight: 0,
-        label: "0%",
+        weight: 25,
+        label: "25%",
         confidence: 0,
       };
     }
@@ -4590,7 +4592,7 @@
 
     const average = totalWeight ? weightedSimilarity / totalWeight : expected;
     const gap = average - expected;
-    const weight = gap >= 0.14 ? 75 : gap >= 0.06 ? 50 : gap >= -0.04 ? 25 : 0;
+    const weight = gap >= 0.14 ? 75 : gap >= 0.06 ? 50 : 25;
     const confidence = Math.round(clamp(Math.abs(gap) * 250, 0, 100));
 
     return {
@@ -5001,7 +5003,12 @@
   function generatePensionRecommendations() {
     pensionState.generation += 1;
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
-    const luckyDigits = derivePensionLuckyDigits(pensionBirthDate?.value ?? "");
+    const pensionSaju = buildSajuProfile("wealth", pensionBirthForSaju());
+    const wealthMoment = buildWeeklyWealthMoment(pensionSaju, "pension");
+    const luckyDigits = pensionMomentLuckyDigits(
+      wealthMoment,
+      derivePensionLuckyDigits(pensionBirthDate?.value ?? ""),
+    );
     const stats = buildPensionHistoricalStats();
     const mode = resolvePensionMode();
     const personalWeightState = resolvePensionPersonalWeight(luckyDigits, stats);
@@ -5016,6 +5023,7 @@
         personalWeight,
         stats.latestRound,
         stats.latestDate,
+        wealthMoment?.key ?? "no-wealth-moment",
         dateToIso(new Date()),
       ].join("|"),
     );
@@ -5047,6 +5055,9 @@
       stats,
       rng,
     );
+    const wealthPicks = target === 5
+      ? selected
+      : selectPensionPortfolio(ranked, 5, mode, luckyDigits, personalWeight, stats, rng);
 
     return {
       items: selected,
@@ -5060,6 +5071,9 @@
       modeLabel: pensionModeLabels[mode],
       portfolioMeta: buildPensionPortfolioMeta(selected, mode),
       selectedCount: selected.length,
+      wealthMoment,
+      wealthPicks,
+      saju: pensionSaju,
     };
   }
 
@@ -5275,6 +5289,13 @@
     renderPensionLatestResult();
     renderPensionStats(renderedResult, items.length);
     renderPensionPrizeGuide();
+    renderWealthMoment(
+      pensionWealthMoment,
+      result.wealthMoment,
+      options.randomize && items.length >= 5 ? items : result.wealthPicks ?? items,
+      "pension",
+    );
+    pensionRecommendations.classList.toggle("wealth-best-five", items.length >= 5);
 
     if (pensionShuffle) {
       pensionShuffle.disabled = !result.pool?.length;
@@ -5397,6 +5418,12 @@
     const items = randomized ? pickRandomCandidates(result.pool, target) : result.items ?? result;
     result.displayMode = randomized ? "random" : "best";
     renderCandidateStats(result);
+    renderWealthMoment(
+      lottoWealthMoment,
+      result.wealthMoment,
+      randomized && items.length >= 5 ? items : result.wealthPicks ?? items,
+      "lotto",
+    );
     if (shuffleCandidates) {
       shuffleCandidates.disabled = !result.pool?.length;
       shuffleCandidates.textContent = randomized ? "다른 후보 랜덤 배치" : "후보 랜덤 배치";
@@ -6927,6 +6954,238 @@
     return date;
   }
 
+  const wealthTenGodKeys = new Set(["directWealth", "indirectWealth"]);
+
+  function purchasePolicy(game) {
+    return game === "pension"
+      ? { weekday: 4, hour: 17, minute: 0, label: "목요일 17시 판매 마감" }
+      : { weekday: 6, hour: 20, minute: 0, label: "토요일 20시 판매 마감" };
+  }
+
+  function nextPurchaseDeadline(game, now = new Date()) {
+    const policy = purchasePolicy(game);
+    const deadline = new Date(now);
+    deadline.setHours(policy.hour, policy.minute, 0, 0);
+    deadline.setDate(deadline.getDate() + mod(policy.weekday - deadline.getDay(), 7));
+    if (deadline.getTime() - now.getTime() < 90 * 60000) deadline.setDate(deadline.getDate() + 7);
+    return { ...policy, deadline };
+  }
+
+  function pensionBirthForSaju() {
+    const base = parseBirth();
+    const parsed = parseIsoDateParts(normalizeBirthDateText(pensionBirthDate?.value ?? ""));
+    if (!parsed) return base;
+    return {
+      ...base,
+      year: parsed.year,
+      month: parsed.month,
+      day: parsed.day,
+      correction: {
+        ...base.correction,
+        original: { ...base.correction.original, ...parsed, calendar: "solar", input: parsed, converted: parsed },
+        adjusted: { ...base.correction.adjusted, ...parsed },
+      },
+    };
+  }
+
+  function tenGodWealthValue(key) {
+    if (key === "directWealth") return 1;
+    if (key === "indirectWealth") return 0.94;
+    if (key === "eating") return 0.34;
+    if (key === "hurting") return 0.28;
+    return 0.08;
+  }
+
+  function hiddenWealthValue(saju, branchIndex) {
+    const hidden = hiddenStems[mod(branchIndex, 12)] ?? [];
+    const total = hidden.reduce((sum, item) => sum + item.weight, 0) || 1;
+    return hidden.reduce((sum, item) => {
+      return sum + tenGodWealthValue(tenGod(saju.dayStemIndex, item.stem)) * item.weight;
+    }, 0) / total;
+  }
+
+  function flowRelationValue(saju, branchIndex) {
+    let value = 0;
+    for (const pillar of saju.pillars) {
+      if (matchingPairRule(branchCombinationRules, pillar.branchIndex, branchIndex)) value += 0.12;
+      if (matchingPairRule(branchClashRules, pillar.branchIndex, branchIndex)) value -= 0.11;
+      if (matchingPairRule(branchHarmRules, pillar.branchIndex, branchIndex)) value -= 0.07;
+      if (matchingPairRule(branchDestructionRules, pillar.branchIndex, branchIndex)) value -= 0.04;
+    }
+    return clamp(0.5 + value, 0, 1);
+  }
+
+  function pillarUsefulFit(saju, pillar) {
+    const maximum = Math.max(...Object.values(saju.usefulScores), 0.01);
+    const stemFit = saju.usefulScores[pillar.stemElement] / maximum;
+    const branchFit = saju.usefulScores[pillar.branchElement] / maximum;
+    return clamp(stemFit * 0.58 + branchFit * 0.42);
+  }
+
+  function buildWeeklyWealthMoment(saju, game = "lotto", now = new Date()) {
+    const policy = nextPurchaseDeadline(game, now);
+    const candidates = [];
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+
+    for (let offset = 0; offset <= 7; offset += 1) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + offset);
+      if (day > policy.deadline) break;
+      const dayPillar = buildFlowPillar("day", day);
+
+      for (const slot of hourBranches) {
+        const [hour, minute] = slot.midpoint.split(":").map(Number);
+        if (hour < 6 || hour > 22) continue;
+        const at = new Date(day);
+        at.setHours(hour, minute, 0, 0);
+        if (at <= now || at >= policy.deadline) continue;
+
+        const hourStem = mod((dayPillar.stemIndex % 5) * 2 + slot.branch, 10);
+        const hourPillar = makePillar("hour", hourStem, slot.branch);
+        const dayTenGod = tenGod(saju.dayStemIndex, dayPillar.stemIndex);
+        const hourTenGod = tenGod(saju.dayStemIndex, hourPillar.stemIndex);
+        const dayWealth = tenGodWealthValue(dayTenGod);
+        const hourWealth = tenGodWealthValue(hourTenGod);
+        const hiddenWealth =
+          hiddenWealthValue(saju, dayPillar.branchIndex) * 0.56 +
+          hiddenWealthValue(saju, hourPillar.branchIndex) * 0.44;
+        const usefulFit =
+          pillarUsefulFit(saju, dayPillar) * 0.58 + pillarUsefulFit(saju, hourPillar) * 0.42;
+        const relationFit =
+          flowRelationValue(saju, dayPillar.branchIndex) * 0.62 +
+          flowRelationValue(saju, hourPillar.branchIndex) * 0.38;
+        const wealthElementFit =
+          [dayPillar.stemElement, dayPillar.branchElement, hourPillar.stemElement, hourPillar.branchElement]
+            .filter((element) => element === saju.wealthElement).length / 4;
+        const capacity = saju.strength === "weak" ? 0.9 : saju.strength === "strong" ? 1 : 0.96;
+        const raw =
+          (dayWealth * 0.25 +
+            hourWealth * 0.23 +
+            hiddenWealth * 0.15 +
+            usefulFit * 0.17 +
+            relationFit * 0.12 +
+            wealthElementFit * 0.08) * capacity;
+
+        candidates.push({
+          game,
+          at,
+          date: day,
+          dayPillar,
+          hourPillar,
+          slot,
+          dayTenGod,
+          hourTenGod,
+          raw,
+          usefulFit,
+          relationFit,
+          policy,
+        });
+      }
+    }
+
+    const ranked = candidates.sort((left, right) => right.raw - left.raw || left.at - right.at);
+    const best = ranked[0];
+    if (!best) return null;
+    const runnerUp = ranked.find((item) => dateToIso(item.date) !== dateToIso(best.date)) ?? ranked[1] ?? null;
+    const reasons = [];
+    if (wealthTenGodKeys.has(best.dayTenGod)) {
+      reasons.push(`${best.dayPillar.name} 일진의 ${tenGodLabels[best.dayTenGod]} 기운이 재물 판단을 돕는 흐름`);
+    }
+    if (wealthTenGodKeys.has(best.hourTenGod)) {
+      reasons.push(`${best.hourPillar.name} 시진의 ${tenGodLabels[best.hourTenGod]} 기운이 결제 시점에 겹치는 흐름`);
+    }
+    if (!reasons.length) {
+      reasons.push(`${elementLabel(saju.wealthElement)} 재성 기운과 용희신 적합도가 함께 높은 시점`);
+    }
+    if (best.relationFit >= 0.62) reasons.push("원국 지지와의 합·보완이 충·해보다 우세한 시점");
+    reasons.push(`${elementLabel(saju.wealthElement)} 재성에 ${elementLabel(saju.favored[0])} 보완 기운을 함께 반영`);
+
+    return {
+      ...best,
+      rank: 1,
+      reasons: reasons.slice(0, 3),
+      runnerUp,
+      key: `${game}|${dateToIso(best.date)}|${best.slot.branch}|${best.dayPillar.name}|${best.hourPillar.name}`,
+    };
+  }
+
+  function applyWealthMomentToSaju(saju, moment) {
+    if (!moment) return saju;
+    const usefulScores = { ...saju.usefulScores };
+    flowBoost(usefulScores, moment.dayPillar, 0.22);
+    flowBoost(usefulScores, moment.hourPillar, 0.18);
+    usefulScores[saju.wealthElement] += 0.3;
+    usefulScores[saju.outputElement] += 0.08;
+    const favored = elementKeys.slice().sort((left, right) => usefulScores[right] - usefulScores[left]);
+    return {
+      ...saju,
+      usefulScores,
+      timingScores: { ...usefulScores },
+      favored: favored.slice(0, 3),
+      wealthMoment: moment,
+    };
+  }
+
+  function pensionMomentLuckyDigits(moment, birthDigits) {
+    if (!moment) return birthDigits;
+    const source = [
+      moment.dayPillar.stemIndex,
+      moment.dayPillar.branchIndex,
+      moment.hourPillar.stemIndex,
+      moment.hourPillar.branchIndex,
+      ...birthDigits,
+    ];
+    const picks = new Set(source.map((value) => mod(Number(value), 10)));
+    for (let digit = 0; picks.size < 5 && digit <= 9; digit += 1) picks.add(digit);
+    return [...picks].slice(0, 5);
+  }
+
+  function wealthMomentRange(moment) {
+    if (!moment) return "";
+    if (moment.slot.branch === 3) return "06:00~07:29";
+    if (
+      moment.game === "pension" &&
+      dateToIso(moment.date) === dateToIso(moment.policy.deadline) &&
+      moment.slot.branch === 8
+    ) {
+      return "15:30~16:59";
+    }
+    return moment.slot.range;
+  }
+
+  function renderWealthMoment(container, moment, items, game = "lotto") {
+    if (!container || !moment) return;
+    const picks = (items ?? []).slice(0, 5);
+    const numbers = picks.map((item, index) => {
+      if (game === "pension") {
+        const digits = item.digits.map((digit) => `<span>${digit}</span>`).join("");
+        return `<div class="wealth-pick-row"><b>${index + 1}</b><em>${item.group}조</em><div class="wealth-pension-digits">${digits}</div></div>`;
+      }
+      return `<div class="wealth-pick-row"><b>${index + 1}</b><div class="wealth-lotto-balls">${item.numbers.map(renderBall).join("")}</div></div>`;
+    }).join("");
+    const runnerUpText = moment.runnerUp
+      ? `차선 시점은 ${formatDay(moment.runnerUp.date)} ${wealthMomentRange(moment.runnerUp)}입니다.`
+      : "";
+    const gameName = game === "pension" ? "연금복권" : "로또";
+
+    container.innerHTML = `
+      <div class="wealth-moment-heading">
+        <div>
+          <span>이번 회차 재성 1순위</span>
+          <h3>${formatDay(moment.date)} ${wealthMomentRange(moment)}</h3>
+        </div>
+        <strong>${moment.dayPillar.name} 일진 · ${moment.hourPillar.name} 시진</strong>
+      </div>
+      <p class="wealth-moment-lead">이번 주 가장 재성(재물운) 흐름이 또렷한 때입니다. 이 앱의 명리 기준에서는 이 시간대에 아래 ${gameName} 베스트 5조합을 구매하는 흐름이 가장 잘 맞습니다.</p>
+      <div class="wealth-moment-reasons">${moment.reasons.map((reason) => `<span>${reason}</span>`).join("")}</div>
+      <div class="wealth-best-five-label">이날 구매할 베스트 5조합</div>
+      <div class="wealth-pick-list">${numbers}</div>
+      <small>${moment.policy.label} 이전 기준입니다. ${runnerUpText} 사주 흐름은 번호의 추첨 확률을 바꾸는 값이 아니라 개인화 선택 기준입니다.</small>
+    `;
+    container.hidden = false;
+  }
+
   function fortunePeriodMeta(period) {
     return {
       today: { label: "오늘의 운세", scope: "오늘" },
@@ -7479,11 +7738,14 @@
     updateTimeCorrectionPreview();
     const selectedWindow = currentWindowInfo(draws.length);
     const stats = buildStats(selectedWindow.size);
-    const saju = buildSajuProfile();
-    renderFastPersonalPanels(saju);
-    const learningProfile = getCachedLearningProfile(saju);
-    const scores = buildNumberScores(stats, saju);
-    const resultKey = recommendationCacheKey();
+    const baseSaju = buildSajuProfile();
+    const wealthMoment = buildWeeklyWealthMoment(baseSaju, "lotto");
+    const saju = applyWealthMomentToSaju(baseSaju, wealthMoment);
+    const timingWeight = Math.max(Number(sajuWeight.value) / 100, 0.35);
+    renderFastPersonalPanels(baseSaju);
+    const learningProfile = getCachedLearningProfile(baseSaju);
+    const scores = buildNumberScores(stats, saju, timingWeight);
+    const resultKey = `${recommendationCacheKey()}|wealth:${wealthMoment?.key ?? "none"}`;
     const result = options.forceNew
       ? generateRecommendations(stats, scores, saju, learningProfile)
       : boundedCacheGet(
@@ -7505,8 +7767,13 @@
     document.querySelector("#scoreSummary").textContent =
       `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 핵심 후보망 ${formatNumber(result.filteredCount)}개`;
 
+    result.wealthMoment = wealthMoment;
+    result.wealthPicks = Number(setCount.value) === 5
+      ? result.items
+      : selectRecommendationPortfolio(result.pool, stats, scores, saju, learningProfile, 5);
     lottoState.lastResult = result;
     renderRecommendations(result);
+    document.querySelector("#recommendations")?.classList.toggle("wealth-best-five", result.items.length >= 5);
     renderRecommendationAudit(learningProfile);
     if (options.skipPortfolio) {
       const auditContainer = document.querySelector("#candidateAuditSummary");
@@ -7519,10 +7786,10 @@
         `;
       }
     } else {
-      renderCandidateAuditSummary(stats, saju);
+      renderCandidateAuditSummary(stats, baseSaju);
     }
-    renderElementBars(saju);
-    renderMappingReading(saju);
+    renderElementBars(baseSaju);
+    renderMappingReading(baseSaju);
     renderPreviousDrawAudit();
     renderHotCold(stats, scores);
   }
@@ -7991,3 +8258,4 @@
 
   init();
 })();
+
