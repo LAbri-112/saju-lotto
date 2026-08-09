@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v116" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v117" />
   </head>
   <body>
     <main class="app-shell">
@@ -320,6 +320,7 @@
               </div>
               <p id="scoreSummary">당첨 분포와 사주 보정값을 계산 중입니다.</p>
             </div>
+            <div id="lottoWealthMoment" class="wealth-moment-card" hidden></div>
             <div class="candidate-toolbar">
               <div id="candidateStats" class="candidate-stats"></div>
               <button id="shuffleCandidates" class="shuffle-action" type="button">후보 랜덤 배치</button>
@@ -479,10 +480,11 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="pensionPersonalWeight">사주 보정</label>
-                  <button class="help-button" type="button" data-help="사주 보정은 생년월일 숫자를 일부 섞는 개인화 요소이며, 추첨 결과를 보장하지 않습니다. 기본 0%는 연금복권의 자리 구조만 보고 추천합니다.">?</button>
+                  <button class="help-button" type="button" data-help="명리 자동은 생년월일과 저장된 출생시각을 바탕으로 이번 회차의 재성 흐름이 가장 또렷한 날짜와 시각을 찾고, 그 일진·시진 기운을 번호 개인화에 반영합니다. 직접 비율을 고를 수도 있습니다.">?</button>
                 </div>
                 <select id="pensionPersonalWeight" name="pensionPersonalWeight">
-                  <option value="0" selected>0%</option>
+                  <option value="auto" selected>명리 자동</option>
+                  <option value="0">0%</option>
                   <option value="25">25%</option>
                   <option value="50">50%</option>
                   <option value="75">75%</option>
@@ -534,6 +536,7 @@
               </div>
               <p>로또 후보와 섞지 않고 별도의 자리별 균형으로 추천합니다.</p>
             </div>
+            <div id="pensionWealthMoment" class="wealth-moment-card" hidden></div>
             <div class="candidate-toolbar">
               <div id="pensionStats" class="candidate-stats pension-stats"></div>
               <button id="pensionShuffle" class="shuffle-action" type="button">후보 랜덤 배치</button>
@@ -572,15 +575,16 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v116"></script>
-    <script defer src="data/pension-results.js?v=feedback-v116"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v116"></script>
-    <script defer src="data/solar-terms.js?v=feedback-v116"></script>
-    <script defer src="data/saju-classical-sources.js?v=feedback-v116"></script>
-    <script defer src="data/saju-expert-rules.js?v=feedback-v116"></script>
-    <script defer src="data/saju-expert-cases.js?v=feedback-v116"></script>
-    <script defer src="data/saju-eval-cases.js?v=feedback-v116"></script>
-    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v116"></script>
-    <script defer src="app.js?v=feedback-v116"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v117"></script>
+    <script defer src="data/pension-results.js?v=feedback-v117"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v117"></script>
+    <script defer src="data/solar-terms.js?v=feedback-v117"></script>
+    <script defer src="data/saju-classical-sources.js?v=feedback-v117"></script>
+    <script defer src="data/saju-expert-rules.js?v=feedback-v117"></script>
+    <script defer src="data/saju-expert-cases.js?v=feedback-v117"></script>
+    <script defer src="data/saju-eval-cases.js?v=feedback-v117"></script>
+    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v117"></script>
+    <script defer src="app.js?v=feedback-v117"></script>
   </body>
 </html>
+
