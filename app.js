@@ -2200,6 +2200,7 @@
             element: stemCombo.element,
             tone: "support",
             weight: 0.22,
+            transformStatus: "conditional",
           });
         }
         if (stemClash) {
@@ -2216,6 +2217,7 @@
             element: branchCombo.element,
             tone: "support",
             weight: 0.26,
+            transformStatus: "conditional",
           });
         }
         if (branchClash) {
@@ -2267,6 +2269,7 @@
           element: rule.element,
           tone: "support",
           weight: 0.38,
+          transformStatus: "complete-group",
         });
       }
     }
@@ -2279,6 +2282,7 @@
           element: rule.element,
           tone: "support",
           weight: 0.32,
+          transformStatus: "complete-group",
         });
       }
     }
@@ -2412,7 +2416,16 @@
         ? boundaries.find((boundary) => boundary.localTs > birthTs)
         : boundaries.filter((boundary) => boundary.localTs <= birthTs).at(-1);
     const diffDays = targetTerm ? Math.abs(targetTerm.localTs - birthTs) / 86400000 : 0;
-    const startAgeMonths = Math.max(1, Math.round(diffDays * 4));
+    const targetIndex = targetTerm ? boundaries.indexOf(targetTerm) : -1;
+    const intervalStart = direction > 0 ? boundaries[targetIndex - 1] : targetTerm;
+    const intervalEnd = direction > 0 ? targetTerm : boundaries[targetIndex + 1];
+    const termIntervalDays =
+      intervalStart && intervalEnd
+        ? Math.abs(intervalEnd.localTs - intervalStart.localTs) / 86400000
+        : 30;
+    const correctionFactor = clamp(30 / Math.max(1, termIntervalDays), 0.9, 1.1);
+    const startAgeYearsExact = (diffDays * correctionFactor) / 3;
+    const startAgeMonths = Math.max(1, Math.round(startAgeYearsExact * 12));
     const currentAge = ageFromBirth(birth);
     const cycles = Array.from({ length: 8 }, (_, index) => {
       const stemIndex = mod(monthStem + direction * (index + 1), 10);
@@ -2436,9 +2449,13 @@
       directionLabel: direction > 0 ? "순행" : "역행",
       provisional: gender === "unknown",
       startAgeMonths,
+      startAgeYearsExact,
       startAgeText: luckAgeText(startAgeMonths),
       targetTerm,
       targetTermLabel: targetTerm ? formatSolarTerm(targetTerm) : "",
+      termIntervalDays,
+      correctionFactor,
+      calculationMethod: "절기 간 실제 간격을 30일 기준으로 보정한 3일 1년 환산",
       currentAge,
       current,
       cycles,
@@ -2581,6 +2598,59 @@
     return [];
   }
 
+  function elementShare(counts, element) {
+    const total = Object.values(counts).reduce((sum, value) => sum + value, 0) || 1;
+    return (counts[element] ?? 0) / total;
+  }
+
+  function buildTonggwanCandidates(counts) {
+    const tensions = elementKeys
+      .map((controller) => {
+        const controlled = controls[controller];
+        const controllerShare = elementShare(counts, controller);
+        const controlledShare = elementShare(counts, controlled);
+        return {
+          controller,
+          controlled,
+          bridge: generates[controller],
+          controllerShare,
+          controlledShare,
+          score: Math.min(controllerShare, controlledShare) + (controllerShare + controlledShare) * 0.2,
+        };
+      })
+      .sort((left, right) => right.score - left.score);
+    const best = tensions[0];
+    if (!best || best.controllerShare < 0.16 || best.controlledShare < 0.16) return [];
+    if (best.controllerShare + best.controlledShare < 0.4) return [];
+    return [best.bridge];
+  }
+
+  function buildDiseaseMedicineCandidates(counts) {
+    const ranked = elementKeys
+      .map((element) => ({ element, share: elementShare(counts, element) }))
+      .sort((left, right) => right.share - left.share);
+    const dominant = ranked[0];
+    const runnerUp = ranked[1];
+    if (!dominant || dominant.share < 0.34 || dominant.share - (runnerUp?.share ?? 0) < 0.07) return [];
+    return [...new Set([controlledBy(dominant.element), generates[dominant.element]])].filter(Boolean);
+  }
+
+  function buildFollowingCandidates({ counts, strengthAnalysis, dayElement, resourceElement, outputElement, wealthElement, officerElement }) {
+    if (strengthAnalysis.ratio <= 0.27) {
+      const external = [outputElement, wealthElement, officerElement]
+        .map((element) => ({ element, share: elementShare(counts, element) }))
+        .sort((left, right) => right.share - left.share);
+      if ((external[0]?.share ?? 0) >= 0.3) {
+        return [...new Set([external[0].element, generates[external[0].element]])].filter(Boolean);
+      }
+    }
+    const selfResourceShare = elementShare(counts, dayElement) + elementShare(counts, resourceElement);
+    if (strengthAnalysis.ratio >= 0.73 && selfResourceShare >= 0.62) {
+      return [dayElement, resourceElement];
+    }
+    return [];
+  }
+
   function buildYongsinDecision({
     mode,
     counts,
@@ -2594,17 +2664,37 @@
     officerElement,
     interactions,
   }) {
-    const sortedByLack = elementKeys.slice().sort((a, b) => counts[a] - counts[b]);
+    const gyeokCandidates = gyeokSupportCandidates(gyeok, {
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+    });
+    const balancedBase =
+      strengthAnalysis.ratio >= 0.5
+        ? [outputElement, wealthElement, climate.primary]
+        : [resourceElement, dayElement, climate.primary];
     const eokbu =
       strengthAnalysis.classification === "weak"
         ? [resourceElement, dayElement]
         : strengthAnalysis.classification === "strong"
           ? [outputElement, wealthElement, officerElement]
-          : sortedByLack.slice(0, 2);
+          : [...new Set([...balancedBase, ...gyeokCandidates])].slice(0, 3);
     const methods = {
       eokbu,
       johu: climate.candidates,
-      gyeok: gyeokSupportCandidates(gyeok, { resourceElement, outputElement, wealthElement, officerElement }),
+      gyeok: gyeokCandidates,
+      tonggwan: buildTonggwanCandidates(counts),
+      byeongyak: buildDiseaseMedicineCandidates(counts),
+      sungeung: buildFollowingCandidates({
+        counts,
+        strengthAnalysis,
+        dayElement,
+        resourceElement,
+        outputElement,
+        wealthElement,
+        officerElement,
+      }),
     };
     const scores = Object.fromEntries(elementKeys.map((key) => [key, 0.12]));
     const reasons = Object.fromEntries(elementKeys.map((key) => [key, []]));
@@ -2614,20 +2704,36 @@
         reasons[element].push(method);
       });
     };
-    add("억부", methods.eokbu, [1, 0.68, 0.42]);
-    add("조후", methods.johu, [0.56, 0.3]);
-    add("격국", methods.gyeok, [0.44, 0.24]);
-    sortedByLack.slice(0, 2).forEach((element, index) => {
-      scores[element] += index === 0 ? 0.24 : 0.14;
-      reasons[element].push("오행 분포");
-    });
+    add("억부", methods.eokbu, [1, 0.62, 0.36]);
+    add("조후", methods.johu, [0.52, 0.26]);
+    add("격국", methods.gyeok, [0.38, 0.2]);
+    add("통관", methods.tonggwan, [0.34]);
+    add("병약", methods.byeongyak, [0.2, 0.1]);
+    add("순응", methods.sungeung, [0.18, 0.1]);
     interactions.supportItems.forEach((item) => {
-      if (item.element) scores[item.element] += 0.06;
+      if (!item.element) return;
+      scores[item.element] += item.transformStatus === "complete-group" ? 0.05 : 0.015;
+      reasons[item.element].push(item.transformStatus === "complete-group" ? item.type : `${item.type} 조건부`);
+    });
+    elementKeys.forEach((element) => {
+      const share = elementShare(counts, element);
+      if (share >= 0.36) scores[element] -= 0.16;
+      else if (share >= 0.3) scores[element] -= 0.06;
     });
     if (mode === "wealth") {
-      scores[wealthElement] += 0.48;
-      scores[outputElement] += 0.18;
-      reasons[wealthElement].push("재성 모드");
+      if (strengthAnalysis.classification === "weak") {
+        scores[resourceElement] += 0.22;
+        scores[dayElement] += 0.14;
+        scores[outputElement] += 0.08;
+        scores[wealthElement] += 0.1;
+        reasons[resourceElement].push("재성 감당력 보강");
+        reasons[wealthElement].push("재성 보조");
+      } else {
+        scores[wealthElement] += 0.32;
+        scores[outputElement] += 0.2;
+        reasons[wealthElement].push("재성 활용");
+        reasons[outputElement].push("식상생재 연결");
+      }
     }
     if (mode === "climate") {
       scores[climate.primary] += 0.48;
@@ -2635,11 +2741,17 @@
     }
 
     const ranked = elementKeys.slice().sort((a, b) => scores[b] - scores[a]);
+    const activeMethods = Object.values(methods).filter((list) => list.length);
     const consensusCount = Object.fromEntries(
-      elementKeys.map((element) => [element, Object.values(methods).filter((list) => list.includes(element)).length]),
+      elementKeys.map((element) => [element, activeMethods.filter((list) => list.includes(element)).length]),
     );
     const leadConsensus = consensusCount[ranked[0]];
-    const confidence = leadConsensus >= 2 && strengthAnalysis.confidence !== "제한적" ? "보통 이상" : leadConsensus >= 2 ? "보통" : "탐색적";
+    const confidence =
+      leadConsensus >= 3 && strengthAnalysis.confidence !== "제한적"
+        ? "높음"
+        : leadConsensus >= 2
+          ? "보통"
+          : "탐색적";
     const yongsin = ranked.slice(0, 3).map((element, index) => ({
       element,
       title: index === 0 ? "종합 용신 후보" : index === 1 ? "희신 후보" : "보조 기운",
@@ -2654,6 +2766,11 @@
       methods,
       consensusCount,
       confidence,
+      safeguards: {
+        missingElementShortcutDisabled: true,
+        followingPatternProvisional: methods.sungeung.length > 0,
+        conditionalTransformations: true,
+      },
       yongsin,
     };
   }
@@ -2683,6 +2800,104 @@
       return samePolarity ? "sevenKillings" : "directOfficer";
     }
     return "friend";
+  }
+
+  function buildWealthProfile({
+    pillars,
+    dayStem,
+    dayElement,
+    resourceElement,
+    outputElement,
+    wealthElement,
+    tenGodCounts,
+    strengthAnalysis,
+    gyeok,
+    yongsinDecision,
+    majorLuck,
+    annualFlow,
+  }) {
+    const wealthKeys = new Set(["directWealth", "indirectWealth"]);
+    const outputKeys = new Set(["eating", "hurting"]);
+    const supportKeys = new Set(["friend", "rival", "directResource", "indirectResource"]);
+    const tenGodTotal = Object.values(tenGodCounts).reduce((sum, value) => sum + value, 0) || 1;
+    const wealthShare =
+      ((tenGodCounts.directWealth ?? 0) + (tenGodCounts.indirectWealth ?? 0)) / tenGodTotal;
+    const outputShare = ((tenGodCounts.eating ?? 0) + (tenGodCounts.hurting ?? 0)) / tenGodTotal;
+    const exposedWealth = pillars.filter(
+      (pillar) => pillar.kind !== "day" && wealthKeys.has(tenGod(dayStem, pillar.stemIndex)),
+    );
+    const rootedWealth = pillars.filter((pillar) =>
+      (hiddenStems[pillar.branchIndex] ?? []).some((hidden) => wealthKeys.has(tenGod(dayStem, hidden.stem))),
+    );
+    const outputPillars = pillars.filter((pillar) =>
+      [tenGod(dayStem, pillar.stemIndex), ...(hiddenStems[pillar.branchIndex] ?? []).map((hidden) => tenGod(dayStem, hidden.stem))]
+        .some((key) => outputKeys.has(key)),
+    );
+    const isWeak = strengthAnalysis.classification === "weak";
+    const capacity = clamp(
+      isWeak
+        ? 0.42 + strengthAnalysis.ratio * 0.72 + (rootedWealth.length ? 0.03 : 0)
+        : strengthAnalysis.classification === "balanced"
+          ? 0.82 + (0.5 - Math.abs(strengthAnalysis.ratio - 0.5)) * 0.2
+          : 0.88 + Math.min(0.08, (strengthAnalysis.ratio - 0.57) * 0.3),
+      0.45,
+      0.98,
+    );
+    const productiveChain = clamp(
+      Math.min(1, outputShare / 0.22) * 0.48 +
+        Math.min(1, wealthShare / 0.22) * 0.34 +
+        (outputPillars.length && rootedWealth.length ? 0.18 : 0),
+    );
+    const structureScore = clamp(
+      exposedWealth.length * 0.2 +
+        rootedWealth.length * 0.13 +
+        (["directWealth", "indirectWealth"].includes(gyeok.key) ? 0.28 : 0.08),
+    );
+    const maximumUseful = Math.max(...Object.values(yongsinDecision.scores), 0.01);
+    const yongsinAlignment = clamp(
+      (yongsinDecision.scores[wealthElement] / maximumUseful) * 0.58 +
+        (yongsinDecision.scores[outputElement] / maximumUseful) * 0.42,
+    );
+    const flowPillars = [majorLuck.current?.pillar, annualFlow.year, annualFlow.month].filter(Boolean);
+    const flowRoles = flowPillars.map((pillar) => tenGod(dayStem, pillar.stemIndex));
+    const flowRoleValue = (key) => {
+      if (wealthKeys.has(key)) return isWeak ? 0.58 : 1;
+      if (outputKeys.has(key)) return isWeak ? 0.46 : 0.72;
+      if (supportKeys.has(key)) return isWeak ? 0.84 : 0.42;
+      return 0.24;
+    };
+    const timingScore = flowRoles.length
+      ? flowRoles.reduce((sum, key) => sum + flowRoleValue(key), 0) / flowRoles.length
+      : 0.5;
+    const favoredElements = isWeak
+      ? [...new Set([resourceElement, dayElement, ...yongsinDecision.favored, outputElement])]
+      : [...new Set([outputElement, wealthElement, ...yongsinDecision.favored])];
+    const strategy = isWeak
+      ? "재성을 바로 키우기보다 인성·비겁으로 감당력을 보강한 뒤 식상생재 흐름을 잇는 쪽"
+      : "식상으로 활동과 선택을 열고 재성으로 결실을 받는 흐름을 살리는 쪽";
+
+    return {
+      wealthShare,
+      outputShare,
+      directWealthShare: (tenGodCounts.directWealth ?? 0) / tenGodTotal,
+      indirectWealthShare: (tenGodCounts.indirectWealth ?? 0) / tenGodTotal,
+      exposedWealth: exposedWealth.map((pillar) => pillarKindLabel(pillar.kind)),
+      rootedWealth: rootedWealth.map((pillar) => pillarKindLabel(pillar.kind)),
+      capacity,
+      productiveChain,
+      structureScore,
+      yongsinAlignment,
+      timingScore,
+      flowRoles,
+      favoredElements: favoredElements.slice(0, 4),
+      strategy,
+      evidence: [
+        `재성 비중 ${(wealthShare * 100).toFixed(1)}%, 식상 비중 ${(outputShare * 100).toFixed(1)}%`,
+        `재성 투간 ${exposedWealth.length}곳, 지지 통근 ${rootedWealth.length}곳`,
+        `일간의 재성 감당력 ${Math.round(capacity * 100)}점, 식상생재 연결 ${Math.round(productiveChain * 100)}점`,
+        `대운·세운·월운의 재물 흐름 적합도 ${Math.round(timingScore * 100)}점`,
+      ],
+    };
   }
 
   function buildSajuProfile(modeOverride = interpretationMode.value, birthOverride = null) {
@@ -2737,7 +2952,10 @@
     }
 
     for (const item of interactions.supportItems) {
-      if (item.element) counts[item.element] += item.weight ?? 0.2;
+      if (!item.element) continue;
+      const transformationWeight =
+        item.transformStatus === "complete-group" ? item.weight ?? 0.2 : (item.weight ?? 0.2) * 0.15;
+      counts[item.element] += transformationWeight;
     }
 
     const dayElement = stems[dayStem][1];
@@ -2825,11 +3043,28 @@
       year: flowYear,
       month: flowMonthPillar,
       day: flowDay,
+      yearTenGodKey: tenGod(dayStem, flowYear.stemIndex),
+      monthTenGodKey: tenGod(dayStem, flowMonthPillar.stemIndex),
+      dayTenGodKey: tenGod(dayStem, flowDay.stemIndex),
       yearTenGod: tenGodLabels[tenGod(dayStem, flowYear.stemIndex)],
       monthTenGod: tenGodLabels[tenGod(dayStem, flowMonthPillar.stemIndex)],
       dayTenGod: tenGodLabels[tenGod(dayStem, flowDay.stemIndex)],
       monthTerm: currentSolarMonth.enteredAt ? formatSolarTerm(currentSolarMonth.enteredAt) : "",
     };
+    const wealthProfile = buildWealthProfile({
+      pillars,
+      dayStem,
+      dayElement,
+      resourceElement,
+      outputElement,
+      wealthElement,
+      tenGodCounts,
+      strengthAnalysis,
+      gyeok,
+      yongsinDecision,
+      majorLuck,
+      annualFlow,
+    });
 
     return {
       counts,
@@ -2857,6 +3092,7 @@
       interactions,
       annualFlow,
       majorLuck,
+      wealthProfile,
       gyeok,
       yongsin,
       yongsinDecision,
@@ -6955,6 +7191,8 @@
   }
 
   const wealthTenGodKeys = new Set(["directWealth", "indirectWealth"]);
+  const outputTenGodKeys = new Set(["eating", "hurting"]);
+  const supportTenGodKeys = new Set(["friend", "rival", "directResource", "indirectResource"]);
 
   function purchasePolicy(game) {
     return game === "pension"
@@ -6991,8 +7229,9 @@
   function tenGodWealthValue(key) {
     if (key === "directWealth") return 1;
     if (key === "indirectWealth") return 0.94;
-    if (key === "eating") return 0.34;
-    if (key === "hurting") return 0.28;
+    if (key === "eating") return 0.56;
+    if (key === "hurting") return 0.5;
+    if (supportTenGodKeys.has(key)) return 0.24;
     return 0.08;
   }
 
@@ -7055,17 +7294,44 @@
         const relationFit =
           flowRelationValue(saju, dayPillar.branchIndex) * 0.62 +
           flowRelationValue(saju, hourPillar.branchIndex) * 0.38;
-        const wealthElementFit =
-          [dayPillar.stemElement, dayPillar.branchElement, hourPillar.stemElement, hourPillar.branchElement]
-            .filter((element) => element === saju.wealthElement).length / 4;
-        const capacity = saju.strength === "weak" ? 0.9 : saju.strength === "strong" ? 1 : 0.96;
+        const flowElements = [
+          dayPillar.stemElement,
+          dayPillar.branchElement,
+          hourPillar.stemElement,
+          hourPillar.branchElement,
+        ];
+        const wealthElementHits = flowElements.filter((element) => element === saju.wealthElement).length;
+        const supportElementHits = flowElements.filter((element) =>
+          [saju.dayMaster.element, saju.resourceElement].includes(element),
+        ).length;
+        const directOutputToWealth =
+          (outputTenGodKeys.has(dayTenGod) && wealthTenGodKeys.has(hourTenGod)) ||
+          (wealthTenGodKeys.has(dayTenGod) && outputTenGodKeys.has(hourTenGod));
+        const productiveChain = clamp(
+          (directOutputToWealth ? 0.72 : 0) +
+            (outputTenGodKeys.has(dayTenGod) || outputTenGodKeys.has(hourTenGod) ? 0.18 : 0) +
+            hiddenWealth * 0.1,
+        );
+        const supportFit =
+          saju.strength === "weak" ? clamp(supportElementHits / 2) : clamp(0.55 + usefulFit * 0.45);
+        const capacity = saju.wealthProfile?.capacity ?? (saju.strength === "weak" ? 0.62 : 0.9);
+        const contextFit = clamp(
+          (saju.wealthProfile?.timingScore ?? 0.5) * 0.58 +
+            (saju.wealthProfile?.yongsinAlignment ?? usefulFit) * 0.42,
+        );
+        const overloadPenalty =
+          saju.strength === "weak" && wealthElementHits >= 2 && supportElementHits === 0 ? 0.12 : 0;
         const raw =
-          (dayWealth * 0.25 +
-            hourWealth * 0.23 +
-            hiddenWealth * 0.15 +
-            usefulFit * 0.17 +
-            relationFit * 0.12 +
-            wealthElementFit * 0.08) * capacity;
+          (dayWealth * 0.15 +
+            hourWealth * 0.15 +
+            hiddenWealth * 0.1 +
+            productiveChain * 0.17 +
+            usefulFit * 0.14 +
+            supportFit * 0.12 +
+            contextFit * 0.09 +
+            relationFit * 0.08) *
+            (0.72 + capacity * 0.28) -
+          overloadPenalty;
 
         candidates.push({
           game,
@@ -7079,6 +7345,11 @@
           raw,
           usefulFit,
           relationFit,
+          productiveChain,
+          supportFit,
+          contextFit,
+          capacity,
+          overloadPenalty,
           policy,
         });
       }
@@ -7095,11 +7366,15 @@
     if (wealthTenGodKeys.has(best.hourTenGod)) {
       reasons.push(`${best.hourPillar.name} 시진의 ${tenGodLabels[best.hourTenGod]} 기운이 결제 시점에 겹치는 흐름`);
     }
+    if (best.productiveChain >= 0.58) reasons.push("식상에서 재성으로 이어지는 활동·결실 흐름이 갖춰진 시점");
+    if (saju.strength === "weak" && best.supportFit >= 0.5) {
+      reasons.push("약한 일간을 먼저 받쳐 재성을 감당할 여지를 확보한 시점");
+    }
     if (!reasons.length) {
-      reasons.push(`${elementLabel(saju.wealthElement)} 재성 기운과 용희신 적합도가 함께 높은 시점`);
+      reasons.push("원국 용희신과 대운·세운·월운의 재물 흐름이 함께 맞는 시점");
     }
     if (best.relationFit >= 0.62) reasons.push("원국 지지와의 합·보완이 충·해보다 우세한 시점");
-    reasons.push(`${elementLabel(saju.wealthElement)} 재성에 ${elementLabel(saju.favored[0])} 보완 기운을 함께 반영`);
+    if (reasons.length < 3) reasons.push(`${saju.wealthProfile?.strategy ?? "재성과 보완 기운을 함께 보는 방식"}`);
 
     return {
       ...best,
@@ -7113,10 +7388,19 @@
   function applyWealthMomentToSaju(saju, moment) {
     if (!moment) return saju;
     const usefulScores = { ...saju.usefulScores };
-    flowBoost(usefulScores, moment.dayPillar, 0.22);
-    flowBoost(usefulScores, moment.hourPillar, 0.18);
-    usefulScores[saju.wealthElement] += 0.3;
-    usefulScores[saju.outputElement] += 0.08;
+    flowBoost(usefulScores, moment.dayPillar, 0.16);
+    flowBoost(usefulScores, moment.hourPillar, 0.13);
+    (saju.wealthProfile?.favoredElements ?? saju.favored).forEach((element, index) => {
+      usefulScores[element] += [0.14, 0.1, 0.06, 0.03][index] ?? 0.02;
+    });
+    if (saju.strength === "weak") {
+      usefulScores[saju.resourceElement] += 0.15;
+      usefulScores[saju.dayMaster.element] += 0.1;
+      usefulScores[saju.wealthElement] += 0.07;
+    } else {
+      usefulScores[saju.outputElement] += 0.12;
+      usefulScores[saju.wealthElement] += 0.18;
+    }
     const favored = elementKeys.slice().sort((left, right) => usefulScores[right] - usefulScores[left]);
     return {
       ...saju,
