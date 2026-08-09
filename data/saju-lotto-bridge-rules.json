@@ -42,15 +42,15 @@
       }
     },
     {
-      "id": "wealth-timing-composite-v2",
+      "id": "wealth-timing-composite-v3",
       "category": "wealth_timing",
-      "sourceBasis": "directly_written_from_research_review",
-      "weightingPrinciple": "구매 시점은 재성 하나만 찾지 않고 일간의 감당력, 식상생재 연결, 용희신 적합도, 대운·세운·월운, 원국과의 조건부 합충을 함께 점수화합니다.",
+      "sourceBasis": "directly_written_from_user_provided_research_review",
+      "weightingPrinciple": "구매 시점은 재성 천간·지지의 직접 출현 비중을 낮추고 일간의 감당력, 원국의 식상생재 준비도, 용신 방법 합의도, 대운·세운·월운, 원국과의 조건부 합충을 함께 점수화합니다. 불확실한 판단은 중립값으로 수축합니다.",
       "license": {
         "type": "own_created",
         "source": "directly_written",
         "allowedUse": ["app", "evaluation", "lotto_bridge"],
-        "notes": "명리 연구를 검토해 직접 만든 개인화 시점 규칙이며 추첨 확률 자체를 바꾸는 값은 아닙니다."
+        "notes": "재운·소득 연구의 표본별 차이와 판정자 불일치를 반영한 개인화 시점 규칙이며 추첨 확률 자체를 바꾸는 값은 아닙니다."
       }
     },
     {
@@ -63,6 +63,18 @@
         "source": "directly_written",
         "allowedUse": ["app", "evaluation", "lotto_bridge"],
         "notes": "재다신약을 단순한 재물운 상승으로 오해하지 않도록 만든 안전 규칙입니다."
+      }
+    },
+    {
+      "id": "wealth-research-domain-boundary-v1",
+      "category": "wealth_guardrail",
+      "sourceBasis": "directly_written_from_income_and_vocational_research_review",
+      "weightingPrinciple": "소득, 자영업 재산, 직업유형, 직업만족도를 다룬 연구 결과는 명리 구조와 신뢰도 설계에만 참고하고 번호의 통계 점수나 추첨 확률 가중치로 직접 변환하지 않습니다.",
+      "license": {
+        "type": "own_created",
+        "source": "directly_written",
+        "allowedUse": ["app", "evaluation", "lotto_bridge"],
+        "notes": "서로 다른 결과변수를 복권 당첨 신호로 오인하지 않도록 만든 경계 규칙입니다."
       }
     }
   ],
