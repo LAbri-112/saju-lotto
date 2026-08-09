@@ -33,6 +33,11 @@
   const AUTO_CANDIDATE_POOL_BUDGET = 180000;
   const MIN_VALIDATED_RECALL_DRAWS = 100;
   const MIN_VALIDATED_RECALL_LIFT = 1.01;
+  const FIVE_TICKET_DISJOINT_THREE_PLUS_RATE = 966650 / LOTTO_UNIVERSE_SIZE;
+  const FIVE_TICKET_DISJOINT_FOUR_PLUS_RATE = 56750 / LOTTO_UNIVERSE_SIZE;
+  const PENSION_GROUP_COUNT = 5;
+  const PENSION_SERIAL_UNIVERSE_SIZE = 1000000;
+  const PENSION_TICKET_UNIVERSE_SIZE = PENSION_GROUP_COUNT * PENSION_SERIAL_UNIVERSE_SIZE;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -3899,6 +3904,7 @@
       }
     });
 
+    const isFiveTicketDisjoint = tickets.length === 5 && uniqueNumbers.size === 30;
     return {
       uniqueNumbers: uniqueNumbers.size,
       uniqueTriples: triples.size,
@@ -3906,6 +3912,13 @@
       uniqueQuadruples: quadruples.size,
       maxQuadruples: tickets.length * 15,
       maxPairOverlap,
+      coverageStrategy: isFiveTicketDisjoint ? "disjoint-five" : "diversified",
+      threePlusCoverageRate: isFiveTicketDisjoint
+        ? FIVE_TICKET_DISJOINT_THREE_PLUS_RATE
+        : null,
+      fourPlusCoverageRate: isFiveTicketDisjoint
+        ? FIVE_TICKET_DISJOINT_FOUR_PLUS_RATE
+        : null,
     };
   }
 
@@ -4130,7 +4143,7 @@
     let best = null;
     let bestScore = -Infinity;
 
-    for (let salt = 0; salt < 72; salt += 1) {
+    for (let salt = 0; salt < 256; salt += 1) {
       const ordered = available.slice().sort((left, right) => {
         const leftHash = stableCoverageHash(`${seed}|${salt}|${left}`);
         const rightHash = stableCoverageHash(`${seed}|${salt}|${right}`);
@@ -4150,8 +4163,8 @@
       }
 
       const qualityAverage = qualityTotal / Math.max(1, portfolio.length);
-      const shapeFloor = Math.min(...portfolio.map((item) => item.meta.distributionScore), 0);
-      const candidateScore = qualityAverage + shapeFloor * 0.16;
+      const shapeFloor = Math.min(...portfolio.map((item) => item.meta.distributionScore));
+      const candidateScore = qualityAverage * 0.78 + shapeFloor * 0.22;
       if (candidateScore > bestScore) {
         bestScore = candidateScore;
         best = portfolio;
@@ -4167,9 +4180,25 @@
 
   function selectRecommendationPortfolio(corePool, stats, scores, saju, learningProfile, target) {
     const modelSelection = selectFinalRecommendations(corePool, { target });
-    if (finalPortfolioModelIsValidated() || target <= 1 || !modelSelection.length) {
+    if (target <= 1 || !modelSelection.length) {
       return modelSelection;
     }
+
+    if (target === 5) {
+      const coverageSelection = buildCoverageWheelRecommendations(
+        modelSelection[0],
+        stats,
+        scores,
+        saju,
+        learningProfile,
+        target,
+      );
+      if (coverageSelection.length === target && finalPortfolioGeometry(coverageSelection).uniqueNumbers === 30) {
+        return coverageSelection;
+      }
+    }
+
+    if (finalPortfolioModelIsValidated()) return modelSelection;
 
     const baselineSelection = buildIndependentBaselineRecommendations(
       stats,
@@ -4480,9 +4509,9 @@
   }
 
   const pensionModeLabels = {
-    diversified: "자리 분산형",
+    diversified: "5장 분산형",
     random: "완전 랜덤",
-    set: "세트형",
+    set: "세트형 · 당첨금 집중",
     mixed: "혼합형",
   };
 
@@ -4826,29 +4855,42 @@
     };
   }
 
-  function pensionDiversityPenalty(candidate, selected) {
-    return selected.reduce((penalty, item) => {
-      let nextPenalty = penalty;
-      if (item.group === candidate.group) nextPenalty += 6.5;
-      if (pensionDigitKey(item) === pensionDigitKey(candidate)) nextPenalty += 5.5;
-      if (pensionSuffix(item, 3) === pensionSuffix(candidate, 3)) nextPenalty += 6;
-      else if (pensionSuffix(item, 2) === pensionSuffix(candidate, 2)) nextPenalty += 3.2;
-      else if (pensionSuffix(item, 1) === pensionSuffix(candidate, 1)) nextPenalty += 1.4;
-      return nextPenalty;
-    }, 0);
+  function buildPensionCoverageState(selected) {
+    return {
+      groups: new Set(selected.map((item) => item.group)),
+      serials: new Set(selected.map(pensionDigitKey)),
+      suffixes: Array.from({ length: 6 }, (_, index) => {
+        const length = index + 1;
+        return new Set(selected.map((item) => pensionSuffix(item, length)));
+      }),
+    };
   }
 
-  function selectDiversifiedPensionCandidates(ranked, target) {
+  function pensionCoverageValue(candidate, coverage) {
+    const serialKey = pensionDigitKey(candidate);
+    const suffixWeights = [1000000, 100000, 10000, 1000, 100, 10];
+    const suffixGain = suffixWeights.reduce((total, weight, index) => {
+      const length = index + 1;
+      return total + (coverage.suffixes[index].has(pensionSuffix(candidate, length)) ? 0 : weight);
+    }, 0);
+    const serialGain = coverage.serials.has(serialKey) ? 0 : 5;
+    const groupGain = coverage.groups.has(candidate.group) ? 0 : 1;
+    return suffixGain + serialGain + groupGain + candidate.meta.score / 100;
+  }
+
+  function selectDiversifiedPensionCandidates(ranked, target, initialSelected = []) {
     const selected = [];
-    const source = ranked.slice(0, Math.max(360, target * 140));
+    const source = [...ranked];
 
     while (selected.length < target && source.length) {
       let bestIndex = 0;
       let bestValue = -Infinity;
+      const coverageContext = [...initialSelected, ...selected];
+      const coverage = buildPensionCoverageState(coverageContext);
 
       for (let index = 0; index < source.length; index += 1) {
         const candidate = source[index];
-        const value = candidate.meta.score - pensionDiversityPenalty(candidate, selected);
+        const value = pensionCoverageValue(candidate, coverage);
         if (value > bestValue) {
           bestValue = value;
           bestIndex = index;
@@ -4911,9 +4953,49 @@
     const diversified = selectDiversifiedPensionCandidates(
       ranked.filter((candidate) => !used.has(pensionCandidateKey(candidate))),
       target - setItems.length,
+      setItems,
     );
 
     return [...setItems, ...diversified].slice(0, target);
+  }
+
+  function selectPensionPortfolio(ranked, target, mode, luckyDigits, personalWeight, stats, rng) {
+    if (mode === "set") {
+      return selectSetPensionCandidates(ranked, target, luckyDigits, personalWeight, stats);
+    }
+    if (mode === "mixed") {
+      return selectMixedPensionCandidates(ranked, target, luckyDigits, personalWeight, stats);
+    }
+    if (mode === "random") {
+      return selectRandomPensionCandidates(ranked, target, rng);
+    }
+    return selectDiversifiedPensionCandidates(ranked, target);
+  }
+
+  function buildPensionPortfolioMeta(items, mode) {
+    const ticketKeys = new Set(items.map(pensionCandidateKey));
+    const serialKeys = new Set(items.map(pensionDigitKey));
+    const suffixCounts = {};
+
+    for (let length = 1; length <= 6; length += 1) {
+      suffixCounts[length] = new Set(items.map((item) => pensionSuffix(item, length))).size;
+    }
+
+    return {
+      ticketCount: ticketKeys.size,
+      uniqueSerialCount: serialKeys.size,
+      uniqueLastDigitCount: suffixCounts[1],
+      suffixCounts,
+      firstPrizeRate: ticketKeys.size / PENSION_TICKET_UNIVERSE_SIZE,
+      firstOrSecondRate: serialKeys.size / PENSION_SERIAL_UNIVERSE_SIZE,
+      bonusRate: serialKeys.size / PENSION_SERIAL_UNIVERSE_SIZE,
+      atLeastThirdRate: suffixCounts[5] / 100000,
+      atLeastFourthRate: suffixCounts[4] / 10000,
+      atLeastFifthRate: suffixCounts[3] / 1000,
+      atLeastSixthRate: suffixCounts[2] / 100,
+      atLeastSeventhRate: suffixCounts[1] / 10,
+      focus: mode === "set" ? "당첨금 집중" : mode === "diversified" ? "당첨 접점 우선" : "절충 배치",
+    };
   }
 
   function generatePensionRecommendations() {
@@ -4956,14 +5038,15 @@
     }
 
     const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
-    const selected =
-      mode === "set"
-        ? selectSetPensionCandidates(ranked, target, luckyDigits, personalWeight, stats)
-        : mode === "mixed"
-          ? selectMixedPensionCandidates(ranked, target, luckyDigits, personalWeight, stats)
-          : mode === "random"
-            ? selectRandomPensionCandidates(ranked, target, rng)
-            : selectDiversifiedPensionCandidates(ranked, target);
+    const selected = selectPensionPortfolio(
+      ranked,
+      target,
+      mode,
+      luckyDigits,
+      personalWeight,
+      stats,
+      rng,
+    );
 
     return {
       items: selected,
@@ -4975,6 +5058,7 @@
       stats,
       mode,
       modeLabel: pensionModeLabels[mode],
+      portfolioMeta: buildPensionPortfolioMeta(selected, mode),
       selectedCount: selected.length,
     };
   }
@@ -5104,6 +5188,14 @@
       ? `${formatNumber(result.stats.count)}회차`
       : "준비 중";
     const personalWeightLabel = result.personalWeightState?.label ?? `${result.personalWeight}%`;
+    const portfolio = result.portfolioMeta ?? buildPensionPortfolioMeta(result.items ?? [], result.mode);
+    const topPrizeDenominator = Math.round(1 / portfolio.firstOrSecondRate);
+    const compactOdds = topPrizeDenominator >= 10000 && topPrizeDenominator % 10000 === 0
+      ? `1/${formatNumber(topPrizeDenominator / 10000)}만`
+      : `1/${formatNumber(topPrizeDenominator)}`;
+    const portfolioDetail = result.mode === "set"
+      ? `같은 6자리 · 1·2등 ${compactOdds}`
+      : `끝 1자리 ${formatPercent(portfolio.atLeastSeventhRate, 0)} · 1·2등 ${compactOdds}`;
     pensionStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>연금복권 후보</span>
@@ -5125,6 +5217,7 @@
       <div class="candidate-stat-card">
         <span>추천 방식</span>
         <strong>${result.modeLabel ?? "자리 분산형"}</strong>
+        <em>${portfolioDetail}</em>
       </div>
       ${
         result.stats?.count
@@ -5137,27 +5230,50 @@
   }
 
   function pensionRecommendationReason(item, mode) {
-    const base = `끝 3자리는 ${item.meta.tail}, 숫자 합은 ${item.meta.sum}, 반복은 최대 ${item.meta.maxRepeat}회입니다.`;
     if (mode === "set") {
-      return `${base} 같은 6자리 번호를 1~5조로 깔아 1등이 맞으면 2등 4장까지 함께 노리는 세트형입니다.`;
+      return "같은 6자리 번호를 1~5조로 묶어, 번호 적중 시 1등 1장과 2등 4장이 함께 걸리는 당첨금 집중형입니다.";
     }
     if (mode === "mixed") {
-      return `${base} 일부는 세트형으로 크게 노리고, 일부는 다른 끝자리를 넓게 보는 혼합형입니다.`;
+      return "같은 번호 묶음과 서로 다른 끝자리 배치를 함께 사용한 절충형입니다.";
     }
     if (mode === "random") {
-      return `${base} 통계 기준 후보군 안에서 무작위로 뽑은 배치입니다.`;
+      return "후보군에서 무작위로 뽑은 번호입니다.";
     }
-    return `${base} 서로 다른 조와 번호를 넓게 펼쳐 작은 등수 접점을 늘리는 분산형입니다.`;
+    return "5장의 끝 1자리가 겹치지 않도록 배치해, 한 장이라도 하위 등수에 닿는 범위를 넓힌 번호입니다.";
+  }
+
+  function shuffledPensionCandidates(items, seed) {
+    const shuffled = [...items];
+    const rng = mulberry32(seed);
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(rng() * (index + 1));
+      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+    }
+    return { shuffled, rng };
   }
 
   function renderPensionRecommendations(result, options = {}) {
     if (!pensionRecommendations || !result) return;
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
-    const items = options.randomize
-      ? pickRandomCandidates(result.pool, target, pensionState.generation)
+    const alternative = options.randomize
+      ? shuffledPensionCandidates(result.pool, hashString(`pension-shuffle-${pensionState.generation}`))
+      : null;
+    const items = alternative
+      ? selectPensionPortfolio(
+          alternative.shuffled,
+          target,
+          result.mode,
+          result.luckyDigits,
+          result.personalWeight,
+          result.stats,
+          alternative.rng,
+        )
       : result.items;
+    const renderedResult = alternative
+      ? { ...result, items, portfolioMeta: buildPensionPortfolioMeta(items, result.mode) }
+      : result;
     renderPensionLatestResult();
-    renderPensionStats(result, items.length);
+    renderPensionStats(renderedResult, items.length);
     renderPensionPrizeGuide();
 
     if (pensionShuffle) {
@@ -5234,15 +5350,17 @@
 
   function renderCandidateStats(result) {
     if (!candidateStats) return;
+    const meta = result.candidatePoolMeta ?? {};
     const mode = result.displayMode === "random"
       ? "후보 랜덤 배치"
+      : meta.coverageStrategy === "disjoint-five"
+        ? "5장 무중복"
       : finalPortfolioModelIsValidated()
         ? "검증 랭킹"
         : "3·4개 포착 최적화";
     const shown = result.displayMode === "random"
       ? Math.min(Number(setCount.value) || 5, result.pool?.length ?? 0)
       : result.selectedCount;
-    const meta = result.candidatePoolMeta ?? {};
     candidateStats.innerHTML = `
       <div class="candidate-hero-stat">
         <span>이번 최종 추천</span>
@@ -7756,6 +7874,7 @@
 
     pensionShuffle?.addEventListener("click", () => {
       if (!pensionState.lastResult?.pool?.length) return;
+      pensionState.generation += 1;
       renderPensionRecommendations(pensionState.lastResult, { randomize: true });
     });
 
