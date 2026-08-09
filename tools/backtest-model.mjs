@@ -97,7 +97,9 @@ export function exposeAppEngine(appSource) {
     selectRecommendationPortfolio,
     buildCoverageWheelRecommendations,
     portfolioQualityScore,
-    overlap
+    overlap,
+    buildWeeklyWealthMoment,
+    applyWealthMomentToSaju
   };
 })();
 `,
@@ -298,3 +300,4 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(1);
   });
 }
+
