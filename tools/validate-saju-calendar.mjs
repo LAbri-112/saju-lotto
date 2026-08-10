@@ -24,6 +24,11 @@ function validDateParts(term) {
   if (!Number.isInteger(year) || year < 1800 || year > 2300) return false;
   if (!Number.isInteger(month) || month < 1 || month > 12) return false;
   if (!Number.isInteger(day) || day < 1 || day > 31) return false;
+  const hour = Number(term.hour ?? 0);
+  const minute = Number(term.minute ?? 0);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 24) return false;
+  if (!Number.isInteger(minute) || minute < 0 || minute > 59) return false;
+  if (hour === 24 && minute !== 0) return false;
   return true;
 }
 
@@ -37,9 +42,24 @@ try {
 if (dataset) {
   if (!("schemaVersion" in dataset)) error("schemaVersion is required");
   if (!isObject(dataset.license)) error("license is required");
-  if (!Array.isArray(dataset.terms)) error("terms array is required");
-
-  const terms = Array.isArray(dataset.terms) ? dataset.terms : [];
+  const definitionByNo = new Map(
+    (Array.isArray(dataset.definitions) ? dataset.definitions : []).map((item) => [Number(item.no), item]),
+  );
+  const compactTerms = isObject(dataset.years)
+    ? Object.entries(dataset.years).flatMap(([year, entries]) =>
+        (Array.isArray(entries) ? entries : []).map(([no, month, day, hour, minute]) => ({
+          ...(definitionByNo.get(Number(no)) ?? { no }),
+          year: Number(year),
+          month,
+          day,
+          hour,
+          minute,
+          source: dataset.sourceBasis,
+        })),
+      )
+    : [];
+  const terms = Array.isArray(dataset.terms) ? dataset.terms : compactTerms;
+  if (!terms.length) error("terms array or compact years object is required");
   if (!terms.length) {
     const message = "solar terms data is empty; app will use built-in approximate solar term calculation.";
     if (strict) error(message);
@@ -48,6 +68,11 @@ if (dataset) {
 
   const seen = new Set();
   const byYear = new Map();
+  const knownGaps = new Set(
+    (Array.isArray(dataset.knownGaps) ? dataset.knownGaps : []).map(
+      (gap) => `${gap.year}:${gap.key ?? gap.label}`,
+    ),
+  );
   for (const [index, term] of terms.entries()) {
     if (!isObject(term)) {
       error(`terms[${index}] must be an object`);
@@ -66,7 +91,30 @@ if (dataset) {
   }
 
   for (const [year, count] of byYear.entries()) {
-    if (count !== 24) warning(`${year} has ${count} solar terms; expected 24 when the full year is collected`);
+    if (count !== 24) {
+      const yearGaps = [...knownGaps].filter((key) => key.startsWith(`${year}:`));
+      const suffix = yearGaps.length ? `; recorded source gaps: ${yearGaps.join(", ")}` : "";
+      warning(`${year} has ${count} solar terms; expected 24${suffix}`);
+    }
+  }
+
+  if (dataset.coverage?.startYear !== 1920 || dataset.coverage?.endYear !== 2100) {
+    warning("KASI archive coverage is expected to span 1920-2100");
+  }
+  if (Array.isArray(dataset.definitions) && dataset.definitions.length !== 24) {
+    error(`definitions has ${dataset.definitions.length} entries; expected 24`);
+  }
+
+  const referenceChecks = [
+    [1998, "lichun", 2, 4, 9, 57],
+    [1998, "liqiu", 8, 8, 2, 20],
+    [1998, "bailu", 9, 8, 5, 16],
+  ];
+  for (const [year, key, month, day, hour, minute] of referenceChecks) {
+    const term = terms.find((item) => item.year === year && item.key === key);
+    if (!term || [term.month, term.day, term.hour, term.minute].some((value, index) => value !== [month, day, hour, minute][index])) {
+      error(`${year} ${key} does not match the KASI minute-level reference`);
+    }
   }
 }
 
@@ -81,4 +129,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Saju calendar validation passed (${dataset?.terms?.length ?? 0} terms, ${warnings.length} warnings).`);
+const validatedCount = Array.isArray(dataset?.terms)
+  ? dataset.terms.length
+  : Object.values(dataset?.years ?? {}).reduce((sum, entries) => sum + (Array.isArray(entries) ? entries.length : 0), 0);
+console.log(`Saju calendar validation passed (${validatedCount} terms, ${warnings.length} warnings).`);

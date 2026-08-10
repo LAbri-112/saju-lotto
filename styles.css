@@ -846,6 +846,37 @@ button:focus-visible {
   font-weight: 850;
 }
 
+.wealth-method-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.wealth-method-summary > strong,
+.wealth-method-summary span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.wealth-method-summary > strong {
+  background: #7d2b33;
+  color: #ffffff;
+}
+
+.wealth-method-summary span {
+  border: 1px solid #f2b7ba;
+  background: #ffffff;
+  color: #5e2730;
+}
+
+.wealth-method-summary b {
+  margin-right: 3px;
+}
+
 .automatic-purchase-callout {
   display: grid;
   grid-template-columns: auto 1fr auto;

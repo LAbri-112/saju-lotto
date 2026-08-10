@@ -136,11 +136,33 @@ for (const testCase of evalData.evalCases ?? []) {
   const wealthMoment = engine.buildWeeklyWealthMoment(profile, "lotto", fixedNow);
   if (
     !wealthMoment ||
-    wealthMoment.modelVersion !== "wealth-capacity-chain-v3" ||
+    wealthMoment.modelVersion !== "wealth-capacity-chain-v4" ||
     !Number.isFinite(wealthMoment.currentReadiness) ||
     !Number.isFinite(wealthMoment.profileConfidence)
   ) {
     mismatches.push("capacity-aware weekly wealth timing missing");
+  }
+  if (
+    !profile.interpretationDimensions ||
+    profile.interpretationDimensions.dimensions?.length !== 3 ||
+    !Number.isFinite(profile.interpretationDimensions.confidenceScore)
+  ) {
+    mismatches.push("structure-balance-climate dimension review missing");
+  }
+  if (
+    !Number.isFinite(profile.climate?.heat) ||
+    !Number.isFinite(profile.climate?.moisture) ||
+    !profile.gyeok?.sangshin
+  ) {
+    mismatches.push("quantified climate or Sangshin review missing");
+  }
+  if (
+    input.timeCorrection &&
+    input.birthPlace !== "unknown" &&
+    (!Number.isFinite(profile.birth?.correction?.longitudeMinutes) ||
+      !Number.isFinite(profile.birth?.correction?.equationMinutes))
+  ) {
+    mismatches.push("true-solar-time correction components missing");
   }
   if (!Array.isArray(profile.interactions?.supportItems) || !Array.isArray(profile.interactions?.tensionItems)) {
     mismatches.push("interaction evidence missing");
@@ -157,6 +179,16 @@ for (const testCase of evalData.evalCases ?? []) {
     strengthRatio: Number(profile.strengthRatio.toFixed(3)),
     gyeok: `${profile.gyeok.name} (${profile.gyeok.selectionMethod})`,
     yongsin: profile.favored,
+    solarCorrection: input.timeCorrection
+      ? {
+          longitudeMinutes: Number(profile.birth.correction.longitudeMinutes.toFixed(2)),
+          equationMinutes: Number(profile.birth.correction.equationMinutes.toFixed(2)),
+          totalMinutes: Number(profile.birth.correction.totalCorrection.toFixed(2)),
+        }
+      : null,
+    dimensions: Object.fromEntries(
+      (profile.interpretationDimensions?.dimensions ?? []).map((item) => [item.key, Number(item.score.toFixed(2))]),
+    ),
     passed: mismatches.length === 0,
   });
 }
@@ -172,4 +204,3 @@ if (failures.length) {
 }
 
 console.log(`Saju engine evaluation passed (${results.length} cases).`);
-

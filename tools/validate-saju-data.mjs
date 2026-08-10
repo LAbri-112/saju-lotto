@@ -6,7 +6,7 @@ const files = [
   { path: "data/saju-expert-cases.json", extraArrays: [] },
   { path: "data/saju-eval-cases.json", extraArrays: [] },
   { path: "data/saju-lotto-bridge-rules.json", extraArrays: [] },
-  { path: "data/solar-terms.json", extraArrays: ["terms"] },
+  { path: "data/solar-terms.json", extraArrays: [] },
 ];
 
 const requiredCommonArrays = ["rules", "cases", "evalCases"];
@@ -71,13 +71,13 @@ function inspectExpertCasePrivacy(path, data) {
   }
 }
 
-function validateArrayItems(path, arrayName, items) {
+function validateArrayItems(path, arrayName, items, inheritTopLevelSource = false) {
   for (const [index, item] of items.entries()) {
     if (!isPlainObject(item)) {
       pushError(path, `${arrayName}[${index}] must be an object`);
       continue;
     }
-    if (!("sourceBasis" in item) && !("sourceHint" in item)) {
+    if (!("sourceBasis" in item) && !("sourceHint" in item) && !inheritTopLevelSource) {
       pushWarning(path, `${arrayName}[${index}] should include sourceBasis or sourceHint`);
     }
     if ("license" in item) validateLicense(path, `${arrayName}[${index}]`, item.license);
@@ -104,11 +104,24 @@ for (const file of files) {
   }
   validateLicense(file.path, "top-level", data.license);
 
+  if (file.path === "data/solar-terms.json") {
+    const hasExpandedTerms = Array.isArray(data.terms);
+    const hasCompactYears = isPlainObject(data.years) && Object.keys(data.years).length > 0;
+    if (!hasExpandedTerms && !hasCompactYears) {
+      pushError(file.path, "terms array or compact years object is required");
+    }
+  }
+
   for (const arrayName of [...requiredCommonArrays, ...file.extraArrays]) {
     if (!Array.isArray(data[arrayName])) {
       pushError(file.path, `${arrayName} array is required`);
     } else {
-      validateArrayItems(file.path, arrayName, data[arrayName]);
+      validateArrayItems(
+        file.path,
+        arrayName,
+        data[arrayName],
+        file.path === "data/solar-terms.json" && arrayName === "terms" && Boolean(data.sourceBasis || data.sourceHint),
+      );
     }
   }
 
