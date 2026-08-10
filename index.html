@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v119" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v121" />
   </head>
   <body>
     <main class="app-shell">
@@ -24,9 +24,9 @@
       </section>
 
       <section class="notice">
-        <strong>추천의 중심은 과거 당첨번호 분포입니다.</strong>
+        <strong>수동 번호와 사주 구매 시점을 분리했습니다.</strong>
         <span>
-          추천 생성 시 생년월일·출생시각 기준으로 사주 반영 세팅을 자동으로 맞춥니다.
+          파란 수동 5게임은 과거 당첨번호 통계만으로 고르고, 사주는 빨간 자동 구매 날짜·시간 안내에만 사용합니다.
           모든 조합의 1등 확률은 같으며 당첨을 보장하지 않습니다.
         </span>
       </section>
@@ -34,7 +34,7 @@
       <section class="quick-guide" aria-label="처음 이용 안내">
         <div>
           <strong>처음이면 기본값 그대로 추천 생성만 누르세요.</strong>
-          <span>생년월일과 시각을 넣으면 과거 당첨분포에 가까운 5장을 먼저 보여줍니다.</span>
+          <span>수동 5게임은 누구에게나 같은 통계 기준이며, 출생정보는 자동 구매 시점만 개인화합니다.</span>
         </div>
         <ol>
           <li><span>1</span> 생년월일</li>
@@ -54,7 +54,7 @@
             <div class="form-intro">
               <span>기본 추천</span>
               <strong>가장 쉬운 5장 추천</strong>
-              <p>입력값은 이 기기에 기억됩니다. 추천 생성 시 개인 맞춤 세팅이 자동 적용되고, 필요할 때만 아래 설정을 조절하면 됩니다.</p>
+              <p>수동 5게임은 통계로 고정하고, 입력한 사주는 자동 구매 날짜와 시간만 개인화합니다.</p>
             </div>
 
             <div class="field-row birth-date-row">
@@ -159,7 +159,7 @@
               <div class="field-group">
                 <div class="label-row">
                   <label for="setCount">추천 세트</label>
-                  <button class="help-button" type="button" data-help="몇 장 살지에 가까운 설정입니다. 기본 5세트는 과거 당첨번호들이 자주 나타난 분포에 가장 가까운 후보를 우선 보여주도록 설계했습니다. 사주 반영을 올려도 이 분포 기준이 중심입니다.">?</button>
+                  <button class="help-button" type="button" data-help="화면에 보여줄 수동 구매 조합 수입니다. 기본은 5게임이며 출생정보나 사주와 관계없이 같은 통계 순위에서 고릅니다.">?</button>
                 </div>
                 <input id="setCount" name="setCount" type="number" min="1" max="10" value="5" />
               </div>
@@ -221,40 +221,19 @@
               </div>
             </details>
 
-            <details class="setting-details">
-              <summary>
-                <span>사주 반영</span>
-                <small>개인 맞춤으로 자동 적용</small>
-              </summary>
-              <div class="setting-body">
-                <div class="field-group">
-                  <div class="label-row">
-                    <label for="sajuWeight">사주 반영</label>
-                    <button class="help-button" type="button" data-help="추천 생성 버튼을 누르면 생년월일·출생시각 기준으로 과거 회차를 되돌려보고, 이 사람에게 당첨번호가 더 가까웠던 사주 반영률을 자동으로 맞춥니다. 필요하면 직접 조절할 수 있습니다.">?</button>
-                  </div>
-                  <div class="range-line range-with-buttons">
-                    <button id="sajuMinus" class="step-button" type="button" aria-label="사주 반영 줄이기">−</button>
-                    <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="100" step="1" value="0" />
-                    <input id="sajuWeightNumber" class="weight-number" name="sajuWeightNumber" type="number" min="0" max="100" step="1" value="0" aria-label="사주 반영 직접 입력" />
-                    <output id="sajuWeightOut" for="sajuWeight">0%</output>
-                    <button id="sajuPlus" class="step-button" type="button" aria-label="사주 반영 늘리기">+</button>
-                  </div>
-                </div>
-
-                <div class="field-group">
-                  <div class="label-row">
-                    <label for="interpretationMode">해석 모드</label>
-                    <button class="help-button" type="button" data-help="해석 모드는 사주를 어떤 관점으로 읽을지 고르는 설정입니다. 중화 보완형은 가장 무난한 기본값으로, 내 사주에서 너무 약하거나 강한 오행을 부드럽게 맞춥니다. 재성 강화형은 돈을 쓰고 결정하는 흐름을 조금 더 봅니다. 조후 균형형은 태어난 계절의 차갑고 뜨거운 느낌을 보완합니다. 잘 모르겠으면 중화 보완형을 쓰면 됩니다.">?</button>
-                  </div>
-                  <select id="interpretationMode" name="interpretationMode">
-                    <option value="balance" selected>중화 보완형</option>
-                    <option value="wealth">재성 강화형</option>
-                    <option value="climate">조후 균형형</option>
-                  </select>
-                </div>
-                <p id="autoSajuStatus" class="helper-text">추천 생성 버튼을 누르면 개인 재현 결과로 최근 흐름·해석 모드·사주 반영률을 자동 세팅합니다.</p>
-              </div>
-            </details>
+            <div class="hidden-system-controls" aria-hidden="true">
+              <button id="sajuMinus" type="button" tabindex="-1">−</button>
+              <input id="sajuWeight" name="sajuWeight" type="range" min="0" max="100" step="1" value="0" tabindex="-1" />
+              <input id="sajuWeightNumber" name="sajuWeightNumber" type="number" min="0" max="100" step="1" value="0" tabindex="-1" />
+              <output id="sajuWeightOut" for="sajuWeight">0%</output>
+              <button id="sajuPlus" type="button" tabindex="-1">+</button>
+              <select id="interpretationMode" name="interpretationMode" tabindex="-1">
+                <option value="balance" selected>중화 보완형</option>
+                <option value="wealth">재성 강화형</option>
+                <option value="climate">조후 균형형</option>
+              </select>
+              <p id="autoSajuStatus">사주는 자동 구매 시점에만 사용합니다.</p>
+            </div>
 
             <details class="setting-details">
               <summary>
@@ -315,10 +294,10 @@
           <section class="recommendation-area" aria-labelledby="recommend-title">
             <div class="section-heading">
               <div class="heading-with-help">
-                <h2 id="recommend-title">추천 조합</h2>
-                <button class="help-button" type="button" data-help="최근 중복은 추천 조합 6개 중 직전 회차 당첨번호와 겹치는 개수입니다. 같은 번호가 바로 또 나올 수는 있지만, 앱은 3개 이상 겹치는 조합을 낮게 평가합니다.">?</button>
+                <h2 id="recommend-title">통계 기반 수동 5게임</h2>
+                <button class="help-button" type="button" data-help="과거 당첨번호의 빈도·간격·합계·홀짝·구간 분포와 최근 흐름을 함께 점수화한 수동 추천입니다. 같은 데이터와 설정이면 출생정보와 관계없이 같은 결과가 나옵니다. 모든 개별 조합의 추첨 확률은 같습니다.">?</button>
               </div>
-              <p id="scoreSummary">당첨 분포와 사주 보정값을 계산 중입니다.</p>
+              <p id="scoreSummary">사주와 분리한 당첨번호 통계를 계산 중입니다.</p>
             </div>
             <div id="lottoWealthMoment" class="wealth-moment-card" hidden></div>
             <div class="candidate-toolbar">
@@ -458,38 +437,23 @@
             <div class="form-intro pension-intro">
               <span>연금복권720+</span>
               <strong>조 + 6자리 추천</strong>
-              <p>세트형은 당첨금을 집중하고, 5장 분산형은 서로 다른 끝자리로 당첨 접점을 넓힙니다.</p>
+              <p>수동 번호는 통계로 고르고, 사주는 자동 구매 날짜와 시간만 안내합니다.</p>
             </div>
 
             <div class="field-group">
               <div class="label-row">
                 <label for="pensionBirthDate">생년월일</label>
-                <button class="help-button" type="button" data-help="연금복권 탭 안에서만 쓰는 별도 입력값입니다. 로또 6/45 사주 설정이나 추천 기록에는 영향을 주지 않습니다. 비워두면 오늘 날짜 흐름만 기준으로 추천합니다.">?</button>
+                <button class="help-button" type="button" data-help="연금복권 자동 구매 날짜와 시간을 개인화할 때만 사용합니다. 수동 추천 번호와 로또 6/45 번호에는 영향을 주지 않습니다. 비워두면 오늘 날짜를 기준으로 시점만 안내합니다.">?</button>
               </div>
               <input id="pensionBirthDate" name="pensionBirthDate" type="text" inputmode="numeric" maxlength="12" placeholder="1998-08-27" autocomplete="off" />
             </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <div class="label-row">
-                  <label for="pensionSetCount">추천 세트</label>
-                  <button class="help-button" type="button" data-help="연금복권 번호를 몇 장 볼지 정합니다. 기본은 5장입니다.">?</button>
-                </div>
-                <input id="pensionSetCount" name="pensionSetCount" type="number" min="1" max="10" value="5" />
+            <div class="field-group">
+              <div class="label-row">
+                <label for="pensionSetCount">추천 세트</label>
+                <button class="help-button" type="button" data-help="연금복권 번호를 몇 장 볼지 정합니다. 기본은 5장이며 번호는 출생정보와 분리한 과거 회차 통계로 고릅니다.">?</button>
               </div>
-              <div class="field-group">
-                <div class="label-row">
-                  <label for="pensionPersonalWeight">사주 보정</label>
-                  <button class="help-button" type="button" data-help="명리 자동은 생년월일과 저장된 출생시각을 바탕으로 이번 회차의 재성 흐름이 가장 또렷한 날짜와 시각을 찾고, 그 일진·시진 기운을 번호 개인화에 반영합니다. 직접 비율을 고를 수도 있습니다.">?</button>
-                </div>
-                <select id="pensionPersonalWeight" name="pensionPersonalWeight">
-                  <option value="auto" selected>명리 자동</option>
-                  <option value="0">0%</option>
-                  <option value="25">25%</option>
-                  <option value="50">50%</option>
-                  <option value="75">75%</option>
-                </select>
-              </div>
+              <input id="pensionSetCount" name="pensionSetCount" type="number" min="1" max="10" value="5" />
             </div>
 
             <div class="field-group">
@@ -531,10 +495,10 @@
           <section class="recommendation-area pension-area" aria-labelledby="pension-title">
             <div class="section-heading">
               <div class="heading-with-help">
-                <h2 id="pension-title">연금복권 추천 번호</h2>
-                <button class="help-button" type="button" data-help="연금복권은 로또처럼 6개 숫자를 고르는 방식이 아니라, 1~5조와 000000~999999 사이의 6자리 번호를 고릅니다. 등수는 오른쪽 끝자리부터 얼마나 연속으로 맞는지가 중요합니다.">?</button>
+                <h2 id="pension-title">통계 기반 수동 추천 번호</h2>
+                <button class="help-button" type="button" data-help="연금복권 과거 회차의 자리별 빈도와 조합 분산을 기준으로 고릅니다. 출생정보는 빨간 자동 구매 시점에만 쓰이고 이 번호 순위에는 들어가지 않습니다.">?</button>
               </div>
-              <p>로또 후보와 섞지 않고 별도의 자리별 균형으로 추천합니다.</p>
+              <p>로또·사주와 분리한 연금복권 전용 통계 순위입니다.</p>
             </div>
             <div id="pensionWealthMoment" class="wealth-moment-card" hidden></div>
             <div class="candidate-toolbar">
@@ -575,16 +539,15 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v119"></script>
-    <script defer src="data/pension-results.js?v=feedback-v119"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v119"></script>
-    <script defer src="data/solar-terms.js?v=feedback-v119"></script>
-    <script defer src="data/saju-classical-sources.js?v=feedback-v119"></script>
-    <script defer src="data/saju-expert-rules.js?v=feedback-v119"></script>
-    <script defer src="data/saju-expert-cases.js?v=feedback-v119"></script>
-    <script defer src="data/saju-eval-cases.js?v=feedback-v119"></script>
-    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v119"></script>
-    <script defer src="app.js?v=feedback-v119"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v121"></script>
+    <script defer src="data/pension-results.js?v=feedback-v121"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v121"></script>
+    <script defer src="data/solar-terms.js?v=feedback-v121"></script>
+    <script defer src="data/saju-classical-sources.js?v=feedback-v121"></script>
+    <script defer src="data/saju-expert-rules.js?v=feedback-v121"></script>
+    <script defer src="data/saju-expert-cases.js?v=feedback-v121"></script>
+    <script defer src="data/saju-eval-cases.js?v=feedback-v121"></script>
+    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v121"></script>
+    <script defer src="app.js?v=feedback-v121"></script>
   </body>
 </html>
-
