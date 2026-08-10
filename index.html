@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v122" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v123" />
   </head>
   <body>
     <main class="app-shell">
@@ -120,7 +120,7 @@
             <div class="field-group">
               <div class="label-row">
                 <label for="birthPlace">출생지역</label>
-                <button class="help-button" type="button" data-help="한국 표준시는 동경 135도 기준입니다. 실제 출생지는 이보다 서쪽인 경우가 많아서, 지역 경도 차이만큼 태양시가 몇 분 늦어집니다. 예를 들어 서울은 약 -32분, 원주는 약 -28분 보정됩니다. 1987~1988년처럼 서머타임이 있던 기간은 법정시에서 1시간을 되돌려 계산합니다. 출생지역을 모르면 '출생지역 모름'을 쓰면 됩니다.">?</button>
+                <button class="help-button" type="button" data-help="법정시에서 출생지 경도 차이, 날짜별 균시차, 해당 지역의 서머타임을 각각 보정해 진태양시를 계산합니다. 서울은 경도 차이만 약 -32분이며 균시차에 따라 최종 보정은 날짜별로 달라집니다. 출생지역을 모르면 '출생지역 모름'을 선택하세요.">?</button>
               </div>
               <select id="birthPlace" name="birthPlace">
                 <option value="unknown">출생지역 모름</option>
@@ -141,7 +141,7 @@
             <div class="field-row">
               <label class="check-row">
                 <input id="timeCorrection" name="timeCorrection" type="checkbox" checked />
-                <span>지역·서머타임 보정</span>
+                <span>진태양시 보정</span>
               </label>
               <div class="field-group inline-field">
                 <div class="label-row">
@@ -531,15 +531,15 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v122"></script>
-    <script defer src="data/pension-results.js?v=feedback-v122"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v122"></script>
-    <script defer src="data/solar-terms.js?v=feedback-v122"></script>
-    <script defer src="data/saju-classical-sources.js?v=feedback-v122"></script>
-    <script defer src="data/saju-expert-rules.js?v=feedback-v122"></script>
-    <script defer src="data/saju-expert-cases.js?v=feedback-v122"></script>
-    <script defer src="data/saju-eval-cases.js?v=feedback-v122"></script>
-    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v122"></script>
-    <script defer src="app.js?v=feedback-v122"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v123"></script>
+    <script defer src="data/pension-results.js?v=feedback-v123"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v123"></script>
+    <script defer src="data/solar-terms.js?v=feedback-v123"></script>
+    <script defer src="data/saju-classical-sources.js?v=feedback-v123"></script>
+    <script defer src="data/saju-expert-rules.js?v=feedback-v123"></script>
+    <script defer src="data/saju-expert-cases.js?v=feedback-v123"></script>
+    <script defer src="data/saju-eval-cases.js?v=feedback-v123"></script>
+    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v123"></script>
+    <script defer src="app.js?v=feedback-v123"></script>
   </body>
 </html>
