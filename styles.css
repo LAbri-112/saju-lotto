@@ -846,6 +846,38 @@ button:focus-visible {
   font-weight: 850;
 }
 
+.automatic-purchase-callout {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #ef9da1;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.automatic-purchase-callout span {
+  color: #b4232a;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.automatic-purchase-callout strong {
+  color: #271b1e;
+  font-size: 1.04rem;
+  font-weight: 950;
+}
+
+.automatic-purchase-callout em {
+  color: #7d2b33;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .wealth-best-five-label {
   margin-top: 14px;
   color: #b4232a;
@@ -922,12 +954,26 @@ button:focus-visible {
   line-height: 1.5;
 }
 
-.recommendations.wealth-best-five,
-.pension-recommendations.wealth-best-five {
+.recommendations.statistical-best-five,
+.pension-recommendations.statistical-best-five {
   padding: 8px;
-  border: 2px solid rgba(229, 72, 77, 0.7);
+  border: 2px solid rgba(47, 111, 217, 0.78);
   border-radius: 8px;
-  background: rgba(255, 250, 250, 0.64);
+  background: rgba(247, 251, 255, 0.8);
+  box-shadow: 0 8px 20px rgba(47, 111, 217, 0.08);
+}
+
+.recommendations.statistical-best-five::before,
+.pension-recommendations.statistical-best-five::before {
+  grid-column: 1 / -1;
+  content: "통계 수동 추천";
+  color: #245bb5;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.hidden-system-controls {
+  display: none !important;
 }
 
 .fortune-panel {
@@ -3480,6 +3526,36 @@ line-height: 1;
     white-space: normal;
   }
 
+  .automatic-purchase-callout {
+    grid-template-columns: 1fr auto;
+  }
+
+  .automatic-purchase-callout span {
+    grid-column: 1 / -1;
+  }
+
+  .automatic-purchase-callout strong {
+    font-size: 0.98rem;
+  }
+
+  .pension-result-line,
+  .pension-result-number {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .pension-result-group {
+    min-width: 48px;
+    min-height: 36px;
+  }
+
+  .pension-result-digit {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    font-size: 1rem !important;
+  }
+
   .wealth-pick-list {
     grid-template-columns: 1fr;
   }
@@ -3713,4 +3789,3 @@ line-height: 1;
     gap: 4px;
   }
 }
-

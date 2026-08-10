@@ -682,7 +682,6 @@
   const pensionForm = document.querySelector("#pensionForm");
   const pensionBirthDate = document.querySelector("#pensionBirthDate");
   const pensionSetCount = document.querySelector("#pensionSetCount");
-  const pensionPersonalWeight = document.querySelector("#pensionPersonalWeight");
   const pensionMode = document.querySelector("#pensionMode");
   const pensionStats = document.querySelector("#pensionStats");
   const pensionRecommendations = document.querySelector("#pensionRecommendations");
@@ -1185,10 +1184,9 @@
   function savePensionProfile() {
     if (typeof localStorage === "undefined") return;
     const profile = {
-      version: 4,
+      version: 5,
       birthDate: pensionBirthDate?.value ?? "",
       setCount: pensionSetCount?.value ?? "5",
-      personalWeight: pensionPersonalWeight?.value ?? "auto",
       mode: pensionMode?.value ?? "set",
       savedAt: new Date().toISOString(),
     };
@@ -1209,10 +1207,6 @@
     if (pensionSetCount && profile.setCount != null) {
       pensionSetCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
     }
-    selectValueIfAvailable(
-      pensionPersonalWeight,
-      profile.version >= 4 ? profile.personalWeight : "auto",
-    );
     selectValueIfAvailable(
       pensionMode,
       profile.version >= 2 ? profile.mode : "set",
@@ -1250,22 +1244,18 @@
 
   function recommendationCacheKey() {
     return [
-      "recommendation",
-      birthStateKey(),
+      "statistical-recommendation-v1",
+      dataset.latestDraw,
+      dataset.latestDate,
       recentWindow.value,
       candidatePoolSize?.value ?? "auto",
-      sajuWeight.value,
-      interpretationMode.value,
       topOnly.checked,
       setCount.value,
-      userRegionLabel,
-      walkRange.value,
-      userPosition ? `${userPosition.lat},${userPosition.lng}` : "",
     ].join("|");
   }
 
-  function getCachedLearningProfile(saju) {
-    const key = ["learning", birthStateKey(interpretationMode.value), recentWindow.value].join("|");
+  function getCachedLearningProfile() {
+    const key = ["statistical-learning-v1", dataset.latestDraw, recentWindow.value].join("|");
     return boundedCacheGet(lottoState.learningProfileCache, key, buildObjectiveLearningProfile, 10);
   }
 
@@ -3254,6 +3244,19 @@
     return scores;
   }
 
+  function buildStatisticalScoringContext(baseSaju) {
+    return {
+      ...baseSaju,
+      personalizationEnabled: false,
+      favored: [],
+      usefulScores: Object.fromEntries(elementKeys.map((element) => [element, 1])),
+      dayMaster: {
+        ...baseSaju.dayMaster,
+        polarity: "neutral",
+      },
+    };
+  }
+
   function buildScopedNumberScores(stats, saju, weightOverride, numbers) {
     const getNumberScore = numberScoreFactory(stats, saju);
     const scores = Array(46).fill(null);
@@ -3266,9 +3269,10 @@
   function scoreCombination(numbers, scores, stats, saju, learningProfile = null) {
     const snapshot = patternSnapshot(numbers, stats.latestNumbers);
     const { sum, odd, low, maxGroup, consecutive, sectorCoverage, tailDiversity } = snapshot;
-    const favoredCount = numbers.filter((number) =>
-      saju.favored.includes(primaryNumberElement(number)),
-    ).length;
+    const personalizationEnabled = saju?.personalizationEnabled !== false;
+    const favoredCount = personalizationEnabled
+      ? numbers.filter((number) => saju.favored.includes(primaryNumberElement(number))).length
+      : 0;
 
     const repeatLatest = numbers.filter((number) => stats.latestNumbers.has(number)).length;
     const numberScore =
@@ -3287,7 +3291,11 @@
     const repeatScore = repeatLatest <= 2 ? Math.max(0.66, repeatPatternScore) : repeatPatternScore * 0.72;
     const seenScore = stats.seenCombos.has(numbers.join("-")) ? 0.2 : 1;
     const consecutiveScore = softPatternFit(stats.patternModel, "consecutive", snapshot.consecutiveBand);
-    const favoredScore = favoredCount >= 2 && favoredCount <= 4 ? 1 : 0.7;
+    const favoredScore = personalizationEnabled
+      ? favoredCount >= 2 && favoredCount <= 4
+        ? 1
+        : 0.7
+      : 1;
     const sectorScore = softPatternFit(stats.patternModel, "sectorCoverage", sectorCoverage);
     const tailScore = softPatternFit(stats.patternModel, "tailDiversity", tailDiversity);
     const pairSpread = numbers
@@ -3807,8 +3815,8 @@
             ACTIVE_FRONTIER_LIMIT_MAX,
           )
         : null,
-      modeSetting: interpretationMode?.value ?? "balance",
-      weightSetting: Number(sajuWeight?.value ?? 0),
+      modeSetting: "statistics",
+      weightSetting: 0,
       capped: browserBudget < requested,
       label: selected === "auto" ? "자동 감사 범위" : `${formatNumber(requested)}개 감사 범위`,
     };
@@ -4370,14 +4378,10 @@
   }
 
   function coverageSeed() {
-    const appliedSajuWeight = Number(sajuWeight?.value ?? 0);
-    const personalSeed = appliedSajuWeight > 0
-      ? [birthDate?.value ?? "", birthBranch?.value ?? "", interpretationMode?.value ?? "balance"].join("|")
-      : "statistics-only";
     return [
       Number(dataset?.latestDraw ?? 0) + 1,
-      personalSeed,
-      appliedSajuWeight,
+      "statistics-only-v1",
+      recentWindow?.value ?? "all",
     ].join("|");
   }
 
@@ -4874,59 +4878,6 @@
     return Object.prototype.hasOwnProperty.call(pensionModeLabels, value) ? value : "set";
   }
 
-  function resolvePensionPersonalWeight(luckyDigits, stats) {
-    const setting = pensionPersonalWeight?.value ?? "auto";
-    if (setting !== "auto") {
-      return {
-        setting,
-        weight: Number(setting) || 0,
-        label: `${Number(setting) || 0}%`,
-        confidence: 0,
-      };
-    }
-
-    if (!stats?.count || !luckyDigits?.length) {
-      return {
-        setting: "auto",
-        weight: 25,
-        label: "25%",
-        confidence: 0,
-      };
-    }
-
-    const expected = luckyDigits.length / 10;
-    let weightedSimilarity = 0;
-    let totalWeight = 0;
-
-    for (const rawDraw of pensionDraws) {
-      const draw = normalizePensionDraw(rawDraw);
-      if (!Array.isArray(draw.digits) || draw.digits.length !== 6) continue;
-      const digitFit = draw.digits.filter((digit) => luckyDigits.includes(digit)).length / 6;
-      const bonusFit =
-        Array.isArray(draw.bonusDigits) && draw.bonusDigits.length === 6
-          ? draw.bonusDigits.filter((digit) => luckyDigits.includes(digit)).length / 6
-          : expected;
-      const groupFit = luckyDigits.includes(Number(draw.group) + 4) ? 1 : expected;
-      const prizeWeight = pensionPrizeWeight(rawDraw);
-      weightedSimilarity += (digitFit * 0.72 + bonusFit * 0.18 + groupFit * 0.1) * prizeWeight;
-      totalWeight += prizeWeight;
-    }
-
-    const average = totalWeight ? weightedSimilarity / totalWeight : expected;
-    const gap = average - expected;
-    const weight = gap >= 0.14 ? 75 : gap >= 0.06 ? 50 : 25;
-    const confidence = Math.round(clamp(Math.abs(gap) * 250, 0, 100));
-
-    return {
-      setting: "auto",
-      weight,
-      label: `자동 ${weight}%`,
-      confidence,
-      average: Math.round(average * 1000) / 10,
-      expected: Math.round(expected * 1000) / 10,
-    };
-  }
-
   function pickWeightedIndex(weights, rng, fallbackSize = weights.length) {
     const safeWeights = Array.from({ length: fallbackSize }, (_, index) =>
       Math.max(0.001, Number(weights?.[index] ?? 0) + 0.35),
@@ -5327,26 +5278,23 @@
     const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
     const pensionSaju = buildSajuProfile("wealth", pensionBirthForSaju());
     const wealthMoment = buildWeeklyWealthMoment(pensionSaju, "pension");
-    const luckyDigits = pensionMomentLuckyDigits(
-      wealthMoment,
-      derivePensionLuckyDigits(pensionBirthDate?.value ?? ""),
-    );
+    const luckyDigits = [];
     const stats = buildPensionHistoricalStats();
     const mode = resolvePensionMode();
-    const personalWeightState = resolvePensionPersonalWeight(luckyDigits, stats);
-    const personalWeight = personalWeightState.weight;
+    const personalWeightState = {
+      setting: "statistics",
+      weight: 0,
+      label: "사용 안 함",
+      confidence: 0,
+    };
+    const personalWeight = 0;
     const seed = hashString(
       [
-        "pension",
+        "pension-statistical-v1",
         mode,
-        pensionBirthDate?.value ?? "",
         pensionSetCount?.value ?? "5",
-        personalWeightState.setting,
-        personalWeight,
         stats.latestRound,
         stats.latestDate,
-        wealthMoment?.key ?? "no-wealth-moment",
-        dateToIso(new Date()),
       ].join("|"),
     );
     const rng = mulberry32(seed);
@@ -5377,10 +5325,6 @@
       stats,
       rng,
     );
-    const wealthPicks = target === 5
-      ? selected
-      : selectPensionPortfolio(ranked, 5, mode, luckyDigits, personalWeight, stats, rng);
-
     return {
       items: selected,
       pool: ranked.slice(0, Math.max(target * 80, 300)),
@@ -5394,7 +5338,6 @@
       portfolioMeta: buildPensionPortfolioMeta(selected, mode),
       selectedCount: selected.length,
       wealthMoment,
-      wealthPicks,
       saju: pensionSaju,
     };
   }
@@ -5523,7 +5466,6 @@
     const dataLabel = result.stats?.count
       ? `${formatNumber(result.stats.count)}회차`
       : "준비 중";
-    const personalWeightLabel = result.personalWeightState?.label ?? `${result.personalWeight}%`;
     const portfolio = result.portfolioMeta ?? buildPensionPortfolioMeta(result.items ?? [], result.mode);
     const topPrizeDenominator = Math.round(1 / portfolio.firstOrSecondRate);
     const compactOdds = topPrizeDenominator >= 10000 && topPrizeDenominator % 10000 === 0
@@ -5539,16 +5481,17 @@
         <em>지금 화면에는 ${formatNumber(shownCount)}장만 보여줍니다</em>
       </div>
       <div class="candidate-stat-card">
-        <span>개인 숫자</span>
-        <strong>${result.luckyDigits.join(", ")}</strong>
+        <span>번호 기준</span>
+        <strong>과거 회차 통계</strong>
+        <em>출생정보와 분리</em>
       </div>
       <div class="candidate-stat-card">
         <span>데이터</span>
         <strong>${dataLabel}</strong>
       </div>
       <div class="candidate-stat-card">
-        <span>사주 보정</span>
-        <strong>${personalWeightLabel}</strong>
+        <span>번호 사주 보정</span>
+        <strong>사용 안 함</strong>
       </div>
       <div class="candidate-stat-card">
         <span>추천 방식</span>
@@ -5611,13 +5554,8 @@
     renderPensionLatestResult();
     renderPensionStats(renderedResult, items.length);
     renderPensionPrizeGuide();
-    renderWealthMoment(
-      pensionWealthMoment,
-      result.wealthMoment,
-      options.randomize && items.length >= 5 ? items : result.wealthPicks ?? items,
-      "pension",
-    );
-    pensionRecommendations.classList.toggle("wealth-best-five", items.length >= 5);
+    renderWealthMoment(pensionWealthMoment, result.wealthMoment, "pension");
+    pensionRecommendations.classList.toggle("statistical-best-five", items.length >= 5);
 
     if (pensionShuffle) {
       pensionShuffle.disabled = !result.pool?.length;
@@ -5641,7 +5579,7 @@
             <div class="pension-chip-line">
               <span>홀 ${item.meta.odd} / 짝 ${6 - item.meta.odd}</span>
               <span>높은숫자 ${item.meta.high}</span>
-              <span>개인숫자 ${item.meta.luckyHits}개</span>
+              <span>통계 전용</span>
             </div>
           </article>
         `;
@@ -5740,12 +5678,7 @@
     const items = randomized ? pickRandomCandidates(result.pool, target) : result.items ?? result;
     result.displayMode = randomized ? "random" : "best";
     renderCandidateStats(result);
-    renderWealthMoment(
-      lottoWealthMoment,
-      result.wealthMoment,
-      randomized && items.length >= 5 ? items : result.wealthPicks ?? items,
-      "lotto",
-    );
+    renderWealthMoment(lottoWealthMoment, result.wealthMoment, "lotto");
     if (shuffleCandidates) {
       shuffleCandidates.disabled = !result.pool?.length;
       shuffleCandidates.textContent = randomized ? "다른 후보 랜덤 배치" : "후보 랜덤 배치";
@@ -6630,7 +6563,7 @@
     if (priorDraws.length < 30) return "";
 
     const windowSize = snapshot.settings?.recentWindow ?? (Number(recentWindow.value) || 50);
-    const floor = autoScoreFloorFromLearning(getCachedLearningProfile(saju));
+    const floor = autoScoreFloorFromLearning(getCachedLearningProfile());
     const statsBeforeDraw = buildStats(windowSize, priorDraws);
     const statOnlyMeta = scoreCombination(
       draw.numbers,
@@ -7544,34 +7477,36 @@
     return moment.slot.range;
   }
 
-  function renderWealthMoment(container, moment, items, game = "lotto") {
+  function renderWealthMoment(container, moment, game = "lotto") {
     if (!container || !moment) return;
-    const picks = (items ?? []).slice(0, 5);
-    const numbers = picks.map((item, index) => {
-      if (game === "pension") {
-        const digits = item.digits.map((digit) => `<span>${digit}</span>`).join("");
-        return `<div class="wealth-pick-row"><b>${index + 1}</b><em>${item.group}조</em><div class="wealth-pension-digits">${digits}</div></div>`;
-      }
-      return `<div class="wealth-pick-row"><b>${index + 1}</b><div class="wealth-lotto-balls">${item.numbers.map(renderBall).join("")}</div></div>`;
-    }).join("");
     const runnerUpText = moment.runnerUp
       ? `차선 시점은 ${formatDay(moment.runnerUp.date)} ${wealthMomentRange(moment.runnerUp)}입니다.`
       : "";
-    const gameName = game === "pension" ? "연금복권" : "로또";
+    const configuredCount = game === "pension"
+      ? Number(pensionSetCount?.value)
+      : Number(setCount?.value);
+    const ticketCount = clamp(configuredCount || 5, 1, 5);
+    const purchaseLabel = game === "pension"
+      ? `연금복권 무작위 ${ticketCount}장`
+      : `로또 자동 ${ticketCount}게임`;
+    const totalPrice = formatNumber(ticketCount * 1000);
 
     container.innerHTML = `
       <div class="wealth-moment-heading">
         <div>
-          <span>이번 회차 재성 1순위</span>
+          <span>자동 구매 시점</span>
           <h3>${formatDay(moment.date)} ${wealthMomentRange(moment)}</h3>
         </div>
         <strong>${moment.dayPillar.name} 일진 · ${moment.hourPillar.name} 시진</strong>
       </div>
-      <p class="wealth-moment-lead">이번 주 가장 재성(재물운) 흐름이 또렷한 때입니다. 이 앱의 명리 기준에서는 이 시간대에 아래 ${gameName} 베스트 5조합을 구매하는 흐름이 가장 잘 맞습니다.</p>
+      <p class="wealth-moment-lead">이 앱의 명리 기준에서는 이번 회차에 자동 구매하기 가장 잘 맞는 시간대로 읽습니다. 번호 선택은 통계 추천과 분리하고 기계의 무작위 선택에 맡깁니다.</p>
+      <div class="automatic-purchase-callout">
+        <span>추천 구매</span>
+        <strong>${purchaseLabel}</strong>
+        <em>총 ${totalPrice}원</em>
+      </div>
       <div class="wealth-moment-reasons">${moment.reasons.map((reason) => `<span>${reason}</span>`).join("")}</div>
-      <div class="wealth-best-five-label">이날 구매할 베스트 5조합</div>
-      <div class="wealth-pick-list">${numbers}</div>
-      <small>${moment.policy.label} 이전 기준입니다. ${runnerUpText} 사주 흐름은 번호의 추첨 확률을 바꾸는 값이 아니라 개인화 선택 기준입니다.</small>
+      <small>${moment.policy.label} 이전 기준입니다. ${runnerUpText} 이 시점은 추첨 확률을 바꾸는 값이 아니라 사주를 이용한 개인화 구매 리듬입니다.</small>
     `;
     container.hidden = false;
   }
@@ -8085,7 +8020,7 @@
     const container = document.querySelector("#recommendations");
 
     if (summary) {
-      summary.textContent = "추천 후보를 준비하고 있습니다. 화면을 먼저 띄운 뒤 계산합니다.";
+      summary.textContent = "통계 기반 수동 추천을 준비하고 있습니다.";
     }
 
     if (candidateStats) {
@@ -8093,7 +8028,7 @@
         <div class="candidate-hero-stat">
           <span>추천 준비</span>
           <strong>잠시만요</strong>
-          <em>당첨번호 데이터와 개인 설정을 맞추는 중입니다</em>
+          <em>당첨번호 분포와 최근 흐름을 계산하는 중입니다</em>
         </div>
       `;
     }
@@ -8130,18 +8065,17 @@
     const stats = buildStats(selectedWindow.size);
     const baseSaju = buildSajuProfile();
     const wealthMoment = buildWeeklyWealthMoment(baseSaju, "lotto");
-    const saju = applyWealthMomentToSaju(baseSaju, wealthMoment);
-    const timingWeight = Math.max(Number(sajuWeight.value) / 100, 0.35);
+    const statisticalContext = buildStatisticalScoringContext(baseSaju);
     renderFastPersonalPanels(baseSaju);
-    const learningProfile = getCachedLearningProfile(baseSaju);
-    const scores = buildNumberScores(stats, saju, timingWeight);
-    const resultKey = `${recommendationCacheKey()}|wealth:${wealthMoment?.key ?? "none"}`;
+    const learningProfile = getCachedLearningProfile();
+    const scores = buildNumberScores(stats, statisticalContext, 0);
+    const resultKey = recommendationCacheKey();
     const result = options.forceNew
-      ? generateRecommendations(stats, scores, saju, learningProfile)
+      ? generateRecommendations(stats, scores, statisticalContext, learningProfile)
       : boundedCacheGet(
           lottoState.recommendationResultCache,
           resultKey,
-          () => generateRecommendations(stats, scores, saju, learningProfile),
+          () => generateRecommendations(stats, scores, statisticalContext, learningProfile),
           8,
         );
     if (options.forceNew) {
@@ -8150,28 +8084,22 @@
         lottoState.recommendationResultCache.delete(lottoState.recommendationResultCache.keys().next().value);
       }
     }
-    const modeLabel = interpretationMode.options[interpretationMode.selectedIndex].textContent;
-    const sajuText = `사주 반영 ${sajuWeight.value}%`;
-
-    sajuWeightOut.textContent = `${sajuWeight.value}%`;
+    sajuWeightOut.textContent = "0%";
     document.querySelector("#scoreSummary").textContent =
-      `${modeLabel} · ${selectedWindow.label} · ${sajuText} · 핵심 후보망 ${formatNumber(result.filteredCount)}개`;
+      `통계 전용 · ${selectedWindow.label} · 사주 미반영 · 핵심 후보망 ${formatNumber(result.filteredCount)}개`;
 
     result.wealthMoment = wealthMoment;
-    result.wealthPicks = Number(setCount.value) === 5
-      ? result.items
-      : selectRecommendationPortfolio(result.pool, stats, scores, saju, learningProfile, 5);
     lottoState.lastResult = result;
     renderRecommendations(result);
-    document.querySelector("#recommendations")?.classList.toggle("wealth-best-five", result.items.length >= 5);
+    document.querySelector("#recommendations")?.classList.toggle("statistical-best-five", result.items.length >= 5);
     renderRecommendationAudit(learningProfile);
     if (options.skipPortfolio) {
       const auditContainer = document.querySelector("#candidateAuditSummary");
       if (auditContainer) {
         auditContainer.innerHTML = `
           <div class="candidate-audit-empty">
-            <strong>개인 맞춤 재현 계산 준비 중</strong>
-            <p>첫 화면을 먼저 띄운 뒤, 사주 0~100%와 여러 최근 흐름 기준을 잠시 후 다시 계산합니다.</p>
+            <strong>통계 복기 계산 준비 중</strong>
+            <p>첫 화면을 먼저 띄운 뒤, 과거 회차의 당첨 분포와 최근 흐름을 다시 계산합니다.</p>
           </div>
         `;
       }
@@ -8330,26 +8258,15 @@
       return null;
     }
 
-    const windowValue = String(setting.windowValue ?? setting.windowSize);
-    if ([...recentWindow.options].some((option) => option.value === windowValue)) {
-      recentWindow.value = windowValue;
-    } else if ([...recentWindow.options].some((option) => Number(option.value) === Number(setting.windowSize))) {
-      recentWindow.value = String(setting.windowSize);
-    }
-
     if ([...interpretationMode.options].some((option) => option.value === setting.mode)) {
       interpretationMode.value = setting.mode;
     }
 
-    syncSajuWeight(setting.weight, false);
+    syncSajuWeight(0, false);
 
     if (autoSajuStatus) {
-      const basisText = setting.basisDraw ? `${setting.basisDraw}회 ` : "";
-      const reasonText = setting.fast
-        ? "빠른 개인 요약 기준으로 먼저 맞췄습니다."
-        : `${basisText}전체 회차 요약에서 자주 가까웠던 설정입니다.`;
       autoSajuStatus.textContent =
-        `자동 적용됨: ${autoSajuSettingLabel(setting)} · ${reasonText}`;
+        "사주는 자동 구매 날짜와 시간에만 적용되며, 수동 번호 순위에는 반영되지 않습니다.";
     }
 
     return setting;
@@ -8499,7 +8416,7 @@
       refreshPension();
     });
 
-    for (const control of [pensionSetCount, pensionPersonalWeight, pensionMode]) {
+    for (const control of [pensionSetCount, pensionMode]) {
       control?.addEventListener("input", () => {
         savePensionProfile();
         schedulePensionRefresh();
@@ -8648,4 +8565,3 @@
 
   init();
 })();
-
