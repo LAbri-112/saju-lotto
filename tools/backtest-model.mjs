@@ -77,6 +77,9 @@ export function buildControls(config) {
   });
   add("walkRange", { value: String(config.walkRange) });
   add("candidatePoolSize", { value: config.candidatePoolSize ?? "auto" });
+  add("pensionBirthDate", { value: config.pensionBirthDate ?? config.birthDate });
+  add("pensionSetCount", { value: String(config.pensionSetCount ?? 5) });
+  add("pensionMode", { value: config.pensionMode ?? "set" });
 
   return controls;
 }
@@ -88,14 +91,18 @@ export function exposeAppEngine(appSource) {
   window.__APP__ = {
     buildStats,
     buildSajuProfile,
+    buildStatisticalScoringContext,
     buildNumberScores,
     scoreCombination,
+    buildObjectiveLearningProfile,
     buildDeterministicCandidatePool,
     autoFilterCandidates,
     buildCoreCandidatePool,
     selectFinalRecommendations,
     selectRecommendationPortfolio,
     buildCoverageWheelRecommendations,
+    generateRecommendations,
+    generatePensionRecommendations,
     portfolioQualityScore,
     overlap,
     buildWeeklyWealthMoment,
@@ -122,6 +129,7 @@ export function runAppEngine(appSource, dataset, config, recallProfile = null, r
     Object,
     window: {
       LOTTO_RESULTS: dataset,
+      PENSION_RESULTS: referenceData.pensionResults,
       LOTTO_RECALL_PROFILE: recallProfile,
       SAJU_SOLAR_TERMS: referenceData.solarTerms,
       SAJU_CLASSICAL_SOURCES: referenceData.classicalSources,
@@ -300,4 +308,3 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(1);
   });
 }
-
