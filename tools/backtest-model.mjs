@@ -103,6 +103,7 @@ export function exposeAppEngine(appSource) {
     buildCoverageWheelRecommendations,
     generateRecommendations,
     generatePensionRecommendations,
+    replaceSoldPensionRecommendation,
     portfolioQualityScore,
     overlap,
     buildWeeklyWealthMoment,
