@@ -897,14 +897,35 @@
     const officialTerms = Array.isArray(sajuReferenceData.solarTerms?.terms)
       ? sajuReferenceData.solarTerms.terms
       : [];
-    if (!officialTerms.length) return null;
-
-    const entry = officialTerms.find((item) => {
+    let entry = officialTerms.find((item) => {
       const sameYear = Number(item.year) === Number(year);
       const sameLongitude = Math.abs(Number(item.longitude) - Number(term.longitude)) < 0.001;
       const sameKey = item.key === term.key;
       return sameYear && (sameLongitude || sameKey);
     });
+
+    if (!entry && sajuReferenceData.solarTerms?.compact) {
+      const definitions = Array.isArray(sajuReferenceData.solarTerms.definitions)
+        ? sajuReferenceData.solarTerms.definitions
+        : [];
+      const definition = definitions.find(
+        (item) => item.key === term.key || Math.abs(Number(item.longitude) - Number(term.longitude)) < 0.001,
+      );
+      const compactEntry = sajuReferenceData.solarTerms.years?.[String(year)]?.find(
+        (item) => Number(item?.[0]) === Number(definition?.no),
+      );
+      if (definition && compactEntry) {
+        entry = {
+          ...definition,
+          year: Number(year),
+          month: compactEntry[1],
+          day: compactEntry[2],
+          hour: compactEntry[3],
+          minute: compactEntry[4],
+          source: "KASI_24_TERM_TABLE_1920_2100",
+        };
+      }
+    }
     if (!entry) return null;
 
     const yearPart = Number(entry.year);
@@ -1351,11 +1372,27 @@
 
   function localSolarCorrectionMinutes(place) {
     if (!Number.isFinite(place?.lng)) return 0;
-    return Math.round((place.lng - 135) * 4);
+    const standardMeridian = Number.isFinite(place.standardMeridian) ? place.standardMeridian : 135;
+    return (place.lng - standardMeridian) * 4;
+  }
+
+  function equationOfTimeMinutes(year, month, day, hour = 12, minute = 0) {
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const start = new Date(Date.UTC(year, 0, 0));
+    const dayOfYear = Math.floor((date - start) / 86400000);
+    const daysInYear = new Date(Date.UTC(year + 1, 0, 0)) - start > 365 * 86400000 ? 366 : 365;
+    const gamma = (2 * Math.PI / daysInYear) * (dayOfYear - 1 + (hour + minute / 60 - 12) / 24);
+    return 229.18 * (
+      0.000075 +
+      0.001868 * Math.cos(gamma) -
+      0.032077 * Math.sin(gamma) -
+      0.014615 * Math.cos(2 * gamma) -
+      0.040849 * Math.sin(2 * gamma)
+    );
   }
 
   function clockFromMinutes(totalMinutes) {
-    const normalized = mod(totalMinutes, 1440);
+    const normalized = mod(Math.round(totalMinutes), 1440);
     return {
       hour: Math.floor(normalized / 60),
       minute: normalized % 60,
@@ -1366,7 +1403,7 @@
   function formatMinutes(value) {
     if (!value) return "0분";
     const sign = value > 0 ? "+" : "-";
-    const abs = Math.abs(value);
+    const abs = Math.abs(Math.round(value));
     const hours = Math.floor(abs / 60);
     const minutes = abs % 60;
     return `${sign}${hours ? `${hours}시간 ` : ""}${minutes}분`;
@@ -1380,11 +1417,17 @@
     const place = selectedBirthPlace();
     const hasKnownPlace = Number.isFinite(place.lng);
     const dstMinutes = isKoreanDst(year || 1990, month || 1, day || 1, midpoint.hour, midpoint.minute) ? -60 : 0;
-    const solarMinutes = localSolarCorrectionMinutes(place);
+    const longitudeMinutes = localSolarCorrectionMinutes(place);
+    const equationMinutes = hasKnownPlace
+      ? equationOfTimeMinutes(year || 1990, month || 1, day || 1, midpoint.hour, midpoint.minute)
+      : 0;
+    const solarMinutes = longitudeMinutes + equationMinutes;
     const correctionEnabled = Boolean(timeCorrection?.checked) && !unknownTime.checked;
     const totalCorrection = correctionEnabled ? solarMinutes + dstMinutes : 0;
     const baseMinutes = midpoint.hour * 60 + midpoint.minute;
     const adjusted = clockFromMinutes(baseMinutes + totalCorrection);
+    const branchPhase = mod(adjusted.minuteOfDay - 90, 120);
+    const boundaryDistanceMinutes = Math.min(branchPhase, 120 - branchPhase);
     const rawDate = new Date(Date.UTC(year || 1990, (month || 1) - 1, day || 1, 0, baseMinutes + totalCorrection));
     const useTraditionalMidnight = midnightRule?.value === "traditional" && adjusted.minuteOfDay >= 1410;
     const finalDate = new Date(rawDate);
@@ -1396,9 +1439,14 @@
       place,
       correctionEnabled,
       solarMinutes,
+      longitudeMinutes,
+      equationMinutes,
       dstMinutes,
       totalCorrection,
       hasKnownPlace,
+      boundaryDistanceMinutes,
+      boundarySensitive: boundaryDistanceMinutes <= 5,
+      method: hasKnownPlace ? "local-apparent-solar-time" : "civil-time-fallback",
       original: {
         year: year || 1990,
         month: month || 1,
@@ -1426,7 +1474,7 @@
   function updateTimeCorrectionPreview(correction = computeBirthCorrection()) {
     if (!timeCorrectionStatus) return;
     if (correction.unknownHour) {
-      timeCorrectionStatus.textContent = "시각 모름 상태라 지역·서머타임 보정은 명식 시간 계산에 적용하지 않습니다.";
+      timeCorrectionStatus.textContent = "시각 모름 상태라 경도·균시차·서머타임 보정은 명식 시간 계산에 적용하지 않습니다.";
       return;
     }
 
@@ -1434,14 +1482,15 @@
     const dstText = correction.dstMinutes ? "서머타임 -1시간 포함" : "서머타임 없음";
     const ruleText = correction.midnightRule === "traditional" ? "전통 자시 기준" : "야자시/조자시 기준";
     const placeText = correction.hasKnownPlace
-      ? `${correction.place.label} 기준 태양시 ${formatMinutes(correction.solarMinutes)}`
+      ? `${correction.place.label} 기준 경도 ${formatMinutes(correction.longitudeMinutes)} · 균시차 ${formatMinutes(correction.equationMinutes)}`
       : "출생지역 모름 · 지역 태양시 보정 0분";
+    const boundaryText = correction.boundarySensitive ? " · 시진 경계 5분 이내" : "";
     const calendarText = correction.original.calendar === "lunar"
       ? `음력 ${isoFromParts(correction.original.input.year, correction.original.input.month, correction.original.input.day)} 입력 · 양력 ${isoFromParts(correction.original.year, correction.original.month, correction.original.day)} 계산`
       : `양력 ${isoFromParts(correction.original.year, correction.original.month, correction.original.day)} 계산`;
-    timeCorrectionStatus.textContent = `${calendarText}. ${placeText}, ${dstText}. 최종 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
+    timeCorrectionStatus.textContent = `${calendarText}. ${placeText}, ${dstText}. 진태양시 보정 ${formatMinutes(correction.totalCorrection)} → ${String(
       correction.adjusted.hour,
-    ).padStart(2, "0")}:${String(correction.adjusted.minute).padStart(2, "0")} · ${adjustedLabel} · ${ruleText}`;
+    ).padStart(2, "0")}:${String(correction.adjusted.minute).padStart(2, "0")} · ${adjustedLabel} · ${ruleText}${boundaryText}`;
   }
 
   function midpointForBranch(branchIndex) {
@@ -2517,21 +2566,66 @@
     };
   }
 
-  function buildClimateProfile(solarMonth) {
+  function buildClimateProfile(solarMonth, counts, dayElement) {
     const monthBranch = branches[solarMonth.branchIndex][0];
-    const bySeason = {
-      winter: { primary: "fire", secondary: "wood", text: "찬 기운을 덥히고 움직임을 돕는 방향" },
-      spring: { primary: "fire", secondary: "metal", text: "성장 기운을 따뜻하게 펴고 모양을 잡는 방향" },
-      summer: { primary: "water", secondary: "metal", text: "뜨겁고 마른 흐름을 식히고 정리하는 방향" },
-      autumn: { primary: "water", secondary: "wood", text: "건조해지는 흐름을 적시고 생기를 잇는 방향" },
+    const branchClimate = {
+      0: { heat: -1, moisture: 0.82 },
+      1: { heat: -0.78, moisture: 0.48 },
+      2: { heat: -0.3, moisture: 0.22 },
+      3: { heat: -0.02, moisture: 0.28 },
+      4: { heat: 0.12, moisture: 0.52 },
+      5: { heat: 0.78, moisture: -0.3 },
+      6: { heat: 1, moisture: -0.5 },
+      7: { heat: 0.62, moisture: -0.58 },
+      8: { heat: 0.24, moisture: -0.42 },
+      9: { heat: -0.08, moisture: -0.68 },
+      10: { heat: -0.28, moisture: -0.5 },
+      11: { heat: -0.76, moisture: 0.74 },
     };
-    const profile = bySeason[solarMonth.season] ?? bySeason.spring;
+    const baseline = branchClimate[solarMonth.branchIndex] ?? { heat: 0, moisture: 0 };
+    const shares = Object.fromEntries(elementKeys.map((element) => [element, elementShare(counts, element)]));
+    const heat = clamp(
+      baseline.heat +
+        (shares.fire - 0.2) * 1.12 +
+        (shares.wood - 0.2) * 0.22 -
+        (shares.water - 0.2) * 0.94 -
+        (shares.metal - 0.2) * 0.18,
+      -1.5,
+      1.5,
+    );
+    const moisture = clamp(
+      baseline.moisture +
+        (shares.water - 0.2) * 1.05 +
+        (shares.wood - 0.2) * 0.14 -
+        (shares.fire - 0.2) * 0.7 -
+        (shares.metal - 0.2) * 0.28,
+      -1.5,
+      1.5,
+    );
+    const candidates = [];
+    if (heat <= -0.25) candidates.push("fire", "wood");
+    else if (heat >= 0.25) candidates.push("water", "metal");
+    if (moisture <= -0.25) candidates.push("water", "wood");
+    else if (moisture >= 0.25) candidates.push("fire", "earth");
+    if (!candidates.length) candidates.push(generatedBy(dayElement), dayElement);
+    const uniqueCandidates = [...new Set(candidates)].slice(0, 3);
+    const severity = clamp(Math.max(Math.abs(heat), Math.abs(moisture)) / 1.5);
+    const heatLabel = heat <= -0.45 ? "차가운 편" : heat >= 0.45 ? "더운 편" : "온도 중간권";
+    const moistureLabel = moisture <= -0.4 ? "건조한 편" : moisture >= 0.4 ? "습한 편" : "습도 중간권";
+    const confidenceScore = clamp(0.56 + severity * 0.25, 0.5, 0.82);
     return {
-      ...profile,
+      primary: uniqueCandidates[0],
+      secondary: uniqueCandidates[1] ?? uniqueCandidates[0],
       monthBranch,
-      candidates: [profile.primary, profile.secondary],
-      confidence: "1차 후보",
-      basis: `${monthBranch}월의 계절 한난조습을 먼저 본 ${profile.text}입니다. 일간별 세부 조후와 원국의 실제 온도는 함께 대조해야 합니다.`,
+      candidates: uniqueCandidates,
+      heat,
+      moisture,
+      heatLabel,
+      moistureLabel,
+      severity,
+      confidenceScore,
+      confidence: confidenceScore >= 0.72 ? "비교적 뚜렷" : "보조 판단",
+      basis: `${monthBranch}월의 계절 바탕과 원국 오행을 함께 보면 ${heatLabel}, ${moistureLabel}으로 읽힙니다. 조후는 온도와 습도를 따로 본 뒤 억부·격국 판단과 대조합니다.`,
     };
   }
 
@@ -2540,8 +2634,26 @@
     const exposedStems = new Set(
       pillars.filter((pillar) => pillar.kind !== "day").map((pillar) => pillar.stemIndex),
     );
-    const exposedHidden = monthHidden.find((hidden) => exposedStems.has(hidden.stem));
-    const selectedHidden = exposedHidden ?? monthHidden[0] ?? { stem: solarMonth.branchIndex, weight: 1 };
+    const candidates = monthHidden
+      .map((hidden, index) => {
+        const exposedCount = pillars.filter(
+          (pillar) => pillar.kind !== "day" && pillar.stemIndex === hidden.stem,
+        ).length;
+        const rootedCount = pillars.filter((pillar) =>
+          (hiddenStems[pillar.branchIndex] ?? []).some((item) => item.stem === hidden.stem),
+        ).length;
+        const score = clamp(
+          hidden.weight * 0.48 +
+            (index === 0 ? 0.12 : 0) +
+            (exposedCount ? 0.26 + Math.min(0.08, (exposedCount - 1) * 0.04) : 0) +
+            Math.min(0.08, rootedCount * 0.025),
+        );
+        return { ...hidden, exposedCount, rootedCount, score, isMain: index === 0 };
+      })
+      .sort((left, right) => right.score - left.score || right.weight - left.weight);
+    const selectedHidden = candidates[0] ?? { stem: solarMonth.branchIndex, weight: 1, score: 0.45 };
+    const runnerUp = candidates[1];
+    const mixed = Boolean(runnerUp && selectedHidden.score - runnerUp.score < 0.12);
     const tenGodKey = tenGod(dayStem, selectedHidden.stem);
     const tenGodName = tenGodLabels[tenGodKey];
     const frameName = `${tenGodName}격`;
@@ -2566,14 +2678,22 @@
       plain,
       element: stems[selectedHidden.stem][1],
       selectedStem: stems[selectedHidden.stem][0],
-      selectionMethod: exposedHidden ? "월령 지장간 투간" : "월령 본기",
-      confidence: exposedHidden ? "보통 이상" : "잠정",
-      alternatives: monthHidden
+      selectionMethod: selectedHidden.exposedCount ? "월령 지장간 투간" : "월령 본기·세력",
+      establishmentScore: selectedHidden.score,
+      status: mixed ? "복수 격 후보" : selectedHidden.score >= 0.72 ? "성립 가능성 높음" : "잠정 격",
+      confidence: mixed ? "복수 후보" : selectedHidden.score >= 0.72 ? "보통 이상" : "잠정",
+      mixed,
+      alternatives: candidates
         .filter((hidden) => hidden.stem !== selectedHidden.stem)
-        .map((hidden) => ({ stem: stems[hidden.stem][0], tenGod: tenGodLabels[tenGod(dayStem, hidden.stem)] })),
-      text: exposedHidden
+        .map((hidden) => ({
+          stem: stems[hidden.stem][0],
+          tenGod: tenGodLabels[tenGod(dayStem, hidden.stem)],
+          score: hidden.score,
+          exposed: hidden.exposedCount > 0,
+        })),
+      text: selectedHidden.exposedCount
         ? `${branches[solarMonth.branchIndex][0]}월 지장간 ${stems[selectedHidden.stem][0]}가 천간에 드러난 점을 먼저 보아 ${frameName} 후보로 잡습니다. ${frameText}`
-        : `${branches[solarMonth.branchIndex][0]}월의 지장간이 천간에 뚜렷이 드러나지 않아 본기 ${stems[selectedHidden.stem][0]}를 기준으로 ${frameName}을 잠정 후보로 봅니다. ${frameText}`,
+        : `${branches[solarMonth.branchIndex][0]}월의 지장간이 천간에 뚜렷이 드러나지 않아 본기와 월령 세력을 함께 보아 ${frameName}을 잠정 후보로 봅니다. ${frameText}`,
     };
   }
 
@@ -2584,6 +2704,38 @@
     if (["sevenKillings", "directOfficer"].includes(gyeok.key)) return [resourceElement];
     if (["indirectResource", "directResource"].includes(gyeok.key)) return [wealthElement, outputElement];
     return [];
+  }
+
+  function assessGyeokProfile(gyeok, context) {
+    const supportCandidates = gyeokSupportCandidates(gyeok, context);
+    const supportShares = supportCandidates.map((element) => elementShare(context.counts, element));
+    const supportPresence = supportShares.length ? Math.max(...supportShares) : 0;
+    const framePresence = elementShare(context.counts, gyeok.element);
+    const establishmentScore = clamp(
+      gyeok.establishmentScore * 0.72 +
+        Math.min(0.18, supportPresence * 0.55) +
+        Math.min(0.1, framePresence * 0.3) -
+        (gyeok.mixed ? 0.06 : 0),
+    );
+    const status = gyeok.mixed
+      ? "복수 격 후보"
+      : establishmentScore >= 0.74
+        ? "성립 가능성 높음"
+        : establishmentScore >= 0.56
+          ? "성립 가능성 보통"
+          : "잠정 격";
+    return {
+      ...gyeok,
+      establishmentScore,
+      status,
+      confidence: status === "성립 가능성 높음" ? "보통 이상" : status === "복수 격 후보" ? "복수 후보" : "잠정",
+      sangshin: {
+        candidates: supportCandidates,
+        primary: supportCandidates[0] ?? null,
+        presence: supportPresence,
+        status: supportPresence >= 0.2 ? "원국에서 확인" : "운에서 보완 확인 필요",
+      },
+    };
   }
 
   function elementShare(counts, element) {
@@ -2760,6 +2912,72 @@
         conditionalTransformations: true,
       },
       yongsin,
+    };
+  }
+
+  function buildInterpretationDimensions({
+    counts,
+    strengthAnalysis,
+    climate,
+    gyeok,
+    yongsinDecision,
+    birth,
+  }) {
+    const maximumShare = Math.max(...elementKeys.map((element) => elementShare(counts, element)));
+    const strengthDistance = Math.abs(strengthAnalysis.ratio - 0.5) * 2;
+    const balanceScore = clamp(
+      10 - strengthDistance * 4.6 - Math.max(0, maximumShare - 0.34) * 10,
+      1,
+      10,
+    );
+    const climateAvailability = Math.max(
+      0,
+      ...climate.candidates.map((element) => elementShare(counts, element)),
+    );
+    const seasonalScore = clamp(
+      10 - climate.severity * 5 + Math.min(1.2, climateAvailability * 3.2),
+      1,
+      10,
+    );
+    const structureScore = clamp(1 + gyeok.establishmentScore * 9, 1, 10);
+    const activeMethods = Object.values(yongsinDecision.methods).filter((items) => items.length);
+    const leadElement = yongsinDecision.favored[0];
+    const leadAgreement = activeMethods.length
+      ? activeMethods.filter((items) => items.includes(leadElement)).length / activeMethods.length
+      : 0;
+    const birthReliability = birth.unknownHour
+      ? 0.56
+      : birth.correction?.boundarySensitive
+        ? 0.68
+        : birth.correction?.hasKnownPlace
+          ? 0.92
+          : 0.76;
+    const confidenceScore = clamp(
+      strengthAnalysis.confidenceScore * 0.27 +
+        climate.confidenceScore * 0.2 +
+        gyeok.establishmentScore * 0.22 +
+        leadAgreement * 0.18 +
+        birthReliability * 0.13,
+      0.35,
+      0.92,
+    );
+    const dimensions = [
+      { key: "structure", label: "구조", score: structureScore, basis: `${gyeok.name} · ${gyeok.status}` },
+      { key: "balance", label: "균형", score: balanceScore, basis: `일간 생조 비율 ${(strengthAnalysis.ratio * 100).toFixed(0)}%` },
+      { key: "climate", label: "조후", score: seasonalScore, basis: `${climate.heatLabel} · ${climate.moistureLabel}` },
+    ];
+    const bottleneck = dimensions.slice().sort((left, right) => left.score - right.score)[0];
+    return {
+      dimensions,
+      structureScore,
+      balanceScore,
+      seasonalScore,
+      leadAgreement,
+      birthReliability,
+      confidenceScore,
+      confidence: confidenceScore >= 0.74 ? "비교적 뚜렷" : confidenceScore >= 0.58 ? "보통" : "제한적",
+      bottleneck,
+      summary: `격국 구조, 일간 균형, 한난·조습을 따로 계산한 뒤 ${elementLabel(leadElement)} 기운에 대한 방법 합의도를 대조했습니다.`,
     };
   }
 
@@ -3051,9 +3269,15 @@
     });
     const strength = strengthAnalysis.classification;
     const strengthRatio = strengthAnalysis.ratio;
-    const climate = buildClimateProfile(solarMonth);
+    const climate = buildClimateProfile(solarMonth, counts, dayElement);
     const climateElement = climate.primary;
-    const gyeok = buildGyeokProfile(dayStem, solarMonth, pillars);
+    const gyeok = assessGyeokProfile(buildGyeokProfile(dayStem, solarMonth, pillars), {
+      counts,
+      resourceElement,
+      outputElement,
+      wealthElement,
+      officerElement,
+    });
     const yongsinDecision = buildYongsinDecision({
       mode: modeOverride,
       counts,
@@ -3070,6 +3294,14 @@
     const usefulScores = yongsinDecision.scores;
     const favored = yongsinDecision.favored;
     const yongsin = yongsinDecision.yongsin;
+    const interpretationDimensions = buildInterpretationDimensions({
+      counts,
+      strengthAnalysis,
+      climate,
+      gyeok,
+      yongsinDecision,
+      birth,
+    });
     const elementPercentages = Object.fromEntries(
       elementKeys.map((key) => [key, total ? Math.round((counts[key] / total) * 1000) / 10 : 0]),
     );
@@ -3170,6 +3402,7 @@
       gyeok,
       yongsin,
       yongsinDecision,
+      interpretationDimensions,
       climate,
       monthCommand: {
         branch: branches[solarMonth.branchIndex][0],
@@ -3186,9 +3419,7 @@
       officerElement,
       climateElement,
       calculationNote: birth.correction?.correctionEnabled
-        ? `${birth.correction.place.label} 태양시 ${formatMinutes(
-            birth.correction.totalCorrection,
-          )} 보정 후 계산`
+        ? `${birth.correction.place.label} 진태양시 ${formatMinutes(birth.correction.totalCorrection)} 보정 후 계산`
         : "지역 시간 보정 없이 계산",
     };
   }
@@ -6954,10 +7185,9 @@
         saju.climateElement ?? saju.favored[0],
       )} 기운을 더 챙깁니다.`,
     }[interpretationMode.value];
-    const numberHints = sajuNumberHints(saju, 10);
     const correctionText = saju.birth.correction?.unknownHour
       ? "시각 모름으로 시간 기둥은 제외해 봅니다."
-      : `${saju.birth.correction.place.label} 기준 ${saju.birth.correction.correctionEnabled ? "지역·서머타임 보정 적용" : "지역 보정 꺼짐"} · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 방식입니다.`;
+      : `${saju.birth.correction.place.label} 기준 ${saju.birth.correction.correctionEnabled ? "경도·균시차·서머타임을 나눈 진태양시 보정 적용" : "진태양시 보정 꺼짐"} · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 방식입니다.`;
     const original = saju.birth.correction?.original;
     const calendarText = original?.calendar === "lunar"
       ? `음력 ${isoFromParts(original.input.year, original.input.month, original.input.day)}로 입력했고, 양력 ${isoFromParts(original.year, original.month, original.day)}로 변환해 명식을 계산했습니다.`
@@ -6991,11 +7221,11 @@
       </div>
       <div class="reading-row">
         <span>강한 점</span>
-        <p>${topTenGods.join(", ")} 쪽이 눈에 띕니다. 번호를 고를 때는 이 장점을 살리되 한쪽으로 몰리지 않게 보는 편이 좋습니다.</p>
+        <p>${topTenGods.join(", ")} 쪽이 눈에 띕니다. 선택할 때는 이 장점을 살리되 한쪽으로 몰리지 않게 보는 편이 좋습니다.</p>
       </div>
       <div class="reading-row">
         <span>용신 후보</span>
-        <p>${favored.join(", ")}을 보완 후보로 봅니다. 이 기운이 들어간 번호를 섞으면 사주 반영에서는 더 편안한 조합으로 읽습니다.</p>
+        <p>${favored.join(", ")}을 보완 후보로 봅니다. 자동 구매 시점은 이 기운과 재성 흐름이 함께 맞는 때를 찾습니다.</p>
         ${renderYongsinTags(saju)}
       </div>
       <div class="reading-row">
@@ -7011,11 +7241,6 @@
       <div class="reading-row">
         <span>세운·일진</span>
         <p>${flowText}</p>
-      </div>
-      <div class="reading-row">
-        <span>맞는 번호</span>
-        <p>현재 해석 모드에서 잘 맞는 쪽으로 잡힌 번호입니다.</p>
-        ${renderMiniBalls(numberHints)}
       </div>
     `;
   }
@@ -7033,7 +7258,6 @@
       .slice(0, 3)
       .map((item) => `${friendlyTenGod(item.label)} ${item.percentage ?? 0}%`)
       .join(", ");
-    const numberHints = sajuNumberHints(saju, 10);
     const original = saju.birth.correction?.original;
     const calendarText =
       original?.calendar === "lunar"
@@ -7046,7 +7270,9 @@
     const correctionText = saju.birth.correction?.unknownHour
       ? "출생시각을 모르는 조건이므로 시주는 참고값으로 낮추어 봅니다."
       : `${saju.birth.correction.place.label} 기준 ${
-          saju.birth.correction.correctionEnabled ? "지역·서머타임 보정을 적용" : "지역 보정을 적용하지 않음"
+          saju.birth.correction.correctionEnabled
+            ? "경도·균시차·서머타임을 나눈 진태양시 보정을 적용"
+            : "진태양시 보정을 적용하지 않음"
         } · ${saju.birth.correction.midnightRule === "traditional" ? "전통 자시" : "야자시/조자시"} 기준입니다.`;
     const termText = `${saju.monthCommand.enteredAtLabel || saju.monthCommand.term} 이후 태어난 것으로 보아 ${
       saju.monthCommand.branch
@@ -7111,8 +7337,7 @@
       },
       {
         title: "로또 추천에 반영된 부분",
-        body: `로또 추천에서는 통계 기반 후보를 먼저 세우고, 사주는 ${modeLabel} 기준의 보조 점수로만 반영합니다. 현재 해석에서 잘 맞는 쪽으로 잡힌 번호는 아래와 같습니다.`,
-        extra: renderMiniBalls(numberHints),
+        body: `파란 수동 5게임은 모든 사용자에게 같은 통계 기준으로 고릅니다. 사주는 ${modeLabel}을 포함한 명리 판단을 빨간 자동 구매 날짜·시간에만 사용하며 번호 순위에는 섞지 않습니다.`,
       },
       {
         title: "주의 문구",
@@ -7374,7 +7599,9 @@
         const supportFit =
           saju.strength === "weak" ? clamp(supportElementHits / 2) : clamp(0.55 + usefulFit * 0.45);
         const capacity = saju.wealthProfile?.capacity ?? (saju.strength === "weak" ? 0.62 : 0.9);
-        const profileConfidence = saju.wealthProfile?.confidenceScore ?? 0.62;
+        const wealthConfidence = saju.wealthProfile?.confidenceScore ?? 0.62;
+        const interpretationConfidence = saju.interpretationDimensions?.confidenceScore ?? 0.58;
+        const profileConfidence = clamp(wealthConfidence * 0.68 + interpretationConfidence * 0.32);
         const natalReadiness = saju.wealthProfile?.natalReadiness ?? 0.55;
         const currentReadiness = saju.wealthProfile?.currentReadiness ?? natalReadiness;
         const contextRaw = clamp(
@@ -7387,7 +7614,7 @@
         const lowCapacityWealth =
           wealthElementHits > 0 && capacity < 0.65 && supportFit < 0.5;
         const overloadPenalty = unsupportedWealth ? 0.16 : lowCapacityWealth ? 0.08 : 0;
-        const raw =
+        const rawScore =
           (dayWealth * 0.09 +
             hourWealth * 0.08 +
             hiddenWealth * 0.05 +
@@ -7398,6 +7625,7 @@
             relationFit * 0.12) *
             (0.68 + capacity * 0.17 + currentReadiness * 0.15) -
           overloadPenalty;
+        const raw = clamp(0.5 + (rawScore - 0.5) * (0.58 + profileConfidence * 0.42));
 
         candidates.push({
           game,
@@ -7417,10 +7645,12 @@
           contextFit,
           capacity,
           profileConfidence,
+          interpretationConfidence,
+          interpretationDimensions: saju.interpretationDimensions,
           natalReadiness,
           currentReadiness,
           overloadPenalty,
-          modelVersion: "wealth-capacity-chain-v3",
+          modelVersion: "wealth-capacity-chain-v4",
           policy,
         });
       }
@@ -7527,6 +7757,10 @@
       ? `연금복권 무작위 ${ticketCount}장`
       : `로또 자동 ${ticketCount}게임`;
     const totalPrice = formatNumber(ticketCount * 1000);
+    const dimensionChips = (moment.interpretationDimensions?.dimensions ?? [])
+      .map((item) => `<span><b>${item.label}</b> ${item.score.toFixed(1)}</span>`)
+      .join("");
+    const confidenceLabel = moment.interpretationDimensions?.confidence ?? "보통";
 
     container.innerHTML = `
       <div class="wealth-moment-heading">
@@ -7537,6 +7771,7 @@
         <strong>${moment.dayPillar.name} 일진 · ${moment.hourPillar.name} 시진</strong>
       </div>
       <p class="wealth-moment-lead">이 앱의 명리 기준에서는 이번 회차에 자동 구매하기 가장 잘 맞는 시간대로 읽습니다. 번호 선택은 통계 추천과 분리하고 기계의 무작위 선택에 맡깁니다.</p>
+      ${dimensionChips ? `<div class="wealth-method-summary"><strong>해석 ${confidenceLabel}</strong>${dimensionChips}</div>` : ""}
       <div class="automatic-purchase-callout">
         <span>추천 구매</span>
         <strong>${purchaseLabel}</strong>
