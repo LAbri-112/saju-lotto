@@ -7,7 +7,7 @@
     <title>사주 로또 추천기</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=feedback-v121" />
+    <link rel="stylesheet" href="styles.css?v=feedback-v122" />
   </head>
   <body>
     <main class="app-shell">
@@ -448,13 +448,7 @@
               <input id="pensionBirthDate" name="pensionBirthDate" type="text" inputmode="numeric" maxlength="12" placeholder="1998-08-27" autocomplete="off" />
             </div>
 
-            <div class="field-group">
-              <div class="label-row">
-                <label for="pensionSetCount">추천 세트</label>
-                <button class="help-button" type="button" data-help="연금복권 번호를 몇 장 볼지 정합니다. 기본은 5장이며 번호는 출생정보와 분리한 과거 회차 통계로 고릅니다.">?</button>
-              </div>
-              <input id="pensionSetCount" name="pensionSetCount" type="number" min="1" max="10" value="5" />
-            </div>
+            <input id="pensionSetCount" name="pensionSetCount" type="hidden" value="5" />
 
             <div class="field-group">
               <div class="label-row">
@@ -465,13 +459,12 @@
                 <option value="set" selected>세트형 · 당첨금 집중</option>
                 <option value="diversified">5장 분산형 · 당첨 접점 우선</option>
                 <option value="mixed">혼합형</option>
-                <option value="random">완전 랜덤</option>
               </select>
             </div>
 
             <button class="primary-action pension-action" type="submit">
               <span aria-hidden="true">↻</span>
-              연금번호 생성
+              통계 상위 5장 계산
             </button>
           </form>
         </aside>
@@ -496,16 +489,15 @@
             <div class="section-heading">
               <div class="heading-with-help">
                 <h2 id="pension-title">통계 기반 수동 추천 번호</h2>
-                <button class="help-button" type="button" data-help="연금복권 과거 회차의 자리별 빈도와 조합 분산을 기준으로 고릅니다. 출생정보는 빨간 자동 구매 시점에만 쓰이고 이 번호 순위에는 들어가지 않습니다.">?</button>
+                <button class="help-button" type="button" data-help="선택한 구매 방식 안에서 연금복권 과거 회차의 자리별 빈도와 조합 분산 점수가 높은 5장만 보여줍니다. 모든 개별 번호의 실제 추첨 확률은 같으며, 출생정보는 빨간 자동 구매 시점에만 사용합니다.">?</button>
               </div>
-              <p>로또·사주와 분리한 연금복권 전용 통계 순위입니다.</p>
+              <p>통계 순위 상위 5장만 표시합니다. 판매된 번호는 그 카드만 다음 순위로 교체하세요.</p>
             </div>
             <div id="pensionWealthMoment" class="wealth-moment-card" hidden></div>
             <div class="candidate-toolbar">
               <div id="pensionStats" class="candidate-stats pension-stats"></div>
-              <button id="pensionShuffle" class="shuffle-action" type="button">후보 랜덤 배치</button>
             </div>
-            <div id="pensionRecommendations" class="pension-recommendations"></div>
+            <div id="pensionRecommendations" class="pension-recommendations" aria-live="polite"></div>
           </section>
 
           <section class="analysis-grid pension-info-grid" aria-label="연금복권 안내">
@@ -539,15 +531,15 @@
 
     <div id="helpPopover" class="help-popover" hidden></div>
 
-    <script defer src="data/lotto-results.js?v=feedback-v121"></script>
-    <script defer src="data/pension-results.js?v=feedback-v121"></script>
-    <script defer src="data/lotto-recall-profile.js?v=feedback-v121"></script>
-    <script defer src="data/solar-terms.js?v=feedback-v121"></script>
-    <script defer src="data/saju-classical-sources.js?v=feedback-v121"></script>
-    <script defer src="data/saju-expert-rules.js?v=feedback-v121"></script>
-    <script defer src="data/saju-expert-cases.js?v=feedback-v121"></script>
-    <script defer src="data/saju-eval-cases.js?v=feedback-v121"></script>
-    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v121"></script>
-    <script defer src="app.js?v=feedback-v121"></script>
+    <script defer src="data/lotto-results.js?v=feedback-v122"></script>
+    <script defer src="data/pension-results.js?v=feedback-v122"></script>
+    <script defer src="data/lotto-recall-profile.js?v=feedback-v122"></script>
+    <script defer src="data/solar-terms.js?v=feedback-v122"></script>
+    <script defer src="data/saju-classical-sources.js?v=feedback-v122"></script>
+    <script defer src="data/saju-expert-rules.js?v=feedback-v122"></script>
+    <script defer src="data/saju-expert-cases.js?v=feedback-v122"></script>
+    <script defer src="data/saju-eval-cases.js?v=feedback-v122"></script>
+    <script defer src="data/saju-lotto-bridge-rules.js?v=feedback-v122"></script>
+    <script defer src="app.js?v=feedback-v122"></script>
   </body>
 </html>

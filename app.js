@@ -38,6 +38,8 @@
   const PENSION_GROUP_COUNT = 5;
   const PENSION_SERIAL_UNIVERSE_SIZE = 1000000;
   const PENSION_TICKET_UNIVERSE_SIZE = PENSION_GROUP_COUNT * PENSION_SERIAL_UNIVERSE_SIZE;
+  const PENSION_RECOMMENDATION_COUNT = 5;
+  const PENSION_REPLACEMENT_RESERVE_SIZE = 300;
   const generates = {
     wood: "fire",
     fire: "earth",
@@ -685,7 +687,6 @@
   const pensionMode = document.querySelector("#pensionMode");
   const pensionStats = document.querySelector("#pensionStats");
   const pensionRecommendations = document.querySelector("#pensionRecommendations");
-  const pensionShuffle = document.querySelector("#pensionShuffle");
   const pensionWealthMoment = document.querySelector("#pensionWealthMoment");
 
   let userPosition = null;
@@ -1184,9 +1185,8 @@
   function savePensionProfile() {
     if (typeof localStorage === "undefined") return;
     const profile = {
-      version: 5,
+      version: 6,
       birthDate: pensionBirthDate?.value ?? "",
-      setCount: pensionSetCount?.value ?? "5",
       mode: pensionMode?.value ?? "set",
       savedAt: new Date().toISOString(),
     };
@@ -1204,9 +1204,7 @@
     if (pensionBirthDate && typeof profile.birthDate === "string") {
       pensionBirthDate.value = normalizeBirthDateText(profile.birthDate);
     }
-    if (pensionSetCount && profile.setCount != null) {
-      pensionSetCount.value = String(clamp(Number(profile.setCount) || 5, 1, 10));
-    }
+    if (pensionSetCount) pensionSetCount.value = String(PENSION_RECOMMENDATION_COUNT);
     selectValueIfAvailable(
       pensionMode,
       profile.version >= 2 ? profile.mode : "set",
@@ -4838,7 +4836,6 @@
 
   const pensionModeLabels = {
     diversified: "5장 분산형",
-    random: "완전 랜덤",
     set: "세트형 · 당첨금 집중",
     mixed: "혼합형",
   };
@@ -5275,7 +5272,7 @@
 
   function generatePensionRecommendations() {
     pensionState.generation += 1;
-    const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
+    const target = PENSION_RECOMMENDATION_COUNT;
     const pensionSaju = buildSajuProfile("wealth", pensionBirthForSaju());
     const wealthMoment = buildWeeklyWealthMoment(pensionSaju, "pension");
     const luckyDigits = [];
@@ -5292,7 +5289,7 @@
       [
         "pension-statistical-v1",
         mode,
-        pensionSetCount?.value ?? "5",
+        PENSION_RECOMMENDATION_COUNT,
         stats.latestRound,
         stats.latestDate,
       ].join("|"),
@@ -5315,7 +5312,18 @@
       });
     }
 
-    const ranked = [...candidateMap.values()].sort((a, b) => b.meta.score - a.meta.score);
+    const ranked = [...candidateMap.values()]
+      .sort((a, b) => b.meta.score - a.meta.score || pensionCandidateKey(a).localeCompare(pensionCandidateKey(b)))
+      .map((candidate, index) => ({
+        ...candidate,
+        meta: {
+          ...candidate.meta,
+          statisticalRank: index + 1,
+        },
+      }));
+    const rankByKey = new Map(
+      ranked.map((candidate) => [pensionCandidateKey(candidate), candidate.meta.statisticalRank]),
+    );
     const selected = selectPensionPortfolio(
       ranked,
       target,
@@ -5324,11 +5332,20 @@
       personalWeight,
       stats,
       rng,
-    );
+    ).map((candidate) => ({
+      ...candidate,
+      meta: {
+        ...candidate.meta,
+        statisticalRank: rankByKey.get(pensionCandidateKey(candidate)) ?? null,
+      },
+    }));
     return {
       items: selected,
-      pool: ranked.slice(0, Math.max(target * 80, 300)),
-      candidateCount: ranked.length,
+      pool: ranked.slice(0, PENSION_REPLACEMENT_RESERVE_SIZE),
+      candidateCount: selected.length,
+      evaluatedCount: ranked.length,
+      rejectedKeys: new Set(),
+      replacementCount: 0,
       luckyDigits,
       personalWeight,
       personalWeightState,
@@ -5476,9 +5493,9 @@
       : `끝 1자리 ${formatPercent(portfolio.atLeastSeventhRate, 0)} · 1·2등 ${compactOdds}`;
     pensionStats.innerHTML = `
       <div class="candidate-hero-stat">
-        <span>연금복권 후보</span>
-        <strong>${formatNumber(result.candidateCount)}개</strong>
-        <em>지금 화면에는 ${formatNumber(shownCount)}장만 보여줍니다</em>
+        <span>이번 수동 추천</span>
+        <strong>${formatNumber(shownCount)}장</strong>
+        <em>선택한 구매 방식의 통계 순위 상위 5장</em>
       </div>
       <div class="candidate-stat-card">
         <span>번호 기준</span>
@@ -5497,6 +5514,9 @@
         <span>추천 방식</span>
         <strong>${result.modeLabel ?? "자리 분산형"}</strong>
         <em>${portfolioDetail}</em>
+      </div>
+      <div class="candidate-stat-note pension-availability-note">
+        <span>구매 화면에서 이미 판매된 번호라면 해당 카드의 <b>이미 팔림</b>을 누르세요. 다른 네 장은 유지하고 그 자리만 다음 통계 순위로 교체합니다.</span>
       </div>
       ${
         result.stats?.count
@@ -5521,52 +5541,60 @@
     return "5장의 끝 1자리가 겹치지 않도록 배치해, 한 장이라도 하위 등수에 닿는 범위를 넓힌 번호입니다.";
   }
 
-  function shuffledPensionCandidates(items, seed) {
-    const shuffled = [...items];
-    const rng = mulberry32(seed);
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(rng() * (index + 1));
-      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-    }
-    return { shuffled, rng };
+  function findNextPensionReplacement(result, index) {
+    const items = Array.isArray(result?.items) ? result.items : [];
+    const current = items[index];
+    if (!current) return null;
+
+    const rejectedKeys = result.rejectedKeys instanceof Set
+      ? new Set(result.rejectedKeys)
+      : new Set(result.rejectedKeys ?? []);
+    rejectedKeys.add(pensionCandidateKey(current));
+    const visibleKeys = new Set(
+      items
+        .filter((_, itemIndex) => itemIndex !== index)
+        .map(pensionCandidateKey),
+    );
+    const candidate = (result.pool ?? []).find((item) => {
+      const key = pensionCandidateKey(item);
+      return !rejectedKeys.has(key) && !visibleKeys.has(key);
+    });
+
+    return candidate ? { candidate, rejectedKeys } : null;
+  }
+
+  function replaceSoldPensionRecommendation(result, index) {
+    const replacement = findNextPensionReplacement(result, index);
+    if (!replacement) return false;
+
+    const replacementCount = Number(result.replacementCount ?? 0) + 1;
+    const items = [...result.items];
+    items[index] = {
+      ...replacement.candidate,
+      replacementOrder: replacementCount,
+    };
+    result.items = items;
+    result.rejectedKeys = replacement.rejectedKeys;
+    result.replacementCount = replacementCount;
+    result.selectedCount = items.length;
+    result.portfolioMeta = buildPensionPortfolioMeta(items, result.mode);
+    return true;
   }
 
   function renderPensionRecommendations(result, options = {}) {
     if (!pensionRecommendations || !result) return;
-    const target = clamp(Number(pensionSetCount?.value) || 5, 1, 10);
-    const alternative = options.randomize
-      ? shuffledPensionCandidates(result.pool, hashString(`pension-shuffle-${pensionState.generation}`))
-      : null;
-    const items = alternative
-      ? selectPensionPortfolio(
-          alternative.shuffled,
-          target,
-          result.mode,
-          result.luckyDigits,
-          result.personalWeight,
-          result.stats,
-          alternative.rng,
-        )
-      : result.items;
-    const renderedResult = alternative
-      ? { ...result, items, portfolioMeta: buildPensionPortfolioMeta(items, result.mode) }
-      : result;
+    const items = result.items.slice(0, PENSION_RECOMMENDATION_COUNT);
     renderPensionLatestResult();
-    renderPensionStats(renderedResult, items.length);
+    renderPensionStats(result, items.length);
     renderPensionPrizeGuide();
     renderWealthMoment(pensionWealthMoment, result.wealthMoment, "pension");
     pensionRecommendations.classList.toggle("statistical-best-five", items.length >= 5);
-
-    if (pensionShuffle) {
-      pensionShuffle.disabled = !result.pool?.length;
-      pensionShuffle.textContent = options.randomize ? "다른 후보 랜덤 배치" : "후보 랜덤 배치";
-    }
 
     pensionRecommendations.innerHTML = items
       .map((item, index) => {
         const digits = item.digits.map((digit) => `<span class="pension-digit">${digit}</span>`).join("");
         return `
-          <article class="pension-card">
+          <article class="pension-card${item.replacementOrder ? " is-replacement" : ""}">
             <div class="pension-card-head">
               <div>
                 <span class="pension-group-badge">${item.group}조</span>
@@ -5575,11 +5603,20 @@
               <span class="pension-score-pill"><small>분산점수</small><b>${item.meta.score}</b></span>
             </div>
             <div class="pension-number-line">${digits}</div>
-            <p>${pensionRecommendationReason(item, result.mode)}</p>
+            <p>${item.replacementOrder ? "판매 완료로 표시한 번호 대신 다음 통계 순위 후보를 넣었습니다." : pensionRecommendationReason(item, result.mode)}</p>
             <div class="pension-chip-line">
               <span>홀 ${item.meta.odd} / 짝 ${6 - item.meta.odd}</span>
               <span>높은숫자 ${item.meta.high}</span>
               <span>통계 전용</span>
+            </div>
+            <div class="pension-card-actions">
+              <small>${item.replacementOrder ? `다음 통계 후보 ${formatNumber(item.replacementOrder)}` : `추천 순위 ${index + 1}`}</small>
+              <button
+                class="pension-sold-reroll"
+                type="button"
+                data-pension-reroll-index="${index}"
+                aria-label="${index + 1}번 추천이 이미 팔린 경우 다음 통계 순위 번호로 교체"
+              ><span aria-hidden="true">↻</span> 이미 팔림</button>
             </div>
           </article>
         `;
@@ -7483,7 +7520,7 @@
       ? `차선 시점은 ${formatDay(moment.runnerUp.date)} ${wealthMomentRange(moment.runnerUp)}입니다.`
       : "";
     const configuredCount = game === "pension"
-      ? Number(pensionSetCount?.value)
+      ? PENSION_RECOMMENDATION_COUNT
       : Number(setCount?.value);
     const ticketCount = clamp(configuredCount || 5, 1, 5);
     const purchaseLabel = game === "pension"
@@ -8416,7 +8453,7 @@
       refreshPension();
     });
 
-    for (const control of [pensionSetCount, pensionMode]) {
+    for (const control of [pensionMode]) {
       control?.addEventListener("input", () => {
         savePensionProfile();
         schedulePensionRefresh();
@@ -8446,10 +8483,22 @@
       schedulePensionRefresh({}, 80);
     });
 
-    pensionShuffle?.addEventListener("click", () => {
-      if (!pensionState.lastResult?.pool?.length) return;
-      pensionState.generation += 1;
-      renderPensionRecommendations(pensionState.lastResult, { randomize: true });
+    pensionRecommendations?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-pension-reroll-index]");
+      if (!button || !pensionState.lastResult) return;
+      const index = Number(button.dataset.pensionRerollIndex);
+      if (!Number.isInteger(index)) return;
+      const replaced = replaceSoldPensionRecommendation(pensionState.lastResult, index);
+      if (!replaced) {
+        button.disabled = true;
+        button.textContent = "교체 후보 없음";
+        return;
+      }
+      renderPensionRecommendations(pensionState.lastResult, { updatedIndex: index });
+      const nextButton = pensionRecommendations.querySelector(
+        `[data-pension-reroll-index="${index}"]`,
+      );
+      nextButton?.focus({ preventScroll: true });
     });
 
     for (const control of [
