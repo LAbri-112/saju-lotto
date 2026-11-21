@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-15T06:54:01.169Z",
+  "generatedAt": "2026-11-21T18:12:51.125Z",
   "source": "fullayer-public-list-incremental",
   "sourceUrl": "https://www.fullayer.com/lottowinnumber/fo/lottowinnumberlist3",
   "latestSourceUrl": null,
@@ -22,9 +22,9 @@
     "prizeRows": "gameResult.do?method=byWin",
     "firstPurchaseTypes": "gameResult.do?method=byWin rank 1 note"
   },
-  "latestDraw": 1250,
-  "latestDate": "2026-11-14",
-  "count": 1250,
+  "latestDraw": 1251,
+  "latestDate": "2026-11-21",
+  "count": 1251,
   "draws": [
     {
       "draw": 1,
@@ -102996,6 +102996,91 @@
       "fifthWinners": 2658318,
       "fifthPrize": 5000,
       "fifthTotalPrize": 13291590000
+    },
+    {
+      "draw": 1251,
+      "date": "2026-11-21",
+      "numbers": [
+        14,
+        18,
+        19,
+        29,
+        40,
+        45
+      ],
+      "bonus": 1,
+      "firstWinners": 14,
+      "firstPrize": 2068843286,
+      "secondWinners": 96,
+      "secondPrize": 50284386,
+      "totalSales": 58496443856,
+      "firstTotalPrize": 28963806004,
+      "prizeTiers": {
+        "1": {
+          "rank": 1,
+          "totalPrize": 28963806004,
+          "winners": 14,
+          "prize": 2068843286,
+          "criteria": "6개번호 일치",
+          "note": "",
+          "purchaseTypes": {
+            "auto": 14,
+            "manual": 0,
+            "semiAuto": 0
+          }
+        },
+        "2": {
+          "rank": 2,
+          "totalPrize": 4827301056,
+          "winners": 96,
+          "prize": 50284386,
+          "criteria": "5개번호 일치 + 보너스번호 일치",
+          "note": "",
+          "purchaseTypes": null
+        },
+        "3": {
+          "rank": 3,
+          "totalPrize": 4827301796,
+          "winners": 2851,
+          "prize": 1693196,
+          "criteria": "5개번호 일치",
+          "note": "",
+          "purchaseTypes": null
+        },
+        "4": {
+          "rank": 4,
+          "totalPrize": 7348150000,
+          "winners": 146963,
+          "prize": 50000,
+          "criteria": "4개번호 일치",
+          "note": "",
+          "purchaseTypes": null
+        },
+        "5": {
+          "rank": 5,
+          "totalPrize": 12529885000,
+          "winners": 2505977,
+          "prize": 5000,
+          "criteria": "3개번호 일치",
+          "note": "",
+          "purchaseTypes": null
+        }
+      },
+      "firstPurchaseTypes": {
+        "auto": 14,
+        "manual": 0,
+        "semiAuto": 0
+      },
+      "secondTotalPrize": 4827301056,
+      "thirdWinners": 2851,
+      "thirdPrize": 1693196,
+      "thirdTotalPrize": 4827301796,
+      "fourthWinners": 146963,
+      "fourthPrize": 50000,
+      "fourthTotalPrize": 7348150000,
+      "fifthWinners": 2505977,
+      "fifthPrize": 5000,
+      "fifthTotalPrize": 12529885000
     }
   ]
 }

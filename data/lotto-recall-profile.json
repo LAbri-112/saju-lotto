@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T06:54:01.893Z",
-  "basisLatestDraw": 1250,
-  "basisLatestDate": "2026-11-14",
-  "sourceDrawCount": 1250,
-  "evaluatedDraws": 1250,
+  "generatedAt": "2026-11-21T18:12:52.054Z",
+  "basisLatestDraw": 1251,
+  "basisLatestDate": "2026-11-21",
+  "sourceDrawCount": 1251,
+  "evaluatedDraws": 1251,
   "minPrior": 0,
   "goal": "Maximize walk-forward winning-combination recall first, then minimize the candidate count without using future draw data.",
   "coreCandidatePolicy": {
@@ -21,7 +21,7 @@
   "walkForwardPolicy": {
     "noFutureLeakage": true,
     "usedForRecommendations": true,
-    "evaluatedDraws": 1250,
+    "evaluatedDraws": 1251,
     "recommendedWindow": "50",
     "practicalRecommendation": {
       "frontierLimit": 25,
@@ -29,22 +29,22 @@
       "exactDraws": 28,
       "exactRate": 2.24,
       "randomExpectedRate": 2.174,
-      "lift": 1.03
+      "lift": 1.029
     },
     "holdoutValidation": {
       "trainingDraws": 875,
-      "validationDraws": 375,
+      "validationDraws": 376,
       "frontierLimitChosenOnTrainingOnly": 25,
       "candidateCount": 177100,
       "exactDraws": 6,
       "exactRate": 1.6,
       "randomExpectedRate": 2.174,
-      "lift": 0.736
+      "lift": 0.734
     },
     "strictHistoricalCoverage": {
       "frontierLimit": 45,
       "candidateCount": 8145060,
-      "exactDraws": 1250,
+      "exactDraws": 1251,
       "exactRate": 100,
       "randomExpectedRate": 100,
       "lift": 1,
@@ -56,25 +56,25 @@
         "frontierLimit": 41,
         "candidateCount": 4496388,
         "exactDraws": 718,
-        "exactRate": 57.44,
+        "exactRate": 57.39,
         "randomExpectedRate": 55.204,
-        "lift": 1.041
+        "lift": 1.04
       },
       {
         "targetRate": 70,
         "frontierLimit": 43,
         "candidateCount": 6096454,
         "exactDraws": 943,
-        "exactRate": 75.44,
+        "exactRate": 75.38,
         "randomExpectedRate": 74.848,
-        "lift": 1.008
+        "lift": 1.007
       },
       {
         "targetRate": 80,
         "frontierLimit": 44,
         "candidateCount": 7059052,
-        "exactDraws": 1098,
-        "exactRate": 87.84,
+        "exactDraws": 1099,
+        "exactRate": 87.85,
         "randomExpectedRate": 86.667,
         "lift": 1.014
       },
@@ -82,7 +82,7 @@
         "targetRate": 90,
         "frontierLimit": 45,
         "candidateCount": 8145060,
-        "exactDraws": 1250,
+        "exactDraws": 1251,
         "exactRate": 100,
         "randomExpectedRate": 100,
         "lift": 1
@@ -91,7 +91,7 @@
         "targetRate": 95,
         "frontierLimit": 45,
         "candidateCount": 8145060,
-        "exactDraws": 1250,
+        "exactDraws": 1251,
         "exactRate": 100,
         "randomExpectedRate": 100,
         "lift": 1
@@ -100,7 +100,7 @@
         "targetRate": 99,
         "frontierLimit": 45,
         "candidateCount": 8145060,
-        "exactDraws": 1250,
+        "exactDraws": 1251,
         "exactRate": 100,
         "randomExpectedRate": 100,
         "lift": 1
@@ -109,7 +109,7 @@
         "targetRate": 100,
         "frontierLimit": 45,
         "candidateCount": 8145060,
-        "exactDraws": 1250,
+        "exactDraws": 1251,
         "exactRate": 100,
         "randomExpectedRate": 100,
         "lift": 1
@@ -122,7 +122,7 @@
         "exactDraws": 2,
         "exactRate": 0.16,
         "randomExpectedRate": 0.228,
-        "lift": 0.702
+        "lift": 0.701
       },
       {
         "frontierLimit": 19,
@@ -138,7 +138,7 @@
         "exactDraws": 5,
         "exactRate": 0.4,
         "randomExpectedRate": 0.476,
-        "lift": 0.841
+        "lift": 0.84
       },
       {
         "frontierLimit": 21,
@@ -146,7 +146,7 @@
         "exactDraws": 10,
         "exactRate": 0.8,
         "randomExpectedRate": 0.666,
-        "lift": 1.201
+        "lift": 1.2
       },
       {
         "frontierLimit": 22,
@@ -154,7 +154,7 @@
         "exactDraws": 12,
         "exactRate": 0.96,
         "randomExpectedRate": 0.916,
-        "lift": 1.048
+        "lift": 1.047
       },
       {
         "frontierLimit": 23,
@@ -162,7 +162,7 @@
         "exactDraws": 18,
         "exactRate": 1.44,
         "randomExpectedRate": 1.239,
-        "lift": 1.162
+        "lift": 1.161
       },
       {
         "frontierLimit": 24,
@@ -170,7 +170,7 @@
         "exactDraws": 21,
         "exactRate": 1.68,
         "randomExpectedRate": 1.652,
-        "lift": 1.017
+        "lift": 1.016
       },
       {
         "frontierLimit": 25,
@@ -178,7 +178,7 @@
         "exactDraws": 28,
         "exactRate": 2.24,
         "randomExpectedRate": 2.174,
-        "lift": 1.03
+        "lift": 1.029
       }
     ],
     "expertPerformance": [
@@ -186,53 +186,53 @@
         "expert": "transition",
         "averageWinningRank": 23.093,
         "exactAt29": 84,
-        "exactAt29Rate": 6.72
+        "exactAt29Rate": 6.71
       },
       {
         "expert": "reentry",
-        "averageWinningRank": 23.112,
+        "averageWinningRank": 23.113,
         "exactAt29": 77,
         "exactAt29Rate": 6.16
       },
       {
         "expert": "recent20",
-        "averageWinningRank": 22.95,
+        "averageWinningRank": 22.953,
         "exactAt29": 76,
         "exactAt29Rate": 6.08
       },
       {
         "expert": "overdue",
-        "averageWinningRank": 23.128,
+        "averageWinningRank": 23.127,
         "exactAt29": 76,
         "exactAt29Rate": 6.08
       },
       {
         "expert": "recent200",
-        "averageWinningRank": 22.987,
+        "averageWinningRank": 22.986,
         "exactAt29": 74,
         "exactAt29Rate": 5.92
       },
       {
         "expert": "longTerm",
-        "averageWinningRank": 23.193,
+        "averageWinningRank": 23.186,
         "exactAt29": 72,
         "exactAt29Rate": 5.76
       },
       {
         "expert": "balanced",
-        "averageWinningRank": 23.035,
+        "averageWinningRank": 23.037,
         "exactAt29": 69,
         "exactAt29Rate": 5.52
       },
       {
         "expert": "decayed",
-        "averageWinningRank": 22.921,
+        "averageWinningRank": 22.925,
         "exactAt29": 66,
         "exactAt29Rate": 5.28
       },
       {
         "expert": "recent50",
-        "averageWinningRank": 22.924,
+        "averageWinningRank": 22.93,
         "exactAt29": 55,
         "exactAt29Rate": 4.4
       }
@@ -296,119 +296,133 @@
     "validationExpertPerformance": [
       {
         "expert": "overdue",
-        "averageWinningRank": 22.674,
+        "averageWinningRank": 22.671,
         "exactAt29": 27,
-        "exactAt29Rate": 7.2
+        "exactAt29Rate": 7.18
       },
       {
         "expert": "reentry",
-        "averageWinningRank": 22.831,
+        "averageWinningRank": 22.834,
         "exactAt29": 27,
-        "exactAt29Rate": 7.2
+        "exactAt29Rate": 7.18
       },
       {
         "expert": "longTerm",
-        "averageWinningRank": 23.286,
+        "averageWinningRank": 23.262,
         "exactAt29": 23,
-        "exactAt29Rate": 6.13
+        "exactAt29Rate": 6.12
       },
       {
         "expert": "transition",
         "averageWinningRank": 23.365,
         "exactAt29": 20,
-        "exactAt29Rate": 5.33
+        "exactAt29Rate": 5.32
       },
       {
         "expert": "recent50",
-        "averageWinningRank": 23.466,
+        "averageWinningRank": 23.483,
         "exactAt29": 20,
-        "exactAt29Rate": 5.33
+        "exactAt29Rate": 5.32
       },
       {
         "expert": "recent200",
-        "averageWinningRank": 23.256,
+        "averageWinningRank": 23.252,
         "exactAt29": 18,
-        "exactAt29Rate": 4.8
+        "exactAt29Rate": 4.79
       },
       {
         "expert": "recent20",
-        "averageWinningRank": 23.471,
+        "averageWinningRank": 23.479,
         "exactAt29": 17,
-        "exactAt29Rate": 4.53
+        "exactAt29Rate": 4.52
       },
       {
         "expert": "decayed",
-        "averageWinningRank": 23.54,
+        "averageWinningRank": 23.552,
         "exactAt29": 16,
-        "exactAt29Rate": 4.27
+        "exactAt29Rate": 4.26
       },
       {
         "expert": "balanced",
-        "averageWinningRank": 23.517,
+        "averageWinningRank": 23.521,
         "exactAt29": 14,
-        "exactAt29Rate": 3.73
+        "exactAt29Rate": 3.72
       }
     ],
     "selectedExpertForNextDraw": "reentry",
     "finalExpertWeights": {
-      "balanced": 0.74763,
-      "recent20": 1.6201,
-      "recent50": 2.04959,
-      "recent200": 1.15524,
-      "longTerm": 0.17843,
-      "decayed": 2.11521,
-      "reentry": 0.37104,
-      "transition": 0.44233,
-      "overdue": 0.32042
+      "balanced": 0.75297,
+      "recent20": 1.61592,
+      "recent50": 1.99534,
+      "recent200": 1.19493,
+      "longTerm": 0.1942,
+      "decayed": 2.08687,
+      "reentry": 0.37687,
+      "transition": 0.45147,
+      "overdue": 0.33143
     },
     "nextDrawNumberOrder": [
+      24,
+      21,
       4,
       13,
-      32,
-      24,
-      26,
-      45,
-      14,
-      21,
-      43,
-      44,
       8,
       38,
-      34,
-      31,
-      36,
       22,
-      10,
+      34,
+      32,
+      26,
+      36,
       42,
-      27,
       16,
-      18,
-      7,
+      27,
       11,
-      9,
-      41,
+      43,
+      44,
       35,
+      18,
       1,
-      20,
-      19,
       2,
-      33,
+      31,
       25,
-      28,
-      12,
-      5,
-      37,
+      45,
       40,
+      14,
+      10,
+      19,
+      7,
+      28,
+      5,
+      20,
       23,
+      41,
+      9,
+      33,
+      29,
+      12,
+      37,
       15,
       39,
-      6,
       3,
+      6,
       17,
-      29,
       30
     ],
     "recentRecords": [
+      {
+        "draw": 1251,
+        "date": "2026-11-21",
+        "selectedExpert": "reentry",
+        "requiredFrontierLimit": 44,
+        "winningRanks": [
+          6,
+          7,
+          21,
+          29,
+          37,
+          44
+        ]
+      },
       {
         "draw": 1250,
         "date": "2026-11-14",
@@ -674,20 +688,6 @@
           37,
           38
         ]
-      },
-      {
-        "draw": 1231,
-        "date": "2026-07-04",
-        "selectedExpert": "reentry",
-        "requiredFrontierLimit": 41,
-        "winningRanks": [
-          4,
-          10,
-          12,
-          18,
-          21,
-          41
-        ]
       }
     ]
   },
@@ -712,7 +712,7 @@
         "130": 170,
         "140": 150,
         "150": 120,
-        "160": 124,
+        "160": 125,
         "170": 91,
         "180": 50,
         "190": 34,
@@ -721,7 +721,7 @@
         "220": 3,
         "230": 1
       },
-      "total": 1250,
+      "total": 1251,
       "max": 170,
       "preferred": [
         {
@@ -741,8 +741,8 @@
         },
         {
           "value": "160",
-          "count": 124,
-          "rate": 9.9
+          "count": 125,
+          "rate": 10
         },
         {
           "value": "110",
@@ -761,18 +761,18 @@
         "0": 17,
         "1": 84,
         "2": 285,
-        "3": 415,
+        "3": 416,
         "4": 331,
         "5": 99,
         "6": 19
       },
-      "total": 1250,
-      "max": 415,
+      "total": 1251,
+      "max": 416,
       "preferred": [
         {
           "value": "3",
-          "count": 415,
-          "rate": 33.2
+          "count": 416,
+          "rate": 33.3
         },
         {
           "value": "4",
@@ -806,18 +806,18 @@
         "0": 17,
         "1": 113,
         "2": 314,
-        "3": 413,
+        "3": 414,
         "4": 283,
         "5": 94,
         "6": 16
       },
-      "total": 1250,
-      "max": 413,
+      "total": 1251,
+      "max": 414,
       "preferred": [
         {
           "value": "3",
-          "count": 413,
-          "rate": 33
+          "count": 414,
+          "rate": 33.1
         },
         {
           "value": "2",
@@ -850,16 +850,16 @@
       "counts": {
         "2": 45,
         "3": 403,
-        "4": 659,
+        "4": 660,
         "5": 143
       },
-      "total": 1250,
-      "max": 659,
+      "total": 1251,
+      "max": 660,
       "preferred": [
         {
           "value": "4",
-          "count": 659,
-          "rate": 52.7
+          "count": 660,
+          "rate": 52.8
         },
         {
           "value": "3",
@@ -882,16 +882,16 @@
       "counts": {
         "3": 49,
         "4": 329,
-        "5": 599,
+        "5": 600,
         "6": 273
       },
-      "total": 1250,
-      "max": 599,
+      "total": 1251,
+      "max": 600,
       "preferred": [
         {
           "value": "5",
-          "count": 599,
-          "rate": 47.9
+          "count": 600,
+          "rate": 48
         },
         {
           "value": "4",
@@ -917,11 +917,11 @@
         "15": 45,
         "20": 102,
         "25": 217,
-        "30": 319,
+        "30": 320,
         "35": 331,
         "40": 223
       },
-      "total": 1250,
+      "total": 1251,
       "max": 331,
       "preferred": [
         {
@@ -931,8 +931,8 @@
         },
         {
           "value": "30",
-          "count": 319,
-          "rate": 25.5
+          "count": 320,
+          "rate": 25.6
         },
         {
           "value": "40",
@@ -942,7 +942,7 @@
         {
           "value": "25",
           "count": 217,
-          "rate": 17.4
+          "rate": 17.3
         },
         {
           "value": "20",
@@ -959,21 +959,21 @@
     "consecutive": {
       "counts": {
         "0": 602,
-        "1": 492,
+        "1": 493,
         "2": 134,
         "3": 22
       },
-      "total": 1250,
+      "total": 1251,
       "max": 602,
       "preferred": [
         {
           "value": "0",
           "count": 602,
-          "rate": 48.2
+          "rate": 48.1
         },
         {
           "value": "1",
-          "count": 492,
+          "count": 493,
           "rate": 39.4
         },
         {
@@ -991,17 +991,17 @@
     "repeatPrevious": {
       "counts": {
         "0": 483,
-        "1": 530,
+        "1": 531,
         "2": 211,
         "3": 24,
         "4": 2
       },
-      "total": 1250,
-      "max": 530,
+      "total": 1251,
+      "max": 531,
       "preferred": [
         {
           "value": "1",
-          "count": 530,
+          "count": 531,
           "rate": 42.4
         },
         {
@@ -1031,7 +1031,7 @@
     {
       "window": "transition",
       "count": 84,
-      "rate": 6.72
+      "rate": 6.71
     },
     {
       "window": "reentry",
@@ -1061,6 +1061,42 @@
   ],
   "frontierHitRate": 2.24,
   "recentRecords": [
+    {
+      "draw": 1251,
+      "date": "2026-11-21",
+      "selectedExpert": "reentry",
+      "requiredFrontierLimit": 44,
+      "winningRanks": [
+        6,
+        7,
+        21,
+        29,
+        37,
+        44
+      ],
+      "expertRequiredLimits": {
+        "balanced": 42,
+        "recent20": 42,
+        "recent50": 45,
+        "recent200": 37,
+        "longTerm": 38,
+        "decayed": 42,
+        "reentry": 44,
+        "transition": 33,
+        "overdue": 42
+      },
+      "expertAverageRanks": {
+        "balanced": 25.166666666666668,
+        "recent20": 26.5,
+        "recent50": 29.833333333333332,
+        "recent200": 21.5,
+        "longTerm": 14.5,
+        "decayed": 28,
+        "reentry": 24,
+        "transition": 23.333333333333332,
+        "overdue": 21.5
+      }
+    },
     {
       "draw": 1250,
       "date": "2026-11-14",
@@ -1455,42 +1491,6 @@
         "reentry": 19,
         "transition": 10.333333333333334,
         "overdue": 26.666666666666668
-      }
-    },
-    {
-      "draw": 1239,
-      "date": "2026-08-29",
-      "selectedExpert": "reentry",
-      "requiredFrontierLimit": 43,
-      "winningRanks": [
-        6,
-        12,
-        14,
-        26,
-        42,
-        43
-      ],
-      "expertRequiredLimits": {
-        "balanced": 41,
-        "recent20": 44,
-        "recent50": 42,
-        "recent200": 30,
-        "longTerm": 44,
-        "decayed": 44,
-        "reentry": 43,
-        "transition": 41,
-        "overdue": 43
-      },
-      "expertAverageRanks": {
-        "balanced": 27.833333333333332,
-        "recent20": 22.666666666666668,
-        "recent50": 30.166666666666668,
-        "recent200": 20.5,
-        "longTerm": 25,
-        "decayed": 29,
-        "reentry": 23.833333333333332,
-        "transition": 22.666666666666668,
-        "overdue": 24.833333333333332
       }
     }
   ]
